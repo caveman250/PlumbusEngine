@@ -25,3 +25,9 @@ x64/Release/VulkanRenderer.tlog/link.read.1.tlog
 x64/Release/VulkanRenderer.tlog/link.write.1.tlog
 x64/Release/VulkanRenderer.tlog/VulkanRenderer.lastbuildstate
 x64/Release/VulkanRenderer.tlog/VulkanRenderer.write.1u.tlog
+x64/Debug/Model.obj
+x64/Debug/ModelLoader.obj
+x64/Debug/ModelManager.obj
+x64/Release/Model.obj
+x64/Release/ModelLoader.obj
+x64/Release/ModelManager.obj
