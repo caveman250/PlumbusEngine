@@ -19,6 +19,7 @@
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj/tiny_obj_loader.h"
+#include <unordered_map>
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -34,6 +35,19 @@ const std::vector<const char*> deviceExtensions = {
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_LUNARG_standard_validation"
 };
+
+namespace std
+{
+	template<> struct hash<Application::Vertex>
+	{
+		size_t operator()(Application::Vertex const& vertex) const
+		{
+			return ((hash<glm::vec3>()(vertex.m_Pos) ^
+				(hash<glm::vec3>()(vertex.m_Colour) << 1)) >> 1) ^
+				(hash<glm::vec2>()(vertex.m_TexCoord) << 1);
+		}
+	};
+}
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -1231,6 +1245,8 @@ void Application::LoadModel()
 		throw std::runtime_error(err);
 	}
 
+	std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+
 	for (const auto& shape : shapes) 
 	{
 		for (const auto& index : shape.mesh.indices) 
@@ -1250,8 +1266,14 @@ void Application::LoadModel()
 
 			vertex.m_Colour = { 1.0f, 1.0f, 1.0f };
 
-			m_Vertices.push_back(vertex);
-			m_Indices.push_back(m_Indices.size());
+
+			if (uniqueVertices.count(vertex) == 0) 
+			{
+				uniqueVertices[vertex] = static_cast<uint32_t>(m_Vertices.size());
+				m_Vertices.push_back(vertex);
+			}
+
+			m_Indices.push_back(uniqueVertices[vertex]);
 		}
 	}
 }

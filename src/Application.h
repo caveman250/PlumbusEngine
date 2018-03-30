@@ -4,6 +4,8 @@
 #include <vector>
 #include <array>
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 class Application
 {
@@ -70,6 +72,13 @@ public:
 			attributeDescriptions[2].offset = offsetof(Vertex, m_TexCoord);
 
 			return attributeDescriptions;
+		}
+
+		bool operator==(const Vertex& other) const 
+		{
+			return m_Pos == other.m_Pos 
+				&& m_Colour == other.m_Colour 
+				&& m_TexCoord == other.m_TexCoord;
 		}
 	};
 
