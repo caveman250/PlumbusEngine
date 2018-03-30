@@ -1,0 +1,10 @@
+﻿  Application.cpp
+c:\users\jason\source\repos\vulkanrenderer\vulkanrenderer\src\helpers.h(27): warning C4091: 'static ': ignored on left of 'Helpers' when no variable is declared
+c:\users\jason\source\repos\vulkanrenderer\vulkanrenderer\src\application.cpp(1197): warning C4838: conversion from 'int' to 'uint32_t' requires a narrowing conversion
+c:\users\jason\source\repos\vulkanrenderer\vulkanrenderer\src\application.cpp(1254): warning C4267: 'argument': conversion from 'size_t' to 'uint32_t', possible loss of data
+  Generating Code...
+  Compiling...
+  main.cpp
+  Generating Code...
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
+  VulkanRenderer.vcxproj -> C:\Users\Jason\source\repos\VulkanRenderer\x64\Debug\VulkanRenderer.exe
