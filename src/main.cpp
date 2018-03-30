@@ -3,11 +3,11 @@
 
 int main() 
 {
-	Application app;
+	Application::CreateInstance();
 
 	try 
 	{
-		app.Run();
+		Application::GetInstance().Run();
 	}
 	catch (const std::runtime_error& e) 
 	{

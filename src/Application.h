@@ -4,8 +4,8 @@
 #include <vector>
 #include <array>
 #include <glm/glm.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
+#include "Vertex.h"
+#include "Model.h"
 
 class Application
 {
@@ -28,67 +28,21 @@ private:
 		std::vector<VkPresentModeKHR> m_PresentModes;
 	};
 
-	struct UniformBufferObject 
-	{
-		glm::mat4 m_Model;
-		glm::mat4 m_View;
-		glm::mat4 m_Proj;
-	};
-
 public:
-	struct Vertex 
-	{
-		glm::vec3 m_Pos;
-		glm::vec3 m_Colour;
-		glm::vec2 m_TexCoord;
-
-		static VkVertexInputBindingDescription GetBindingDescription() 
-		{
-			VkVertexInputBindingDescription bindingDescription = {};
-			bindingDescription.binding = 0;
-			bindingDescription.stride = sizeof(Vertex);
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			return bindingDescription;
-		}
-
-		static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions() 
-		{
-			std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
-
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[0].offset = offsetof(Vertex, m_Pos);
-
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, m_Colour);
-
-			attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset = offsetof(Vertex, m_TexCoord);
-
-			return attributeDescriptions;
-		}
-
-		bool operator==(const Vertex& other) const 
-		{
-			return m_Pos == other.m_Pos 
-				&& m_Colour == other.m_Colour 
-				&& m_TexCoord == other.m_TexCoord;
-		}
-	};
-
-public:
+	static void CreateInstance() { m_Instance = new Application(); }
+	static Application& GetInstance() { return *m_Instance; }
 	void Run();
+
+	VkDevice& GetDevice() { return m_Device; }
+	VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
+	VkExtent2D& GetSwapChainExtent() { return m_SwapChainExtent; }
+	VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
+
 
 private:
 	void InitWindow();
 	void InitVulkan();
-	void CreateInstance();
+	void CreateVulkanInstance();
 	void SetupDebugCallback();
 	void PickPhysicalDevice();
 	bool IsDeviceSuitable(VkPhysicalDevice device);
@@ -96,44 +50,43 @@ private:
 	void CreateLogicalDevice();
 	void CreateSurface();
 
+	VkDescriptorSetLayout m_DescriptorSetLayout;
+	void CreateDescriptorSetLayout();
+
 	void CreateSwapChain();
 	void RecreateSwapChain();
 	void CleanupSwapChain();
 
 	void CreateImageViews();
-	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-	void CreateDescriptorSetLayout();
+
 	void CreateGraphicsPipeline();
 	void CreateRenderPass();
 	void CreateFrameBuffers();
 	void CreateCommandPool();
 
+public:
 	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+private:
 	void CreateVertexBuffer();
 	void CreateIndexBuffer();
-	void CreateUniformBuffer();
+
 	void CreateDescriptorPool();
-	void CreateDescriptorSet();
 	void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
+public:
 	VkCommandBuffer BeginSingleTimeCommands();
 	void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 
+private:
 	void CreateCommandBuffers();
 	void CreateSemaphores();
 
 	void CreateDepthResources();
 
-	void CreateTextureImage();
-	void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-	void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-	void CreateTextureImageView();
-	void CreateTextureSampler();
-
+private:
 	void MainLoop();
 	void DrawFrame();
-	void UpdateUniformBuffer();
+
 
 	void Cleanup();
 
@@ -141,13 +94,14 @@ private:
 
 	VkFormat FindDepthFormat();
 	VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-	bool HasStencilComponent(VkFormat format);
 
 	std::vector<const char*> GetRequiredExtensions();
 	bool CheckValidationLayerSupport();
 
+public:
 	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
+private:
 	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
 	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
@@ -157,10 +111,8 @@ private:
 
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-	void LoadModel();
-
 	GLFWwindow* m_Window;
-	VkInstance m_Instance;
+	VkInstance m_VulkanInstance;
 	VkDebugReportCallbackEXT m_Callback;
 	VkDevice m_Device;
 	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
@@ -173,7 +125,7 @@ private:
 	VkExtent2D m_SwapChainExtent;
 	std::vector<VkImageView> m_SwapChainImageViews;
 	VkRenderPass m_RenderPass;
-	VkDescriptorSetLayout m_DescriptorSetLayout;
+
 	VkPipelineLayout m_PipelineLayout;
 	VkPipeline m_GraphicsPipeline;
 	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
@@ -183,30 +135,23 @@ private:
 	VkSemaphore m_ImageAvailableSemaphore;
 	VkSemaphore m_RenderFinishedSemaphore;
 
+	std::vector<Model> m_Models;
 
-	std::vector<Vertex> m_Vertices;
-	std::vector<uint32_t> m_Indices;
 	VkBuffer m_VertexBuffer;
 	VkDeviceMemory m_VertexBufferMemory;
 	VkBuffer m_IndexBuffer;
 	VkDeviceMemory m_IndexBufferMemory;
-	VkBuffer m_UniformBuffer;
-	VkDeviceMemory m_UniformBufferMemory;
-
-	VkImage m_TextureImage;
-	VkDeviceMemory m_TextureImageMemory;
-	VkImageView m_TextureImageView;
-	VkSampler m_TextureSampler;
 
 	VkImage m_DepthImage;
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
 
 	VkDescriptorPool m_DescriptorPool;
-	VkDescriptorSet m_DescriptorSet;
 
 	//Temp
 	VkShaderModule m_VertShaderModule;
 	VkShaderModule m_FragShaderModule;
+
+	static Application* m_Instance;
 
 };
