@@ -7,10 +7,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include "ModelManager.h"
+#include "Scene.h"
 
 Model::~Model()
 {
-	Application& app = Application::GetInstance();
+	Application& app = Application::Get();
 	vkDestroyImage(app.GetDevice(), m_Image, nullptr);
 	vkFreeMemory(app.GetDevice(), m_ImageMemory, nullptr);
 
@@ -23,7 +24,7 @@ Model::~Model()
 
 void Model::CreateDescriptorSet()
 {
-	Application& app = Application::GetInstance();
+	Application& app = Application::Get();
 
 	VkDescriptorSetLayout layouts[] = { app.GetDescriptorSetLayout() };
 	VkDescriptorSetAllocateInfo allocInfo = {};
@@ -71,7 +72,7 @@ void Model::CreateDescriptorSet()
 void Model::CreateUniformBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-	Application::GetInstance().CreateBuffer(bufferSize,
+	Application::Get().CreateBuffer(bufferSize,
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		m_UniformBuffer,
@@ -104,15 +105,15 @@ void Model::CreateTextureSampler()
 	samplerInfo.minLod = 0.0f;
 	samplerInfo.maxLod = 0.0f;
 
-	if (vkCreateSampler(Application::GetInstance().GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
+	if (vkCreateSampler(Application::Get().GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create texture sampler!");
 	}
 }
 
-void Model::UpdateUniformBuffer()
+void Model::UpdateUniformBuffer(Scene* scene)
 {
-	Application& app = Application::GetInstance();
+	Application& app = Application::Get();
 
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -122,8 +123,8 @@ void Model::UpdateUniformBuffer()
 	UniformBufferObject ubo = {};
 	
 	ubo.m_Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.m_View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.m_Proj = glm::perspective(glm::radians(45.0f), app.GetSwapChainExtent().width / (float)app.GetSwapChainExtent().height, 0.1f, 10.0f);
+	ubo.m_View = scene->GetCamera()->GetViewMatrix();
+	ubo.m_Proj = scene->GetCamera()->GetProjectionMatrix();
 	//y and z are flipped from opengl
 	ubo.m_Proj[1][1] *= -1;
 

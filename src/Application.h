@@ -4,9 +4,12 @@
 #include <vector>
 #include <array>
 #include <glm/glm.hpp>
+#include "Scene.h"
 #include "Vertex.h"
 #include "Model.h"
 
+class Scene;
+class Model;
 class Application
 {
 private:
@@ -29,18 +32,22 @@ private:
 	};
 
 public:
+	Application();
+
 	static void CreateInstance() { m_Instance = new Application(); }
-	static Application& GetInstance() { return *m_Instance; }
+	static Application& Get() { return *m_Instance; }
 	void Run();
 
 	VkDevice& GetDevice() { return m_Device; }
 	VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
 	VkExtent2D& GetSwapChainExtent() { return m_SwapChainExtent; }
 	VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
-
+	GLFWwindow* GetWindow() { return m_Window; }
+	float GetDeltaTime() { return m_DeltaTime; }
 
 private:
 	void InitWindow();
+	void InitScene();
 	void InitVulkan();
 	void CreateVulkanInstance();
 	void SetupDebugCallback();
@@ -85,8 +92,8 @@ private:
 
 private:
 	void MainLoop();
+	void UpdateScene();
 	void DrawFrame();
-
 
 	void Cleanup();
 
@@ -153,5 +160,9 @@ private:
 	VkShaderModule m_FragShaderModule;
 
 	static Application* m_Instance;
+
+	Scene* m_Scene;
+	float m_DeltaTime;
+	float m_lastUpdateTime;
 
 };

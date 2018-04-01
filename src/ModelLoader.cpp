@@ -12,12 +12,10 @@
 
 ModelLoader* ModelLoader::m_Instance = nullptr;
 
-Model& ModelLoader::LoadModel(std::string modelPath, std::string texturePath)
+Model ModelLoader::LoadModel(std::string modelPath, std::string texturePath)
 {
 	Model model;
 	model.m_Texture = texturePath;
-	if (ModelManager::GetInstance().GetModels().size() > 0)
-		model.m_Reverse = true;
 
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -61,12 +59,12 @@ Model& ModelLoader::LoadModel(std::string modelPath, std::string texturePath)
 		}
 	}
 
-	return ModelManager::GetInstance().AddModel(model);
+	return model;
 }
 
 void ModelLoader::LoadTexture(std::string texturePath, VkImage& textureImage, VkDeviceMemory& textureImageMemory)
 {
-	Application& app = Application::GetInstance();
+	Application& app = Application::Get();
 
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);

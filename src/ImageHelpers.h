@@ -6,7 +6,7 @@ static class ImageHelpers
 public:
 	static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 	{
-		Application& app = Application::GetInstance();
+		Application& app = Application::Get();
 
 		VkImageCreateInfo imageInfo = {};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -64,7 +64,7 @@ public:
 		createInfo.subresourceRange.layerCount = 1;
 
 		VkImageView imageView;
-		if (vkCreateImageView(Application::GetInstance().GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
+		if (vkCreateImageView(Application::Get().GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create image views!");
 		}
@@ -79,7 +79,7 @@ public:
 
 	static void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		Application& app = Application::GetInstance();
+		Application& app = Application::Get();
 
 		VkCommandBuffer commandBuffer = app.BeginSingleTimeCommands();
 
@@ -157,7 +157,7 @@ public:
 
 	static void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
 	{
-		Application& app = Application::GetInstance();
+		Application& app = Application::Get();
 		VkCommandBuffer commandBuffer = app.BeginSingleTimeCommands();
 
 		VkBufferImageCopy region = {};

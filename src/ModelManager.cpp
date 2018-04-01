@@ -2,8 +2,6 @@
 #include "Model.h"
 #include "ImageHelpers.h"
 
-ModelManager* ModelManager::m_Instance = nullptr;
-
 void ModelManager::Cleanup()
 {
 	m_Models.clear();
@@ -33,7 +31,7 @@ std::vector<uint32_t> ModelManager::GetModelIndices()
 	return indices;
 }
 
-Model& ModelManager::AddModel(Model& model)
+Model& ModelManager::AddModel(Model model)
 {
 	m_Models.push_back(model);
 	return m_Models.back();

@@ -7,7 +7,7 @@ int main()
 
 	try 
 	{
-		Application::GetInstance().Run();
+		Application::Get().Run();
 	}
 	catch (const std::runtime_error& e) 
 	{

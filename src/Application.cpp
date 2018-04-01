@@ -11,6 +11,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
 
 #include "ModelManager.h"
 #include "ImageHelpers.h"
@@ -588,7 +589,7 @@ void Application::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMe
 
 void Application::CreateVertexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(ModelManager::GetInstance().GetModelVertices()[0]) * ModelManager::GetInstance().GetModelVertices().size();
+	VkDeviceSize bufferSize = sizeof(m_Scene->GetModelManager()->GetModelVertices()[0]) * m_Scene->GetModelManager()->GetModelVertices().size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -600,7 +601,7 @@ void Application::CreateVertexBuffer()
 
 	void* data;
 	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, ModelManager::GetInstance().GetModelVertices().data(), (size_t)bufferSize);
+	memcpy(data, m_Scene->GetModelManager()->GetModelVertices().data(), (size_t)bufferSize);
 	vkUnmapMemory(m_Device, stagingBufferMemory);
 
 	CreateBuffer(bufferSize,
@@ -617,7 +618,7 @@ void Application::CreateVertexBuffer()
 
 void Application::CreateIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(ModelManager::GetInstance().GetModelIndices()[0]) * ModelManager::GetInstance().GetModelIndices().size();
+	VkDeviceSize bufferSize = sizeof(m_Scene->GetModelManager()->GetModelIndices()[0]) * m_Scene->GetModelManager()->GetModelIndices().size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -629,7 +630,7 @@ void Application::CreateIndexBuffer()
 
 	void* data;
 	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, ModelManager::GetInstance().GetModelIndices().data(), (size_t)bufferSize);
+	memcpy(data, m_Scene->GetModelManager()->GetModelIndices().data(), (size_t)bufferSize);
 	vkUnmapMemory(m_Device, stagingBufferMemory);
 
 	CreateBuffer(bufferSize, 
@@ -646,7 +647,7 @@ void Application::CreateIndexBuffer()
 
 void Application::CreateDescriptorPool()
 {
-	int modelCount = ModelManager::GetInstance().GetModels().size();
+	int modelCount = m_Scene->GetModelManager()->GetModels().size();
 
 	std::array<VkDescriptorPoolSize, 2> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -759,7 +760,7 @@ void Application::CreateCommandBuffers()
 
 		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		for (Model& model : ModelManager::GetInstance().GetModels())
+		for (Model& model : m_Scene->GetModelManager()->GetModels())
 		{
 			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &model.m_DescriptorSet, 0, nullptr);
 
@@ -908,11 +909,18 @@ VkShaderModule Application::CreateShaderModule(const std::vector<char>& code)
 	return shaderModule;
 }
 
+Application::Application() :
+	m_Scene(new Scene()),
+	m_lastUpdateTime(glfwGetTime())
+{
+
+}
+
 void Application::Run()
 {
-	ModelManager::CreateInstance();
 	InitWindow();
 	InitVulkan();
+	InitScene();
 	MainLoop();
 	Cleanup();
 }
@@ -922,11 +930,18 @@ void Application::InitWindow()
 	glfwInit();
 	//dont use OpenGl
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
+	
 	m_Window = glfwCreateWindow(WIDTH, HEIGHT, "Super Awesome Happy Times", nullptr, nullptr);
 
 	glfwSetWindowUserPointer(m_Window, this);
 	glfwSetWindowSizeCallback(m_Window, Application::OnWindowResized);
+	glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+}
+
+void Application::InitScene()
+{
+	//probs have to do more here
+	m_Scene->Init();
 }
 
 void Application::InitVulkan()
@@ -941,7 +956,7 @@ void Application::InitVulkan()
 	CreateImageViews();
 	CreateRenderPass();
 
-	ModelManager::GetInstance().GetModelLoader().LoadModel(MODEL_PATH, TEXTURE_PATH);
+	m_Scene->LoadModel(MODEL_PATH, TEXTURE_PATH);
 	CreateDescriptorSetLayout();
 
 	CreateGraphicsPipeline();
@@ -949,21 +964,21 @@ void Application::InitVulkan()
 	CreateDepthResources();
 	CreateFrameBuffers();
 	
-	ModelManager::GetInstance().LoadTextures();
-	for (Model& model : ModelManager::GetInstance().GetModels())
+	m_Scene->GetModelManager()->LoadTextures();
+	for (Model& model : m_Scene->GetModelManager()->GetModels())
 	{
 		model.CreateTextureSampler();
 	}
 
 	CreateVertexBuffer();
 	CreateIndexBuffer();
-	for (Model& model : ModelManager::GetInstance().GetModels())
+	for (Model& model : m_Scene->GetModelManager()->GetModels())
 	{
 		model.CreateUniformBuffer();
 	}
 	CreateDescriptorPool();
 
-	for (Model& model : ModelManager::GetInstance().GetModels())
+	for (Model& model : m_Scene->GetModelManager()->GetModels())
 	{
 		model.CreateDescriptorSet();
 	}
@@ -1104,15 +1119,26 @@ void Application::MainLoop()
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		glfwPollEvents();
+
+		float currTime = glfwGetTime();
+		m_DeltaTime = currTime - m_lastUpdateTime;
+		m_lastUpdateTime = currTime;
+
+		UpdateScene();
 		DrawFrame();
 
-		for (Model& model : ModelManager::GetInstance().GetModels())
+		for (Model& model : m_Scene->GetModelManager()->GetModels())
 		{
-			model.UpdateUniformBuffer();
+			model.UpdateUniformBuffer(m_Scene);
 		}
 	}
 
 	vkDeviceWaitIdle(m_Device);
+}
+
+void Application::UpdateScene()
+{
+	m_Scene->OnUpdate();
 }
 
 void Application::DrawFrame()
@@ -1181,7 +1207,7 @@ void Application::Cleanup()
 {
 	CleanupSwapChain();
 
-	ModelManager::GetInstance().Cleanup();
+	m_Scene->GetModelManager()->Cleanup();
 
 	vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);

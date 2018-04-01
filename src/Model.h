@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include "Vertex.h"
+
+class Scene;
 class Model
 {
 public:
@@ -20,7 +22,7 @@ public:
 	void CreateDescriptorSet();
 	void CreateUniformBuffer();
 	void CreateTextureSampler();
-	void UpdateUniformBuffer();
+	void UpdateUniformBuffer(Scene* scene);
 
 	VkImage m_Image;
 	VkDeviceMemory m_ImageMemory;

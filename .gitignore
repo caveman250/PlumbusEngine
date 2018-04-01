@@ -31,3 +31,6 @@ x64/Debug/ModelManager.obj
 x64/Release/Model.obj
 x64/Release/ModelLoader.obj
 x64/Release/ModelManager.obj
+x64/Debug/Scene.obj
+x64/Release/Camera.obj
+x64/Release/Scene.obj
