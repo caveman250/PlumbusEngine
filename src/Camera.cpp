@@ -17,10 +17,10 @@ void Camera::OnUpdate()
 	glfwGetCursorPos(Application::Get().GetWindow(), &xpos, &ypos);
 	glfwSetCursorPos(Application::Get().GetWindow(), 800 / 2, 600 / 2);
 
-	float deltaTime = Application::Get().GetDeltaTime();
+	float deltaTime = (float)Application::Get().GetDeltaTime();
 
-	m_HorizontalAngle += 0.5 * deltaTime * float(800 / 2 - xpos);
-	m_VerticalAngle += 0.5 * deltaTime * float(600 / 2 - ypos);
+	m_HorizontalAngle += 0.5f * deltaTime * float(800 / 2 - xpos);
+	m_VerticalAngle += 0.5f * deltaTime * float(600 / 2 - ypos);
 
 	glm::vec3 forward(
 		cos(m_VerticalAngle) * sin(-m_HorizontalAngle),

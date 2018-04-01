@@ -1,7 +1,7 @@
 #pragma once
 #include "Application.h"
 
-static class ImageHelpers
+class ImageHelpers
 {
 public:
 	static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)

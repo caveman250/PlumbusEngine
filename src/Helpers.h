@@ -2,7 +2,7 @@
 #include <vector>
 #include <fstream>
 
-static class Helpers
+class Helpers
 {
 public:
 	static std::vector<char> ReadFile(const std::string& filename)
