@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
+#include "TranslationComponent.h"
 
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath)
 	: Component()
@@ -30,7 +31,6 @@ void ModelComponent::LoadModel()
 
 void ModelComponent::OnUpdate(Scene* scene)
 {
-	GetOwner()->m_Rotation.y = glfwGetTime();
 	UpdateUniformBuffer(scene);
 }
 
@@ -40,8 +40,12 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 
 	UniformBufferObject ubo = {};
 
-	glm::vec3 pos = GetOwner()->GetPosition();
-	glm::vec3 rot = GetOwner()->GetRotation();
+	TranslationComponent* transComp = GetOwner()->GetComponent<TranslationComponent>();
+	if (!transComp)
+		throw std::runtime_error("ModelComponent can not be used without a valid TranslationComponent");
+
+	glm::vec3 pos = transComp->GetTranslation();
+	glm::vec3 rot = transComp->GetRotation();
 
 	glm::mat4 model = glm::mat4();
 
@@ -50,12 +54,6 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	model = glm::rotate(model, rot.x, glm::vec3(1.f, 0.f, 0.f));
 	model = glm::rotate(model, rot.y, glm::vec3(0.f, 1.f, 0.f));
 	model = glm::rotate(model, rot.z, glm::vec3(0.f, 0.f, 1.f));
-
-	//glm::mat4 model = glm::mat4(
-	//	glm::vec4(pos, 1),
-	//	glm::vec4(rot, 1),
-	//	glm::vec4(1),
-	//	glm::vec4(1));
 
 	ubo.m_Model = glm::mat4(model);
 	ubo.m_View = scene->GetCamera()->GetViewMatrix();

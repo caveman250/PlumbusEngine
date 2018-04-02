@@ -1,5 +1,6 @@
 #include "GameObject.h"
-#include "Component.h"
+#include "components/Component.h"
+#include "components/ModelComponent.h"
 
 GameObject* GameObject::AddComponent(Component* component)
 {

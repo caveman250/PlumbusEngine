@@ -16,8 +16,10 @@
 #include "ModelManager.h"
 #include "ImageHelpers.h"
 #include "GameObject.h"
-#include "ModelComponent.h"
+#include "components/Component.h"
+#include "components/ModelComponent.h"
 #include "Model.h"
+#include "components/TranslationComponent.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -129,7 +131,8 @@ void Application::InitVulkan()
 	ModelManager::CreateInstance();
 	GameObject* obj = new GameObject();
 	m_Scene->AddGameObject(obj->
-		AddComponent(new ModelComponent(MODEL_PATH, TEXTURE_PATH))
+		AddComponent(new ModelComponent(MODEL_PATH, TEXTURE_PATH))->
+		AddComponent(new TranslationComponent())
 	);
 
 	m_Scene->LoadModels();

@@ -1,19 +1,16 @@
 #pragma once
 #include "glm/glm.hpp"
 #include <vector>
-#include "Component.h"
-#include "ModelComponent.h"
 
 class Model;
 class Scene;
 class Component;
+class ModelComponent;
 class GameObject
 {
 public:
 	GameObject() {}
 
-	glm::vec3 GetPosition() { return m_Position; }
-	glm::vec3 GetRotation() { return m_Rotation; }
 	GameObject* AddComponent(Component* component);
 
 	void OnUpdate(Scene* scene);
@@ -22,10 +19,6 @@ public:
 	T* GetComponent();
 
 private:
-	Model * model;
-	glm::vec3 m_Position;
-	glm::vec3 m_Rotation;
-
 	std::vector<Component*> m_Components;
 };
 

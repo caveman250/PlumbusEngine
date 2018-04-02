@@ -6,6 +6,7 @@
 #include "glm/glm.hpp"
 
 class Model;
+class Scene;
 class ModelComponent : public Component
 {
 	struct UniformBufferObject
@@ -16,7 +17,7 @@ class ModelComponent : public Component
 	};
 
 public:
-	ModelComponent( std::string modelPath, std::string texturePath);
+	ModelComponent(std::string modelPath, std::string texturePath);
 	~ModelComponent();
 	Model* GetModel();
 	void LoadModel();

@@ -1,5 +1,6 @@
 #include "Scene.h"
-#include "ModelComponent.h"
+#include "components/Component.h"
+#include "components/ModelComponent.h"
 
 Scene::Scene()
 {
