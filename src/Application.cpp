@@ -15,6 +15,9 @@
 
 #include "ModelManager.h"
 #include "ImageHelpers.h"
+#include "GameObject.h"
+#include "ModelComponent.h"
+#include "Model.h"
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -123,7 +126,13 @@ void Application::InitVulkan()
 	CreateImageViews();
 	CreateRenderPass();
 
-	m_Scene->LoadModel(MODEL_PATH, TEXTURE_PATH);
+	ModelManager::CreateInstance();
+	GameObject* obj = new GameObject();
+	m_Scene->AddGameObject(obj->
+		AddComponent(new ModelComponent(MODEL_PATH, TEXTURE_PATH))
+	);
+
+	m_Scene->LoadModels();
 	CreateDescriptorSetLayout();
 
 	CreateGraphicsPipeline();
@@ -131,23 +140,27 @@ void Application::InitVulkan()
 	CreateDepthResources();
 	CreateFrameBuffers();
 
-	m_Scene->GetModelManager()->LoadTextures();
-	for (Model& model : m_Scene->GetModelManager()->GetModels())
+	ModelManager::Get().LoadTextures();
+	for (Model& model : ModelManager::Get().GetModels())
 	{
 		model.CreateTextureSampler();
 	}
 
 	CreateVertexBuffer();
 	CreateIndexBuffer();
-	for (Model& model : m_Scene->GetModelManager()->GetModels())
+
+	for (GameObject* obj : m_Scene->GetObjects())
 	{
-		model.CreateUniformBuffer();
+		if(ModelComponent* comp = obj->GetComponent<ModelComponent>())
+			comp->CreateUniformBuffer();
 	}
+
 	CreateDescriptorPool();
 
-	for (Model& model : m_Scene->GetModelManager()->GetModels())
+	for (GameObject* obj : m_Scene->GetObjects())
 	{
-		model.CreateDescriptorSet();
+		if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+			comp->CreateDescriptorSet();
 	}
 	CreateCommandBuffers();
 	CreateSemaphores();
@@ -293,11 +306,6 @@ void Application::MainLoop()
 
 		UpdateScene();
 		DrawFrame();
-
-		for (Model& model : m_Scene->GetModelManager()->GetModels())
-		{
-			model.UpdateUniformBuffer(m_Scene);
-		}
 	}
 
 	vkDeviceWaitIdle(m_Device);
@@ -374,7 +382,7 @@ void Application::Cleanup()
 {
 	CleanupSwapChain();
 
-	m_Scene->GetModelManager()->Cleanup();
+	ModelManager::Get().Cleanup();
 
 	vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
@@ -1121,7 +1129,7 @@ void Application::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMe
 
 void Application::CreateVertexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(m_Scene->GetModelManager()->GetModelVertices()[0]) * m_Scene->GetModelManager()->GetModelVertices().size();
+	VkDeviceSize bufferSize = sizeof(ModelManager::Get().GetModelVertices()[0]) * ModelManager::Get().GetModelVertices().size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1133,7 +1141,7 @@ void Application::CreateVertexBuffer()
 
 	void* data;
 	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, m_Scene->GetModelManager()->GetModelVertices().data(), (size_t)bufferSize);
+	memcpy(data, ModelManager::Get().GetModelVertices().data(), (size_t)bufferSize);
 	vkUnmapMemory(m_Device, stagingBufferMemory);
 
 	CreateBuffer(bufferSize,
@@ -1150,7 +1158,7 @@ void Application::CreateVertexBuffer()
 
 void Application::CreateIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(m_Scene->GetModelManager()->GetModelIndices()[0]) * m_Scene->GetModelManager()->GetModelIndices().size();
+	VkDeviceSize bufferSize = sizeof(ModelManager::Get().GetModelIndices()[0]) * ModelManager::Get().GetModelIndices().size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1162,7 +1170,7 @@ void Application::CreateIndexBuffer()
 
 	void* data;
 	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, m_Scene->GetModelManager()->GetModelIndices().data(), (size_t)bufferSize);
+	memcpy(data, ModelManager::Get().GetModelIndices().data(), (size_t)bufferSize);
 	vkUnmapMemory(m_Device, stagingBufferMemory);
 
 	CreateBuffer(bufferSize, 
@@ -1179,7 +1187,7 @@ void Application::CreateIndexBuffer()
 
 void Application::CreateDescriptorPool()
 {
-	uint32_t modelCount = (uint32_t)m_Scene->GetModelManager()->GetModels().size();
+	uint32_t modelCount = (uint32_t)ModelManager::Get().GetModels().size();
 
 	std::array<VkDescriptorPoolSize, 2> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1292,11 +1300,14 @@ void Application::CreateCommandBuffers()
 
 		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		for (Model& model : m_Scene->GetModelManager()->GetModels())
+		for (GameObject* obj : m_Scene->GetObjects())
 		{
-			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &model.m_DescriptorSet, 0, nullptr);
+			if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+			{
+				vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, comp->GetDescriptorSet(), 0, nullptr);
 
-			vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(model.m_Indices.size()), 1, 0, 0, 0);
+				vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(comp->GetModel()->m_Indices.size()), 1, 0, 0, 0);
+			}
 		}
 
 		vkCmdEndRenderPass(m_CommandBuffers[i]);

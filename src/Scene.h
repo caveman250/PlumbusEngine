@@ -3,19 +3,21 @@
 #include "ModelManager.h"
 #include "Camera.h"
 
+class GameObject;
 class Scene
 {
 public:
 	Scene();
-	ModelManager* GetModelManager() { return &m_ModelManager; }
 	Camera* GetCamera() { return &m_Camera; }
 
 	void Init();
 	void OnUpdate();
 
-	void LoadModel(std::string modelPath, std::string texturePath);
+	void AddGameObject(GameObject* obj) { m_GameObjects.push_back(obj); }
+	std::vector<GameObject*> GetObjects() { return m_GameObjects; }
+	void LoadModels();
 
 private:
-	ModelManager m_ModelManager;
 	Camera m_Camera;
+	std::vector<GameObject*> m_GameObjects;
 };

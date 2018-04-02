@@ -7,6 +7,9 @@ class Model;
 class ModelManager
 {
 public:
+	static void CreateInstance() { m_Instance = new ModelManager(); }
+	static ModelManager& Get() { return *m_Instance; }
+
 	void Cleanup();
 
 	std::vector<Vertex> GetModelVertices();
@@ -23,4 +26,6 @@ private:
 	std::vector<Model> m_Models;
 
 	ModelLoader m_ModelLoader;
+
+	static ModelManager* m_Instance;
 };

@@ -2,6 +2,8 @@
 #include "Model.h"
 #include "ImageHelpers.h"
 
+ModelManager* ModelManager::m_Instance = nullptr;
+
 void ModelManager::Cleanup()
 {
 	m_Models.clear();
