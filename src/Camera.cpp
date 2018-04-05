@@ -7,50 +7,58 @@
 
 void Camera::Init()
 {
-	m_ViewMatrix = glm::lookAt(m_CameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	m_ProjectionMatrix = glm::perspective(glm::radians(45.0f), Application::Get().GetSwapChainExtent().width / (float)Application::Get().GetSwapChainExtent().height, 0.1f, 10.0f);
+	m_Position = glm::vec3(0, 5, 0);
+	m_Rotation = glm::vec3(-90, 0, 0);
+	m_ProjectionMatrix = glm::perspective(glm::radians(60.0f), Application::Get().GetSwapChainExtent().width / (float)Application::Get().GetSwapChainExtent().height, 0.1f,  256.0f);
 }
 
 void Camera::OnUpdate()
 {
 	double xpos, ypos;
 	glfwGetCursorPos(Application::Get().GetWindow(), &xpos, &ypos);
-	glfwSetCursorPos(Application::Get().GetWindow(), 800 / 2, 600 / 2);
-
+	double dx = m_MousePos.x - xpos;
+	double dy = m_MousePos.y - ypos;
+	m_MousePos = glm::vec2(xpos, ypos);
 	float deltaTime = (float)Application::Get().GetDeltaTime();
 
-	m_HorizontalAngle += 0.5f * deltaTime * float(800 / 2 - xpos);
-	m_VerticalAngle += 0.5f * deltaTime * float(600 / 2 - ypos);
+	if (glfwGetMouseButton(Application::Get().GetWindow(), GLFW_MOUSE_BUTTON_1))
+	{
+		m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
+	}
+	
+	glm::vec3 camFront;
+	camFront.x = -cos(glm::radians(m_Rotation.x)) * sin(glm::radians(m_Rotation.y));
+	camFront.y = sin(glm::radians(m_Rotation.x));
+	camFront.z = cos(glm::radians(m_Rotation.x)) * cos(glm::radians(m_Rotation.y));
+	camFront = glm::normalize(camFront);
 
-	glm::vec3 forward(
-		cos(m_VerticalAngle) * sin(-m_HorizontalAngle),
-		cos(m_VerticalAngle) * cos(-m_HorizontalAngle),
-		sin(m_VerticalAngle));
-
-	glm::vec3 right = glm::vec3(
-		sin(-m_HorizontalAngle - 3.14f / 2.0f),
-		cos(-m_HorizontalAngle - 3.14f / 2.0f),
-		0);
-
-
-	glm::vec3 up = glm::cross(right, forward);
+	std::cout << "X: " << camFront.x <<  " Y: " << camFront.y << " Z: " << camFront.z << std::endl;
 
 	if (glfwGetKey(Application::Get().GetWindow(), GLFW_KEY_W))
 	{
-		m_CameraPosition += forward * deltaTime * 5.f;
+		m_Position += camFront * deltaTime * 5.f;
 	}
 	if (glfwGetKey(Application::Get().GetWindow(), GLFW_KEY_S))
 	{
-		m_CameraPosition -= forward * deltaTime * 5.f;
+		m_Position -= camFront * deltaTime * 5.f;
 	}
 	if (glfwGetKey(Application::Get().GetWindow(), GLFW_KEY_A))
 	{
-		m_CameraPosition += right * deltaTime * 5.f;
+		m_Position -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 0.0f, 1.0f))) * deltaTime * 5.f;
 	}
 	if (glfwGetKey(Application::Get().GetWindow(), GLFW_KEY_D))
 	{
-		m_CameraPosition -= right * deltaTime * 5.f;
+		m_Position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 0.0f, 1.0f))) * deltaTime * 5.f;
 	}
 
-	m_ViewMatrix = glm::lookAt(m_CameraPosition, m_CameraPosition + forward, glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 rotM = glm::mat4(1.0f);
+	glm::mat4 transM;
+
+	rotM = glm::rotate(rotM, glm::radians(m_Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	rotM = glm::rotate(rotM, glm::radians(m_Rotation.y), glm::vec3(0.0f, 0.0f, 1.0f));
+	rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	transM = glm::translate(glm::mat4(1.0f), m_Position);
+
+	m_ViewMatrix = rotM * transM;
 }

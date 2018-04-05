@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "Vertex.h"
+#include "vk/Buffer.h"
 
 class Scene;
 class Model
@@ -11,6 +12,9 @@ public:
 	~Model();
 	std::vector<Vertex> m_Vertices;
 	std::vector<uint32_t> m_Indices;
+
+	vk::Buffer m_VertexBuffer;
+	vk::Buffer m_IndexBuffer;
 
 	void CreateTextureSampler();
 

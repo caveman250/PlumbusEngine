@@ -1,5 +1,6 @@
 #pragma once
 #include "Application.h"
+#include "Helpers.h"
 
 class ImageHelpers
 {
@@ -25,7 +26,7 @@ public:
 
 		if (vkCreateImage(app.GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to create image!");
+			Helpers::LogFatal("failed to create image!");
 		}
 
 		VkMemoryRequirements memRequirements;
@@ -38,7 +39,7 @@ public:
 
 		if (vkAllocateMemory(app.GetDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to allocate image memory!");
+			Helpers::LogFatal("failed to allocate image memory!");
 		}
 
 		vkBindImageMemory(app.GetDevice(), image, imageMemory, 0);
@@ -66,7 +67,7 @@ public:
 		VkImageView imageView;
 		if (vkCreateImageView(Application::Get().GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to create image views!");
+			Helpers::LogFatal("failed to create image views!");
 		}
 
 		return imageView;
@@ -81,7 +82,7 @@ public:
 	{
 		Application& app = Application::Get();
 
-		VkCommandBuffer commandBuffer = app.BeginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = app.CreateCommandBuffer();
 
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -152,13 +153,13 @@ public:
 			1, &barrier
 		);
 
-		app.EndSingleTimeCommands(commandBuffer);
+		app.FlushCommandBuffer(commandBuffer);
 	}
 
 	static void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
 	{
 		Application& app = Application::Get();
-		VkCommandBuffer commandBuffer = app.BeginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = app.CreateCommandBuffer();
 
 		VkBufferImageCopy region = {};
 		region.bufferOffset = 0;
@@ -186,6 +187,6 @@ public:
 			&region
 		);
 
-		app.EndSingleTimeCommands(commandBuffer);
+		app.FlushCommandBuffer(commandBuffer);
 	}
 };

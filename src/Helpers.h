@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <fstream>
+#include <assert.h>
 
 class Helpers
 {
@@ -11,7 +12,7 @@ public:
 
 		if (!file.is_open())
 		{
-			throw std::runtime_error("failed to open file!");
+			Helpers::LogFatal("failed to open file!");
 		}
 
 		size_t fileSize = (size_t)file.tellg();
@@ -23,5 +24,18 @@ public:
 		file.close();
 
 		return buffer;
+	}
+
+	static void LogInfo(std::string msg)
+	{
+		msg += "\n";
+		printf(msg.c_str());
+	}
+
+	static void LogFatal(std::string msg)
+	{
+		msg += "\n";
+		printf(msg.c_str());
+		assert(false);
 	}
 };

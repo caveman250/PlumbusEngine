@@ -8,6 +8,7 @@
 #include <iostream>
 #include "ModelManager.h"
 #include "Scene.h"
+#include "Helpers.h"
 
 Model::~Model()
 {
@@ -47,7 +48,7 @@ void Model::CreateTextureSampler()
 
 	if (vkCreateSampler(Application::Get().GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create texture sampler!");
+		Helpers::LogFatal("failed to create texture sampler!");
 	}
 }
 

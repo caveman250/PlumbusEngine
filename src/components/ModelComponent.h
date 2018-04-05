@@ -4,6 +4,7 @@
 #include "Component.h"
 #include <string>
 #include "glm/glm.hpp"
+#include "vk/Buffer.h"
 
 class Model;
 class Scene;
@@ -32,8 +33,7 @@ private:
 	std::string m_ModelPath;
 	std::string m_TexturePath;
 
-	VkBuffer m_UniformBuffer;
-	VkDeviceMemory m_UniformBufferMemory;
+	vk::Buffer m_UniformBuffer;
 
 	VkDescriptorSet m_DescriptorSet;
 

@@ -135,11 +135,10 @@ void Application::InitVulkan()
 		AddComponent(new TranslationComponent())
 	);
 
+	CreateCommandPool();
 	m_Scene->LoadModels();
 	CreateDescriptorSetLayout();
-
 	CreateGraphicsPipeline();
-	CreateCommandPool();
 	CreateDepthResources();
 	CreateFrameBuffers();
 
@@ -148,9 +147,6 @@ void Application::InitVulkan()
 	{
 		model.CreateTextureSampler();
 	}
-
-	CreateVertexBuffer();
-	CreateIndexBuffer();
 
 	for (GameObject* obj : m_Scene->GetObjects())
 	{
@@ -389,12 +385,6 @@ void Application::Cleanup()
 
 	vkDestroyDescriptorSetLayout(m_Device, m_DescriptorSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_Device, m_DescriptorPool, nullptr);
-
-	vkDestroyBuffer(m_Device, m_IndexBuffer, nullptr);
-	vkFreeMemory(m_Device, m_IndexBufferMemory, nullptr);
-
-	vkDestroyBuffer(m_Device, m_VertexBuffer, nullptr);
-	vkFreeMemory(m_Device, m_VertexBufferMemory, nullptr);
 
 	vkDestroySemaphore(m_Device, m_RenderFinishedSemaphore, nullptr);
 	vkDestroySemaphore(m_Device, m_ImageAvailableSemaphore, nullptr);
@@ -1101,91 +1091,98 @@ void Application::CreateCommandPool()
 	}
 }
 
-void Application::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+VkResult Application::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data /*= nullptr*/)
 {
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = size;
-	bufferInfo.usage = usage;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	buffer->m_Device = m_Device;
 
-	if (vkCreateBuffer(m_Device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+	// Create the buffer handle
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.usage = usageFlags;
+	bufferCreateInfo.size = size;
+	if (vkCreateBuffer(m_Device, &bufferCreateInfo, nullptr, &buffer->m_Buffer) != VK_SUCCESS)
+		Helpers::LogFatal("Failed to create buffer");
+
+	// Create the memory backing up the buffer handle
+	VkMemoryRequirements memReqs;
+	VkMemoryAllocateInfo memAllocInfo{};
+	memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	vkGetBufferMemoryRequirements(m_Device, buffer->m_Buffer, &memReqs);
+	memAllocInfo.allocationSize = memReqs.size;
+	// Find a memory type index that fits the properties of the buffer
+	memAllocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+	if (vkAllocateMemory(m_Device, &memAllocInfo, nullptr, &buffer->m_Memory) != VK_SUCCESS)
+		Helpers::LogFatal("Failed to allocate buffer memory");
+
+	buffer->m_Alignment = memReqs.alignment;
+	buffer->m_Size = memAllocInfo.allocationSize;
+	buffer->m_UsageFlags = usageFlags;
+	buffer->m_MemoryPropertyFlags = memoryPropertyFlags;
+
+	// If a pointer to the buffer data has been passed, map the buffer and copy over the data
+	if (data != nullptr)
 	{
-		throw std::runtime_error("failed to create vertex buffer!");
+		if (buffer->Map() != VK_SUCCESS)
+			Helpers::LogFatal("failed to map buffer");
+
+		memcpy(buffer->m_Mapped, data, size);
+		buffer->Unmap();
 	}
 
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_Device, buffer, &memRequirements);
+	// Initialize a default descriptor that covers the whole buffer size
+	buffer->SetupDescriptor();
 
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	// Attach the memory to the buffer object
+	return buffer->Bind();
+}
 
-	if (vkAllocateMemory(m_Device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+VkResult Application::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data /*= nullptr*/)
+{
+	// Create the buffer handle
+	VkBufferCreateInfo bufferCreateInfo{};
+	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferCreateInfo.usage = usageFlags;
+	bufferCreateInfo.size = size;
+	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if (vkCreateBuffer(m_Device, &bufferCreateInfo, nullptr, buffer) != VK_SUCCESS)
+		Helpers::LogFatal("Failed to create buffer");
+
+	// Create the memory backing up the buffer handle
+	VkMemoryRequirements memReqs;
+	VkMemoryAllocateInfo memAllocInfo{};
+	memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	vkGetBufferMemoryRequirements(m_Device, *buffer, &memReqs);
+	memAllocInfo.allocationSize = memReqs.size;
+	// Find a memory type index that fits the properties of the buffer
+	memAllocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+	if (vkAllocateMemory(m_Device, &memAllocInfo, nullptr, memory) != VK_SUCCESS)
+		Helpers::LogFatal("Failed to allocate buffer memory");
+
+	// If a pointer to the buffer data has been passed, map the buffer and copy over the data
+	if (data != nullptr)
 	{
-		throw std::runtime_error("failed to allocate vertex buffer memory!");
+		void *mapped;
+		if (vkMapMemory(m_Device, *memory, 0, size, 0, &mapped) != VK_SUCCESS)
+			Helpers::LogFatal("Failed to map buffer data");
+		memcpy(mapped, data, size);
+		// If host coherency hasn't been requested, do a manual flush to make writes visible
+		if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+		{
+			VkMappedMemoryRange mappedMemoryRange{};
+			mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			mappedMemoryRange.memory = *memory;
+			mappedMemoryRange.offset = 0;
+			mappedMemoryRange.size = size;
+			vkFlushMappedMemoryRanges(m_Device, 1, &mappedMemoryRange);
+		}
+		vkUnmapMemory(m_Device, *memory);
 	}
 
-	vkBindBufferMemory(m_Device, buffer, bufferMemory, 0);
-}
+	// Attach the memory to the buffer object
+	if (vkBindBufferMemory(m_Device, *buffer, *memory, 0) != VK_SUCCESS)
+		Helpers::LogFatal("failed to bind buffer memory");
 
-void Application::CreateVertexBuffer()
-{
-	VkDeviceSize bufferSize = sizeof(ModelManager::Get().GetModelVertices()[0]) * ModelManager::Get().GetModelVertices().size();
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	CreateBuffer(bufferSize, 
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-		stagingBuffer, 
-		stagingBufferMemory);
-
-	void* data;
-	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, ModelManager::Get().GetModelVertices().data(), (size_t)bufferSize);
-	vkUnmapMemory(m_Device, stagingBufferMemory);
-
-	CreateBuffer(bufferSize,
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		m_VertexBuffer,
-		m_VertexBufferMemory);
-
-	CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-
-	vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-	vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
-}
-
-void Application::CreateIndexBuffer()
-{
-	VkDeviceSize bufferSize = sizeof(ModelManager::Get().GetModelIndices()[0]) * ModelManager::Get().GetModelIndices().size();
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	CreateBuffer(bufferSize, 
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-		stagingBuffer, 
-		stagingBufferMemory);
-
-	void* data;
-	vkMapMemory(m_Device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, ModelManager::Get().GetModelIndices().data(), (size_t)bufferSize);
-	vkUnmapMemory(m_Device, stagingBufferMemory);
-
-	CreateBuffer(bufferSize, 
-		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		m_IndexBuffer, 
-		m_IndexBufferMemory);
-
-	CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
-
-	vkDestroyBuffer(m_Device, stagingBuffer, nullptr);
-	vkFreeMemory(m_Device, stagingBufferMemory, nullptr);
+	return VK_SUCCESS;
 }
 
 void Application::CreateDescriptorPool()
@@ -1211,16 +1208,16 @@ void Application::CreateDescriptorPool()
 }
 void Application::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-	VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+	VkCommandBuffer commandBuffer = CreateCommandBuffer();
 
 	VkBufferCopy copyRegion = {};
 	copyRegion.size = size;
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	EndSingleTimeCommands(commandBuffer);
+	FlushCommandBuffer(commandBuffer);
 }
 
-VkCommandBuffer Application::BeginSingleTimeCommands()
+VkCommandBuffer Application::CreateCommandBuffer()
 {
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1240,7 +1237,7 @@ VkCommandBuffer Application::BeginSingleTimeCommands()
 	return commandBuffer;
 }
 
-void Application::EndSingleTimeCommands(VkCommandBuffer commandBuffer)
+void Application::FlushCommandBuffer(VkCommandBuffer commandBuffer)
 {
 	vkEndCommandBuffer(commandBuffer);
 
@@ -1297,16 +1294,16 @@ void Application::CreateCommandBuffers()
 
 		vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
 
-		VkBuffer vertexBuffers[] = { m_VertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		for (GameObject* obj : m_Scene->GetObjects())
 		{
 			if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
 			{
+				vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, &comp->GetModel()->m_VertexBuffer.m_Buffer, offsets);
+
+				vkCmdBindIndexBuffer(m_CommandBuffers[i], comp->GetModel()->m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+
 				vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, comp->GetDescriptorSet(), 0, nullptr);
 
 				vkCmdDrawIndexed(m_CommandBuffers[i], static_cast<uint32_t>(comp->GetModel()->m_Indices.size()), 1, 0, 0, 0);

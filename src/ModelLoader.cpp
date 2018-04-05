@@ -9,6 +9,7 @@
 #include "Application.h"
 #include "ModelManager.h"
 #include "ImageHelpers.h"
+#include "Helpers.h"
 
 ModelLoader* ModelLoader::m_Instance = nullptr;
 
@@ -24,7 +25,7 @@ Model ModelLoader::LoadModel(std::string modelPath, std::string texturePath)
 	
 	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, modelPath.c_str()))
 	{
-		throw std::runtime_error(err);
+		Helpers::LogFatal(err.data());
 	}
 	
 	std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
@@ -59,6 +60,64 @@ Model ModelLoader::LoadModel(std::string modelPath, std::string texturePath)
 		}
 	}
 
+	uint32_t vBufferSize = static_cast<uint32_t>(model.m_Vertices.size()) * sizeof(Vertex);
+	uint32_t iBufferSize = static_cast<uint32_t>(model.m_Indices.size()) * sizeof(uint32_t);
+
+	vk::Buffer vertexStaging, indexStaging;
+
+	// Vertex buffer staging
+	if (Application::Get().CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&vertexStaging,
+		vBufferSize,
+		model.m_Vertices.data()) != VK_SUCCESS)
+		Helpers::LogFatal("failed to create vertex staging buffer");
+
+	// Index buffer staging
+	if (Application::Get().CreateBuffer(
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+		&indexStaging,
+		iBufferSize,
+		model.m_Indices.data()) != VK_SUCCESS)
+		Helpers::LogFatal("failed to create index staging buffer");
+	// Create device local target buffers
+	// Vertex buffer
+	if (Application::Get().CreateBuffer(
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&model.m_VertexBuffer,
+		vBufferSize) != VK_SUCCESS)
+		Helpers::LogFatal("failed to create vertex buffer");
+
+	// Index buffer
+	if(Application::Get().CreateBuffer(
+		VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		&model.m_IndexBuffer,
+		iBufferSize) != VK_SUCCESS)
+		Helpers::LogFatal("failed to create index buffer");
+
+	// Copy from staging buffers
+	VkCommandBuffer copyCmd = Application::Get().CreateCommandBuffer();
+
+	VkBufferCopy copyRegion{};
+
+	copyRegion.size = model.m_VertexBuffer.m_Size;
+	vkCmdCopyBuffer(copyCmd, vertexStaging.m_Buffer, model.m_VertexBuffer.m_Buffer, 1, &copyRegion);
+
+	copyRegion.size = model.m_IndexBuffer.m_Size;
+	vkCmdCopyBuffer(copyCmd, indexStaging.m_Buffer, model.m_IndexBuffer.m_Buffer, 1, &copyRegion);
+
+	Application::Get().FlushCommandBuffer(copyCmd);
+
+	// Destroy staging resources
+	vkDestroyBuffer(Application::Get().GetDevice(), vertexStaging.m_Buffer, nullptr);
+	vkFreeMemory(Application::Get().GetDevice(), vertexStaging.m_Memory, nullptr);
+	vkDestroyBuffer(Application::Get().GetDevice(), indexStaging.m_Buffer, nullptr);
+	vkFreeMemory(Application::Get().GetDevice(), indexStaging.m_Memory, nullptr);
+
 	return model;
 }
 
@@ -72,22 +131,21 @@ void ModelLoader::LoadTexture(std::string texturePath, VkImage& textureImage, Vk
 
 	if (!pixels)
 	{
-		throw std::runtime_error("failed to load texture image!");
+		Helpers::LogFatal("failed to load texture image!");
 	}
 
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
+	vk::Buffer stagingBuffer;
 
-	app.CreateBuffer(imageSize,
+	app.CreateBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		stagingBuffer,
-		stagingBufferMemory);
+		&stagingBuffer,
+		imageSize);
 
 	void* data;
-	vkMapMemory(app.GetDevice(), stagingBufferMemory, 0, imageSize, 0, &data);
+	vkMapMemory(app.GetDevice(), stagingBuffer.m_Memory, 0, imageSize, 0, &data);
 	memcpy(data, pixels, static_cast<size_t>(imageSize));
-	vkUnmapMemory(app.GetDevice(), stagingBufferMemory);
+	vkUnmapMemory(app.GetDevice(), stagingBuffer.m_Memory);
 
 	stbi_image_free(pixels);
 
@@ -101,9 +159,9 @@ void ModelLoader::LoadTexture(std::string texturePath, VkImage& textureImage, Vk
 		textureImageMemory);
 
 	ImageHelpers::TransitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	ImageHelpers::CopyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+	ImageHelpers::CopyBufferToImage(stagingBuffer.m_Buffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 	ImageHelpers::TransitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-	vkDestroyBuffer(app.GetDevice(), stagingBuffer, nullptr);
-	vkFreeMemory(app.GetDevice(), stagingBufferMemory, nullptr);
+	vkDestroyBuffer(app.GetDevice(), stagingBuffer.m_Buffer, nullptr);
+	vkFreeMemory(app.GetDevice(), stagingBuffer.m_Memory, nullptr);
 }

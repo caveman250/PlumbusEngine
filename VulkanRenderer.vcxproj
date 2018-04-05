@@ -133,6 +133,7 @@
     <ClCompile Include="src\ModelLoader.cpp" />
     <ClCompile Include="src\ModelManager.cpp" />
     <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="src\vk\Buffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
@@ -148,6 +149,8 @@
     <ClInclude Include="src\ModelManager.h" />
     <ClInclude Include="src\Scene.h" />
     <ClInclude Include="src\Vertex.h" />
+    <ClInclude Include="src\vk\Buffer.h" />
+    <ClInclude Include="src\vk\Device.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader.frag" />

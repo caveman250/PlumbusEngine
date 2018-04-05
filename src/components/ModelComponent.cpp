@@ -4,6 +4,7 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include "TranslationComponent.h"
+#include "Helpers.h"
 
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath)
 	: Component()
@@ -15,8 +16,8 @@ ModelComponent::ModelComponent(std::string modelPath, std::string texturePath)
 ModelComponent::~ModelComponent()
 {
 	Application& app = Application::Get();
-	vkDestroyBuffer(app.GetDevice(), m_UniformBuffer, nullptr);
-	vkFreeMemory(app.GetDevice(), m_UniformBufferMemory, nullptr);
+	vkDestroyBuffer(app.GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
+	vkFreeMemory(app.GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 }
 
 Model* ModelComponent::GetModel()
@@ -42,7 +43,7 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 
 	TranslationComponent* transComp = GetOwner()->GetComponent<TranslationComponent>();
 	if (!transComp)
-		throw std::runtime_error("ModelComponent can not be used without a valid TranslationComponent");
+		Helpers::LogFatal("ModelComponent can not be used without a valid TranslationComponent");
 
 	glm::vec3 pos = transComp->GetTranslation();
 	glm::vec3 rot = transComp->GetRotation();
@@ -62,19 +63,19 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	ubo.m_Proj[1][1] *= -1;
 
 	void* data;
-	vkMapMemory(app.GetDevice(), m_UniformBufferMemory, 0, sizeof(ubo), 0, &data);
+	vkMapMemory(app.GetDevice(), m_UniformBuffer.m_Memory, 0, sizeof(ubo), 0, &data);
 	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(app.GetDevice(), m_UniformBufferMemory);
+	vkUnmapMemory(app.GetDevice(), m_UniformBuffer.m_Memory);
 }
 
 void ModelComponent::CreateUniformBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-	Application::Get().CreateBuffer(bufferSize,
+	Application::Get().CreateBuffer(
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		m_UniformBuffer,
-		m_UniformBufferMemory);
+		&m_UniformBuffer,
+		bufferSize);
 }
 
 void ModelComponent::CreateDescriptorSet()
@@ -90,11 +91,11 @@ void ModelComponent::CreateDescriptorSet()
 
 	if (vkAllocateDescriptorSets(app.GetDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to allocate descriptor set!");
+		Helpers::LogFatal("failed to allocate descriptor set!");
 	}
 
 	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = m_UniformBuffer;
+	bufferInfo.buffer = m_UniformBuffer.m_Buffer;
 	bufferInfo.offset = 0;
 	bufferInfo.range = sizeof(UniformBufferObject);
 

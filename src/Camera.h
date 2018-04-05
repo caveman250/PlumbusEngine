@@ -14,9 +14,11 @@ private:
 	glm::mat4	m_ViewMatrix;
 	glm::mat4	m_ProjectionMatrix;
 
-	glm::vec3 m_CameraPosition = glm::vec3(0, 0, 0);
+	glm::vec3 m_Position = glm::vec3();
+	glm::vec3 m_Rotation = glm::vec3();
 
-	float m_HorizontalAngle = 20.0f;
-	float m_VerticalAngle = -145.0f;
+	float rotationSpeed = 1.0f;
+	float movementSpeed = 1.0f;
+
 	glm::vec2 m_MousePos = glm::vec2(400, 300);
 };
