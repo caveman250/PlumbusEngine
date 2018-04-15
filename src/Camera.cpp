@@ -23,7 +23,7 @@ void Camera::OnUpdate()
 
 	if (glfwGetMouseButton(Application::Get().GetWindow(), GLFW_MOUSE_BUTTON_1))
 	{
-		m_Rotation += glm::vec3(-dy * 1.0f, -dx * 1.0f, 0.0f);
+		m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
 	}
 
 	glm::mat4 rotM = glm::mat4(1.0f);

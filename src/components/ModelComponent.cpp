@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "TranslationComponent.h"
 #include "Helpers.h"
+#include "GameObject.h"
 
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 	: Component()
@@ -48,8 +49,16 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 {
 	m_UniformBufferObject.m_Proj = scene->GetCamera()->GetProjectionMatrix();
 	m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
-	m_UniformBufferObject.m_Model = glm::mat4(1.f);
-	m_UniformBufferObject.m_Proj[1][1] *= -1;
+
+	::TranslationComponent* transComp = GetOwner()->GetComponent<::TranslationComponent>();
+	transComp->Rotate(glm::vec3(0, 1, 0) * (float)Application::Get().GetDeltaTime());
+	transComp->SetTranslation(glm::vec3(0, 2, 0));
+	glm::mat4 model;
+	model = glm::translate(model, transComp->GetTranslation());
+	model = glm::rotate(model, transComp->GetRotation().x, glm::vec3(1.0f, 0.0f, 0.0f));
+	model = glm::rotate(model, transComp->GetRotation().y, glm::vec3(0.0f, 1.0f, 0.0f));
+	model = glm::rotate(model, transComp->GetRotation().z, glm::vec3(0.0f, 0.0f, 1.0f));
+	m_UniformBufferObject.m_Model = model;
 
 	memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));
 }
@@ -60,7 +69,7 @@ void ModelComponent::CreateUniformBuffer(vk::VulkanDevice* vulkanDevice)
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&m_UniformBuffer,
-		sizeof(m_UniformBuffer)));
+		sizeof(m_UniformBufferObject)));
 
 	CHECK_VK_RESULT(m_UniformBuffer.Map());
 }

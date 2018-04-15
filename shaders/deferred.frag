@@ -33,13 +33,12 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
 	
-	#define lightCount 6
 	#define ambient 0.0
 	
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;
 	
-	for(int i = 0; i < lightCount; ++i)
+	for(int i = 0; i < MAX_LIGHTS; ++i)
 	{
 		// Vector to light
 		vec3 L = ubo.lights[i].position.xyz - fragPos;

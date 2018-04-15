@@ -22,7 +22,6 @@ class ModelComponent : public Component
 		glm::mat4 m_Proj;
 	};
 
-
 public:
 
 	ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath);

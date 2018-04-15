@@ -88,12 +88,12 @@ namespace vk
 						{
 						case vk::VERTEX_COMPONENT_POSITION:
 							vertexBuffer.push_back(pPos->x * scale.x + center.x);
-							vertexBuffer.push_back(pPos->y * scale.y + center.y);
+							vertexBuffer.push_back(-pPos->y * scale.y + center.y);
 							vertexBuffer.push_back(pPos->z * scale.z + center.z);
 							break;
 						case vk::VERTEX_COMPONENT_NORMAL:
 							vertexBuffer.push_back(pNormal->x);
-							vertexBuffer.push_back(pNormal->y);
+							vertexBuffer.push_back(-pNormal->y);
 							vertexBuffer.push_back(pNormal->z);
 							break;
 						case vk::VERTEX_COMPONENT_UV:
