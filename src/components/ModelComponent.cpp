@@ -1,33 +1,36 @@
 #include "ModelComponent.h"
-#include "ModelManager.h"
 #include "Application.h"
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include "TranslationComponent.h"
 #include "Helpers.h"
 
-ModelComponent::ModelComponent(std::string modelPath, std::string texturePath)
+ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 	: Component()
 {
 	m_ModelPath = modelPath;
 	m_TexturePath = texturePath;
+	m_NormalPath = normalPath;
 }
 
 ModelComponent::~ModelComponent()
 {
 	Application& app = Application::Get();
-	vkDestroyBuffer(app.GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
-	vkFreeMemory(app.GetDevice(), m_UniformBuffer.m_Memory, nullptr);
+	vkDestroyBuffer(app.GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
+	vkFreeMemory(app.GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 }
 
-Model* ModelComponent::GetModel()
+vk::Model* ModelComponent::GetModel()
 {
 	return m_Model;
 }
 
-void ModelComponent::LoadModel()
+void ModelComponent::LoadModel(VkQueue queue, vk::VertexLayout layout)
 {
-	m_Model = &ModelManager::Get().AddModel(ModelManager::Get().GetModelLoader().LoadModel(m_ModelPath, m_TexturePath));
+	m_Model = new vk::Model();
+	m_Model->LoadModel(m_ModelPath, layout, queue);
+	m_Model->m_ColourMap.LoadTexture(m_TexturePath, queue, VK_FORMAT_BC3_UNORM_BLOCK);
+	m_Model->m_NormalMap.LoadTexture(m_NormalPath, queue, VK_FORMAT_BC3_UNORM_BLOCK);
 }
 
 void ModelComponent::OnUpdate(Scene* scene)
@@ -35,92 +38,81 @@ void ModelComponent::OnUpdate(Scene* scene)
 	UpdateUniformBuffer(scene);
 }
 
-void ModelComponent::UpdateUniformBuffer(Scene* scene)
+void ModelComponent::Cleanup(VkDevice device)
 {
-	Application& app = Application::Get();
-
-	UniformBufferObject ubo = {};
-
-	TranslationComponent* transComp = GetOwner()->GetComponent<TranslationComponent>();
-	if (!transComp)
-		Helpers::LogFatal("ModelComponent can not be used without a valid TranslationComponent");
-
-	glm::vec3 pos = transComp->GetTranslation();
-	glm::vec3 rot = transComp->GetRotation();
-
-	glm::mat4 model = glm::mat4();
-
-	model = glm::translate(model, pos);
-	model = glm::scale(model, glm::vec3(1.f, 1.f, 1.f));
-	model = glm::rotate(model, rot.x, glm::vec3(1.f, 0.f, 0.f));
-	model = glm::rotate(model, rot.y, glm::vec3(0.f, 1.f, 0.f));
-	model = glm::rotate(model, rot.z, glm::vec3(0.f, 0.f, 1.f));
-
-	ubo.m_Model = glm::mat4(model);
-	ubo.m_View = scene->GetCamera()->GetViewMatrix();
-	ubo.m_Proj = scene->GetCamera()->GetProjectionMatrix();
-	//y and z are flipped from opengl
-	ubo.m_Proj[1][1] *= -1;
-
-	void* data;
-	vkMapMemory(app.GetDevice(), m_UniformBuffer.m_Memory, 0, sizeof(ubo), 0, &data);
-	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(app.GetDevice(), m_UniformBuffer.m_Memory);
+	m_UniformBuffer.Cleanup();
+	m_Model->Cleanup(device);
 }
 
-void ModelComponent::CreateUniformBuffer()
+void ModelComponent::UpdateUniformBuffer(Scene* scene)
 {
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-	Application::Get().CreateBuffer(
+	m_UniformBufferObject.m_Proj = scene->GetCamera()->GetProjectionMatrix();
+	m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
+	m_UniformBufferObject.m_Model = glm::mat4(1.f);
+	m_UniformBufferObject.m_Proj[1][1] *= -1;
+
+	memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));
+}
+
+void ModelComponent::CreateUniformBuffer(vk::VulkanDevice* vulkanDevice)
+{
+	CHECK_VK_RESULT(vulkanDevice->CreateBuffer(
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&m_UniformBuffer,
-		bufferSize);
+		sizeof(m_UniformBuffer)));
+
+	CHECK_VK_RESULT(m_UniformBuffer.Map());
 }
 
-void ModelComponent::CreateDescriptorSet()
+void ModelComponent::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
 {
-	Application& app = Application::Get();
+	VkDevice device = Application::Get().GetVulkanDevice()->GetDevice();
 
-	VkDescriptorSetLayout layouts[] = { app.GetDescriptorSetLayout() };
-	VkDescriptorSetAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = app.GetDescriptorPool();
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = layouts;
+	CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_Model->m_DescriptorSet));
 
-	if (vkAllocateDescriptorSets(app.GetDevice(), &allocInfo, &m_DescriptorSet) != VK_SUCCESS)
+	// Binding 0: Vertex shader uniform buffer
+	VkWriteDescriptorSet vertUniformModelWrite{};
+	vertUniformModelWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	vertUniformModelWrite.dstSet = m_Model->m_DescriptorSet;
+	vertUniformModelWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	vertUniformModelWrite.dstBinding = 0;
+	vertUniformModelWrite.pBufferInfo = &m_UniformBuffer.m_Descriptor;
+	vertUniformModelWrite.descriptorCount = 1;
+
+	// Binding 1: Color map
+	VkWriteDescriptorSet colourWrite{};
+	colourWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	colourWrite.dstSet = m_Model->m_DescriptorSet;
+	colourWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	colourWrite.dstBinding = 1;
+	colourWrite.pImageInfo = &m_Model->m_ColourMap.m_Descriptor;
+	colourWrite.descriptorCount = 1;
+
+	// Binding 2: Normal map
+	VkWriteDescriptorSet normalWrite{};
+	normalWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	normalWrite.dstSet = m_Model->m_DescriptorSet;
+	normalWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	normalWrite.dstBinding = 2;
+	normalWrite.pImageInfo = &m_Model->m_NormalMap.m_Descriptor;
+	normalWrite.descriptorCount = 1;
+
+	std::vector<VkWriteDescriptorSet> writeDescriptorSets =
 	{
-		Helpers::LogFatal("failed to allocate descriptor set!");
-	}
+		vertUniformModelWrite,
+		colourWrite,
+		normalWrite
+	};
+	vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+}
 
-	VkDescriptorBufferInfo bufferInfo = {};
-	bufferInfo.buffer = m_UniformBuffer.m_Buffer;
-	bufferInfo.offset = 0;
-	bufferInfo.range = sizeof(UniformBufferObject);
-
-	VkDescriptorImageInfo imageInfo = {};
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = m_Model->m_ImageView;
-	imageInfo.sampler = m_Model->m_TextureSampler;
-
-	std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
-
-	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[0].dstSet = m_DescriptorSet;
-	descriptorWrites[0].dstBinding = 0;
-	descriptorWrites[0].dstArrayElement = 0;
-	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrites[0].descriptorCount = 1;
-	descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[1].dstSet = m_DescriptorSet;
-	descriptorWrites[1].dstBinding = 1;
-	descriptorWrites[1].dstArrayElement = 0;
-	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrites[1].descriptorCount = 1;
-	descriptorWrites[1].pImageInfo = &imageInfo;
-
-	vkUpdateDescriptorSets(app.GetDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+void ModelComponent::SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+{
+	VkDeviceSize offsets[1] = { 0 };
+	// Object
+	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_Model->m_DescriptorSet, 0, NULL);
+	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &m_Model->m_VertexBuffer.m_Buffer, offsets);
+	vkCmdBindIndexBuffer(cmdBuffer, m_Model->m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdDrawIndexed(cmdBuffer, m_Model->m_IndexSize, 3, 0, 0, 0);
 }

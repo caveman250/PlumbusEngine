@@ -7,8 +7,9 @@ public:
 	void Init();
 	void OnUpdate();
 
-	glm::mat4	GetViewMatrix() { return m_ViewMatrix; }
-	glm::mat4	GetProjectionMatrix() { return m_ProjectionMatrix; }
+	glm::mat4 GetViewMatrix() { return m_ViewMatrix; }
+	glm::mat4 GetProjectionMatrix() { return m_ProjectionMatrix; }
+	glm::vec3 GetPosition() { return m_Position; }
 
 private:
 	glm::mat4	m_ViewMatrix;

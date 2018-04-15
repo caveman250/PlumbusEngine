@@ -1,17 +1,22 @@
 #pragma once
 #include "glm/glm.hpp"
 #include <vector>
+#include <map>
+#include "components/Component.h"
 
-class Model;
+namespace vk
+{
+	class Model;
+}
 class Scene;
-class Component;
 class ModelComponent;
 class GameObject
 {
 public:
 	GameObject() {}
 
-	GameObject* AddComponent(Component* component);
+	template <typename T>
+	GameObject* AddComponent(T* component);
 
 	void OnUpdate(Scene* scene);
 
@@ -19,17 +24,22 @@ public:
 	T* GetComponent();
 
 private:
-	std::vector<Component*> m_Components;
+	std::map<const Component::ComponentType, Component*> m_Components;
 };
 
 template <typename T>
 T* GameObject::GetComponent()
 {
-	for (Component* component : m_Components)
-	{
-		if (T* castComponent = dynamic_cast<T*>(component))
-			return castComponent;
-	}
+	if (m_Components.find(T::GetType()) != m_Components.end())
+		return static_cast<T*>(m_Components[T::GetType()]);
 
 	return nullptr;
+}
+
+template <typename T>
+GameObject* GameObject::AddComponent(T* component)
+{
+	component->SetOwner(this);
+	m_Components[T::GetType()] = component;
+	return this;
 }

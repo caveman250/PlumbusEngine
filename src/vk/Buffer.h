@@ -15,7 +15,7 @@ namespace vk
 		void CopyTo(void* data, VkDeviceSize size);
 		VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void Destroy();
+		void Cleanup();
 
 		VkDevice m_Device;
 		VkBuffer m_Buffer = VK_NULL_HANDLE;

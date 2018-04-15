@@ -54,7 +54,7 @@ namespace vk
 		return vkInvalidateMappedMemoryRanges(m_Device, 1, &mappedRange);
 	}
 
-	void Buffer::Destroy()
+	void Buffer::Cleanup()
 	{
 		if (m_Buffer)
 		{

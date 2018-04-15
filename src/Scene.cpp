@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "components/Component.h"
 #include "components/ModelComponent.h"
+#include "GameObject.h"
 
 Scene::Scene()
 {
@@ -19,13 +20,13 @@ void Scene::OnUpdate()
 		obj->OnUpdate(this);
 }
 
-void Scene::LoadModels()
+void Scene::LoadModels(VkQueue queue, vk::VertexLayout layout)
 {
 	for (GameObject* obj : m_GameObjects)
 	{
 		if (ModelComponent* component = obj->GetComponent<ModelComponent>())
 		{
-			component->LoadModel();
+			component->LoadModel(queue, layout);
 		}
 	}
 }

@@ -16,21 +16,18 @@
     <Filter Include="shaders">
       <UniqueIdentifier>{ccfd9109-a43b-4407-8ca0-5ff9aaed5411}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\vk">
+      <UniqueIdentifier>{a0ab1ea7-bc16-4241-8de7-600363a6a161}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\components">
+      <UniqueIdentifier>{5a92c439-dc7f-4804-92a9-1bba5ef18bca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Application.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ModelLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ModelManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Scene.cpp">
@@ -42,14 +39,32 @@
     <ClCompile Include="src\GameObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\components\ModelComponent.cpp">
+    <ClCompile Include="src\Helpers.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vk\Model.cpp">
+      <Filter>Source Files\vk</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vk\Texture.cpp">
+      <Filter>Source Files\vk</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vk\FrameBuffer.cpp">
+      <Filter>Source Files\vk</Filter>
+    </ClCompile>
+    <ClCompile Include="src\components\ModelComponent.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="src\components\TranslationComponent.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vk\Device.cpp">
+      <Filter>Source Files\vk</Filter>
     </ClCompile>
     <ClCompile Include="src\vk\Buffer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\vk</Filter>
+    </ClCompile>
+    <ClCompile Include="src\components\PointLightComponent.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -68,39 +83,54 @@
     <ClInclude Include="src\ImageHelpers.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Model.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ModelLoader.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ModelManager.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Scene.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Vertex.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\components\Component.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\components\ModelComponent.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\components\TranslationComponent.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\vk\Model.h">
+      <Filter>Source Files\vk</Filter>
     </ClInclude>
     <ClInclude Include="src\vk\Buffer.h">
-      <Filter>Header Files</Filter>
+      <Filter>Source Files\vk</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vk\Device.h">
+      <Filter>Source Files\vk</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vk\FrameBuffer.h">
+      <Filter>Source Files\vk</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vk\Texture.h">
+      <Filter>Source Files\vk</Filter>
+    </ClInclude>
+    <ClInclude Include="src\components\ModelComponent.h">
+      <Filter>Source Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\components\TranslationComponent.h">
+      <Filter>Source Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\components\Component.h">
+      <Filter>Source Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\components\PointLightComponent.h">
+      <Filter>Source Files\components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\shader.frag">
+    <None Include="shaders\debug.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\debug.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\deferred.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\deferred.vert">
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\shader.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.frag">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

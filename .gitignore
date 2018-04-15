@@ -41,3 +41,6 @@ x64/Debug/GameObject.obj
 x64/Debug/Camera.obj
 x64/Release/TranslationComponent.obj
 *.obj
+VulkanRenderer.iobj
+VulkanRenderer.ipdb
+VulkanRenderer.pdb

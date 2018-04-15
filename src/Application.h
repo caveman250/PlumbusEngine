@@ -5,30 +5,73 @@
 #include <array>
 #include <glm/glm.hpp>
 #include "Scene.h"
-#include "Vertex.h"
-#include "Model.h"
+
+#include "vk/Model.h"
+#include "vk/Device.h"
+#include "vk/FrameBuffer.h"
 
 class Scene;
-class Model;
+namespace vk
+{
+	class Model;
+}
 class Application
 {
 private:
-	struct QueueFamilyIndices 
-	{
-		int m_GraphicsFamily = -1;
-		int m_PresentFamily = -1;
-
-		bool Valid() 
-		{
-			return m_GraphicsFamily >= 0 && m_PresentFamily >= 0;
-		}
-	};
 
 	struct SwapChainSupportDetails 
 	{
 		VkSurfaceCapabilitiesKHR m_Capabilities;
 		std::vector<VkSurfaceFormatKHR> m_Formats;
 		std::vector<VkPresentModeKHR> m_PresentModes;
+	};
+
+	struct VertexDescription
+	{
+		VkPipelineVertexInputStateCreateInfo m_InputState;
+		std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
+		std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;
+	};
+
+	struct UniformBuffers
+	{
+		vk::Buffer m_VertFullScreen;
+		vk::Buffer m_FragLights;
+	};
+
+	struct UniformBufferVert
+	{
+		glm::mat4 m_Projection;
+		glm::mat4 m_Model;
+		glm::mat4 m_View;
+		glm::vec4 m_InstancePos[3];
+	};
+
+	struct LightBufferInfo 
+	{
+		glm::vec4 m_Position;
+		glm::vec3 m_Colour;
+		float m_Radius;
+	};
+
+	static const size_t MAX_LIGHTS = 50;
+	struct UniformBufferLights
+	{
+		LightBufferInfo m_Lights[MAX_LIGHTS];
+		glm::vec4 m_ViewPos;
+	};
+
+	struct PipelineLayouts
+	{
+		VkPipelineLayout m_Deferred;
+		VkPipelineLayout m_Offscreen;
+	};
+
+	struct Pipelines 
+	{
+		VkPipeline m_Deferred;
+		VkPipeline m_Offscreen;
+		VkPipeline m_Debug;
 	};
 
 public:
@@ -38,18 +81,14 @@ public:
 	static Application& Get() { return *m_Instance; }
 	void Run();
 
-	VkDevice& GetDevice() { return m_Device; }
+	vk::VulkanDevice* GetVulkanDevice() { return m_VulkanDevice; }
 	VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
 	VkExtent2D& GetSwapChainExtent() { return m_SwapChainExtent; }
 	VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
 	GLFWwindow* GetWindow() { return m_Window; }
 	double GetDeltaTime() { return m_DeltaTime; }
 
-	VkResult CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data = nullptr);
-	VkResult CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data = nullptr);
-	VkCommandBuffer CreateCommandBuffer();
-	void FlushCommandBuffer(VkCommandBuffer commandBuffer);
-	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	VkFormat FindDepthFormat();
 
 private:
 	void InitWindow();
@@ -60,22 +99,27 @@ private:
 	void PickPhysicalDevice();
 	bool IsDeviceSuitable(VkPhysicalDevice device);
 	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-	void CreateLogicalDevice();
 	void CreateSurface();
+	void CreatePipelineCache();
+	void GenerateQuads();
+	void CreateVertexDescriptions();
+	void CreateUniformBuffers();
+	void InitLightsVBO();
 	void CreateDescriptorSetLayout();
+	void CreatePipelines();
+	void CreateDescriptorPool();
+	void CreateDescriptorSet();
+	void BuildCommandBuffers();
+	void BuildDefferedCommandBuffer();
 	void CreateSwapChain();
 	void RecreateSwapChain();
 	void CleanupSwapChain();
 	void CreateImageViews();
-	void CreateGraphicsPipeline();
 	void CreateRenderPass();
+	void UpdateUniformBuffersScreen();
+	void UpdateUniformBufferDeferredLights();
+	void CreateDepthResources();
 	void CreateFrameBuffers();
-	void CreateCommandPool();
-
-private:
-	void CreateDescriptorPool();
-	void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
 	void CreateCommandBuffers();
 	void CreateSemaphores();
 
@@ -85,25 +129,23 @@ private:
 	void Cleanup();
 	static void OnWindowResized(GLFWwindow* window, int width, int height);
 
-	VkFormat FindDepthFormat();
-	VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-	void CreateDepthResources();
-
 	std::vector<const char*> GetRequiredExtensions();
 	bool CheckValidationLayerSupport();
-	QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
+	VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	
 	SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+	VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
 
 	GLFWwindow* m_Window;
 	VkInstance m_VulkanInstance;
 	VkDebugReportCallbackEXT m_Callback;
-	VkDevice m_Device;
+	vk::VulkanDevice* m_VulkanDevice;
 	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 	VkQueue m_GraphicsQueue;
 	VkSurfaceKHR m_Surface;
@@ -116,24 +158,28 @@ private:
 	VkRenderPass m_RenderPass;
 	VkDescriptorPool m_DescriptorPool;
 	VkDescriptorSetLayout m_DescriptorSetLayout;
-	VkPipelineLayout m_PipelineLayout;
-	VkPipeline m_GraphicsPipeline;
-	std::vector<VkFramebuffer> m_SwapChainFramebuffers;
-	VkCommandPool m_CommandPool;
+	VkDescriptorSet m_DescriptorSet;
+	PipelineLayouts m_PipelineLayouts;
+	Pipelines m_Pipelines;
+	std::vector<VkFramebuffer> m_Framebuffers;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
 	VkSemaphore m_ImageAvailableSemaphore;
 	VkSemaphore m_RenderFinishedSemaphore;
-
+	VkSemaphore m_OffscreenSemaphore;
+	VertexDescription m_VertexDescriptions;
+	vk::FrameBuffer* m_OffscreenFrameBuffer;
+	UniformBuffers m_UniformBuffers;
+	UniformBufferVert m_VertUBO;
+	UniformBufferLights m_LightsUBO;
+	VkPipelineCache m_PipelineCache;
+	VkCommandBuffer m_OffScreenCmdBuffer = VK_NULL_HANDLE;
 	VkImage m_DepthImage;
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
-
-	//Temp
-	VkShaderModule m_VertShaderModule;
-	VkShaderModule m_FragShaderModule;
+	vk::Model m_Quad;
+	std::vector<VkShaderModule> m_ShaderModules;
 
 	static Application* m_Instance;
-	std::vector<Model> m_Models;
 	Scene* m_Scene;
 	double m_DeltaTime;
 	double m_lastUpdateTime;

@@ -69,7 +69,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>./</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -84,11 +86,11 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./include; ./src;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./include; ./include/gli; ./include/glm; ./src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -113,46 +115,53 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./include; ./src;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./include; ./include/gli; ./include/glm; ./src;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>./lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3.lib;assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\components\PointLightComponent.cpp" />
     <ClCompile Include="src\components\TranslationComponent.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
+    <ClCompile Include="src\Helpers.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Model.cpp" />
+    <ClCompile Include="src\vk\Model.cpp" />
     <ClCompile Include="src\components\ModelComponent.cpp" />
-    <ClCompile Include="src\ModelLoader.cpp" />
-    <ClCompile Include="src\ModelManager.cpp" />
     <ClCompile Include="src\Scene.cpp" />
     <ClCompile Include="src\vk\Buffer.cpp" />
+    <ClCompile Include="src\vk\Device.cpp" />
+    <ClCompile Include="src\vk\FrameBuffer.cpp" />
+    <ClCompile Include="src\vk\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\components\Component.h" />
+    <ClInclude Include="src\components\PointLightComponent.h" />
     <ClInclude Include="src\components\TranslationComponent.h" />
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Helpers.h" />
     <ClInclude Include="src\ImageHelpers.h" />
-    <ClInclude Include="src\Model.h" />
+    <ClInclude Include="src\vk\Model.h" />
     <ClInclude Include="src\components\ModelComponent.h" />
-    <ClInclude Include="src\ModelLoader.h" />
-    <ClInclude Include="src\ModelManager.h" />
     <ClInclude Include="src\Scene.h" />
-    <ClInclude Include="src\Vertex.h" />
     <ClInclude Include="src\vk\Buffer.h" />
     <ClInclude Include="src\vk\Device.h" />
+    <ClInclude Include="src\vk\FrameBuffer.h" />
+    <ClInclude Include="src\vk\Texture.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\debug.frag" />
+    <None Include="shaders\debug.vert" />
+    <None Include="shaders\deferred.frag" />
+    <None Include="shaders\deferred.vert" />
     <None Include="shaders\shader.frag" />
     <None Include="shaders\shader.vert" />
   </ItemGroup>

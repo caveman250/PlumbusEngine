@@ -5,8 +5,13 @@
 #include <string>
 #include "glm/glm.hpp"
 #include "vk/Buffer.h"
+#include "vk/Model.h"
 
-class Model;
+namespace vk
+{
+	class Model;
+	class VulkanDevice;
+}
 class Scene;
 class ModelComponent : public Component
 {
@@ -17,25 +22,34 @@ class ModelComponent : public Component
 		glm::mat4 m_Proj;
 	};
 
-public:
-	ModelComponent(std::string modelPath, std::string texturePath);
-	~ModelComponent();
-	Model* GetModel();
-	void LoadModel();
-	void OnUpdate(Scene* scene) override;
-	void UpdateUniformBuffer(Scene* scene);
-	void CreateUniformBuffer();
-	void CreateDescriptorSet();
 
-	VkDescriptorSet* GetDescriptorSet() { return &m_DescriptorSet; }
+public:
+
+	ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath);
+	~ModelComponent();
+	vk::Model* GetModel();
+	void LoadModel(VkQueue queue, vk::VertexLayout layout);
+	void OnUpdate(Scene* scene) override;
+	void Cleanup(VkDevice device);
+
+
+	void CreateUniformBuffer(vk::VulkanDevice* vulkanDevice);
+	void CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
+	void SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout);
+
+	static const ComponentType GetType() { return Component::ModelComponent; }
 
 private:
+	void UpdateUniformBuffer(Scene* scene);
+
 	std::string m_ModelPath;
 	std::string m_TexturePath;
+	std::string m_NormalPath;
 
 	vk::Buffer m_UniformBuffer;
+	UniformBufferObject m_UniformBufferObject;
 
 	VkDescriptorSet m_DescriptorSet;
 
-	Model* m_Model;
+	vk::Model* m_Model;
 };

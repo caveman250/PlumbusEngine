@@ -1,5 +1,8 @@
 #pragma once
 #include "Component.h"
+#include "glm/glm.hpp"
+
+
 class TranslationComponent : public Component
 {
 public:
@@ -15,6 +18,8 @@ public:
 
 	void Translate(glm::vec3 translation);
 	void Rotate(glm::vec3 rotation);
+
+	static const ComponentType GetType() { return Component::TranslationComponent; }
 
 private:
 	glm::vec3 m_Translation;
