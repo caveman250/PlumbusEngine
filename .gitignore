@@ -44,3 +44,4 @@ x64/Release/TranslationComponent.obj
 VulkanRenderer.iobj
 VulkanRenderer.ipdb
 VulkanRenderer.pdb
+*.exe

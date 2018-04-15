@@ -88,6 +88,8 @@ public:
 	GLFWwindow* GetWindow() { return m_Window; }
 	double GetDeltaTime() { return m_DeltaTime; }
 
+	double m_LightTime = 0;
+
 	VkFormat FindDepthFormat();
 
 private:

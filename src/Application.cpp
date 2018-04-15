@@ -27,10 +27,6 @@ bool debugDisplay = true;
 const int WIDTH = 1280;
 const int HEIGHT = 720;
 
-const std::string MODEL_PATH = "models/armor.dae";
-const std::string TEXTURE_PATH = "textures/color_bc3_unorm.ktx";
-const std::string NORMAL_PATH = "textures/normal_bc3_unorm.ktx";
-
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
@@ -154,9 +150,17 @@ void Application::InitVulkan()
 
 	GameObject* obj = new GameObject();
 	m_Scene->AddGameObject(obj->
-		AddComponent<ModelComponent>(new ModelComponent(MODEL_PATH, TEXTURE_PATH, NORMAL_PATH))->
+		AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
 		AddComponent<TranslationComponent>(new TranslationComponent())
 	);
+
+	GameObject* plane = new GameObject();
+	m_Scene->AddGameObject(plane->
+		AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
+		AddComponent<TranslationComponent>(new TranslationComponent())
+	);
+
+	plane->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, 2.3, 0));
 
 	//Lights
 	glm::vec3 colours[] =
@@ -1465,14 +1469,16 @@ void Application::UpdateUniformBufferDeferredLights()
 		}
 	}
 
+	float degrees = 0.f;
+	m_LightTime += GetDeltaTime();
 	for (GameObject * obj : m_Scene->GetObjects())
 	{
 		if (PointLightComponent* lightComp = obj->GetComponent<PointLightComponent>())
 		{
 			TranslationComponent* comp = obj->GetComponent<TranslationComponent>();
-			float radians = (glm::radians(60.f) * index) * ((float)GetDeltaTime() / 3.f);
-			float x = (comp->GetTranslation().x * cos(radians)) - (comp->GetTranslation().z * sin(radians));
-			float z = (comp->GetTranslation().z * cos(radians)) + (comp->GetTranslation().x * sin(radians));
+			float radians = (glm::radians(degrees)) + m_LightTime;
+			float x = 5 * cos(radians);
+			float z = 5 * sin(radians);
 
 			comp->SetTranslation(glm::vec3(x, 0.f, z) + modelTranslation);
 
@@ -1480,6 +1486,7 @@ void Application::UpdateUniformBufferDeferredLights()
 			m_LightsUBO.m_Lights[index].m_Colour = lightComp->GetColour();
 			m_LightsUBO.m_Lights[index].m_Radius = lightComp->GetRadius();
 			index++;
+			degrees += 60.f;
 		}
 	}
 	

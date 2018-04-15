@@ -51,8 +51,6 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
 
 	::TranslationComponent* transComp = GetOwner()->GetComponent<::TranslationComponent>();
-	transComp->Rotate(glm::vec3(0, 1, 0) * (float)Application::Get().GetDeltaTime());
-	transComp->SetTranslation(glm::vec3(0, 2, 0));
 	glm::mat4 model;
 	model = glm::translate(model, transComp->GetTranslation());
 	model = glm::rotate(model, transComp->GetRotation().x, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -123,5 +121,5 @@ void ModelComponent::SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLay
 	vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_Model->m_DescriptorSet, 0, NULL);
 	vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &m_Model->m_VertexBuffer.m_Buffer, offsets);
 	vkCmdBindIndexBuffer(cmdBuffer, m_Model->m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(cmdBuffer, m_Model->m_IndexSize, 3, 0, 0, 0);
+	vkCmdDrawIndexed(cmdBuffer, m_Model->m_IndexSize, 1, 0, 0, 0);
 }
