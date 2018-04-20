@@ -22,7 +22,7 @@
 #include "Camera.h"
 #include "components/PointLightComponent.h"
 
-bool debugDisplay = false;
+bool debugDisplay = true;
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
@@ -41,17 +41,18 @@ vk::VertexLayout vertexLayout = vk::VertexLayout(
 	vk::VERTEX_COMPONENT_TANGENT,
 	});
 
-const std::vector<const char*> validationLayers = {
+const std::vector<const char*> validationLayers = 
+{
 	"VK_LAYER_LUNARG_standard_validation",
 	"VK_LAYER_RENDERDOC_Capture"
 };
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
+//#ifdef NDEBUG
+//const bool enableValidationLayers = false;
+//#else
+//const bool enableValidationLayers = true;
+//#endif
 const bool enableValidationLayers = true;
-#endif
-
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	VkDebugReportFlagsEXT flags,
 	VkDebugReportObjectTypeEXT objType,

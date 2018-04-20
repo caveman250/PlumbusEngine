@@ -7,10 +7,10 @@ namespace vk
 	class Texture
 	{
 	public:
-		VkImage m_Image;
-		VkDeviceMemory m_ImageMemory;
-		VkImageView m_ImageView;
-		VkSampler m_TextureSampler;
+		VkImage m_Image = VK_NULL_HANDLE;
+		VkDeviceMemory m_ImageMemory = VK_NULL_HANDLE;
+		VkImageView m_ImageView = VK_NULL_HANDLE;
+		VkSampler m_TextureSampler = VK_NULL_HANDLE;
 		VkDescriptorImageInfo m_Descriptor;
 
 		void UpdateDescriptor();

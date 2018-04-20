@@ -165,10 +165,14 @@ namespace vk
 
 	void Texture::Cleanup(VkDevice device)
 	{
-		vkDestroyImageView(device, m_ImageView, nullptr);
-		vkDestroyImage(device, m_Image, nullptr);
-		vkDestroySampler(device, m_TextureSampler, nullptr);
-		vkFreeMemory(device, m_ImageMemory, nullptr);
+		if(m_ImageView)
+			vkDestroyImageView(device, m_ImageView, nullptr);
+		if(m_Image)
+			vkDestroyImage(device, m_Image, nullptr);
+		if(m_TextureSampler)
+			vkDestroySampler(device, m_TextureSampler, nullptr);
+		if(m_ImageMemory)
+			vkFreeMemory(device, m_ImageMemory, nullptr);
 	}
 
 }

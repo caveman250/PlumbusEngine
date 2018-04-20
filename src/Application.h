@@ -183,7 +183,7 @@ private:
 
 	static Application* m_Instance;
 	Scene* m_Scene;
-	double m_DeltaTime;
+	double m_DeltaTime = 0;
 	double m_lastUpdateTime;
 
 };
