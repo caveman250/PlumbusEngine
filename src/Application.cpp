@@ -22,7 +22,7 @@
 #include "Camera.h"
 #include "components/PointLightComponent.h"
 
-bool debugDisplay = true;
+bool debugDisplay = false;
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
@@ -41,7 +41,6 @@ vk::VertexLayout vertexLayout = vk::VertexLayout(
 	vk::VERTEX_COMPONENT_TANGENT,
 	});
 
-//these need to be passed to every component that you want to validate or they wont use them :(
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_LUNARG_standard_validation",
 	"VK_LAYER_RENDERDOC_Capture"
