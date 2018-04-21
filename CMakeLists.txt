@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 cmake_policy(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_SUPPRESS_REGENERATION true)
 
 set(NAME VulkanRenderer)
 
 project(${NAME})
 
-if(UNIX)
 add_subdirectory(include/glfw-3.2.1)
-endif(UNIX)
 
 include_directories(include)
 include_directories(include/glm)
@@ -33,7 +32,8 @@ add_executable(${NAME} src/main.cpp ${SOURCE} ${COMPONENTS} ${VK})
 
 
 if (WIN32)
-    target_link_libraries(${NAME} assimp.lib assimp-vc140-mt.lib glfw3.lib vulkan-1.lib)
+    target_link_libraries(${NAME} glfw ${GLFW_LIBRARIES})
+    target_link_libraries(${NAME} assimp.lib assimp-vc140-mt.lib vulkan-1.lib)
 endif (WIN32)
 if (UNIX)
 	find_library(Vulkan_LIBRARY NAMES vulkan HINTS "${CMAKE_SOURCE_DIR}/lib" "${CMAKE_SOURCE_DIR}/libs/vulkan" REQUIRED)
