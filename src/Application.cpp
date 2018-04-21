@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
+#include <cstring>
 
 #include "ImageHelpers.h"
 #include "GameObject.h"
@@ -22,7 +23,7 @@
 #include "Camera.h"
 #include "components/PointLightComponent.h"
 
-bool debugDisplay = true;
+bool debugDisplay = false;
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
@@ -43,8 +44,8 @@ vk::VertexLayout vertexLayout = vk::VertexLayout(
 
 const std::vector<const char*> validationLayers = 
 {
-	"VK_LAYER_LUNARG_standard_validation",
-	"VK_LAYER_RENDERDOC_Capture"
+	//"VK_LAYER_LUNARG_standard_validation",
+	//"VK_LAYER_RENDERDOC_Capture"
 };
 
 //#ifdef NDEBUG

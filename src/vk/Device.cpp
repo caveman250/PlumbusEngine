@@ -2,6 +2,7 @@
 #include <set>
 #include "Helpers.h"
 #include "Buffer.h"
+#include <cstring>
 
 namespace vk
 {

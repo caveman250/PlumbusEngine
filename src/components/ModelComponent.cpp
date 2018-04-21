@@ -5,6 +5,7 @@
 #include "TranslationComponent.h"
 #include "Helpers.h"
 #include "GameObject.h"
+#include <cstring>
 
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 	: Component()

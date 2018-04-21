@@ -27,3 +27,15 @@ VulkanRenderer.sln
 VulkanRenderer.vcxproj
 VulkanRenderer.vcxproj.filters
 VulkanRenderer.vcxproj.user
+
+\.codelite/
+
+VulkanRenderer\.workspace
+
+VulkanRenderer\.project
+
+VulkanRenderer\.cbp
+
+VulkanRenderer
+
+Makefile

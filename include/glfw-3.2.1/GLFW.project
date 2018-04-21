@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="GLFW" InternalType="">
+	<VirtualDirectory Name="src">
+		<VirtualDirectory Name="deps">
+			<File Name="deps/getopt.c"/>
+			<File Name="deps/glad.c"/>
+			<File Name="deps/tinycthread.c"/>
+		</VirtualDirectory>
+		<VirtualDirectory Name="examples">
+			<File Name="examples/boing.c"/>
+			<File Name="examples/gears.c"/>
+			<File Name="examples/heightmap.c"/>
+			<File Name="examples/particles.c"/>
+			<File Name="examples/simple.c"/>
+			<File Name="examples/splitview.c"/>
+			<File Name="examples/wave.c"/>
+		</VirtualDirectory>
+		<VirtualDirectory Name="src">
+			<File Name="src/context.c"/>
+			<File Name="src/egl_context.c"/>
+			<File Name="src/glx_context.c"/>
+			<File Name="src/init.c"/>
+			<File Name="src/input.c"/>
+			<File Name="src/linux_joystick.c"/>
+			<File Name="src/monitor.c"/>
+			<File Name="src/posix_time.c"/>
+			<File Name="src/posix_tls.c"/>
+			<File Name="src/vulkan.c"/>
+			<File Name="src/window.c"/>
+			<File Name="src/x11_init.c"/>
+			<File Name="src/x11_monitor.c"/>
+			<File Name="src/x11_window.c"/>
+			<File Name="src/xkb_unicode.c"/>
+		</VirtualDirectory>
+		<VirtualDirectory Name="tests">
+			<File Name="tests/clipboard.c"/>
+			<File Name="tests/cursor.c"/>
+			<File Name="tests/empty.c"/>
+			<File Name="tests/events.c"/>
+			<File Name="tests/gamma.c"/>
+			<File Name="tests/glfwinfo.c"/>
+			<File Name="tests/icon.c"/>
+			<File Name="tests/iconify.c"/>
+			<File Name="tests/joysticks.c"/>
+			<File Name="tests/monitors.c"/>
+			<File Name="tests/msaa.c"/>
+			<File Name="tests/reopen.c"/>
+			<File Name="tests/sharing.c"/>
+			<File Name="tests/tearing.c"/>
+			<File Name="tests/threads.c"/>
+			<File Name="tests/timeout.c"/>
+			<File Name="tests/title.c"/>
+			<File Name="tests/windows.c"/>
+		</VirtualDirectory>
+	</VirtualDirectory>
+	<VirtualDirectory Name="include">
+		<VirtualDirectory Name="deps">
+			<File Name="deps/getopt.h"/>
+			<VirtualDirectory Name="glad">
+				<File Name="deps/glad/glad.h"/>
+			</VirtualDirectory>
+			<File Name="deps/tinycthread.h"/>
+		</VirtualDirectory>
+		<VirtualDirectory Name="include">
+			<VirtualDirectory Name="GLFW">
+				<File Name="include/GLFW/glfw3.h"/>
+				<File Name="include/GLFW/glfw3native.h"/>
+			</VirtualDirectory>
+		</VirtualDirectory>
+		<VirtualDirectory Name="src">
+			<File Name="src/egl_context.h"/>
+			<File Name="src/glfw_config.h"/>
+			<File Name="src/glx_context.h"/>
+			<File Name="src/internal.h"/>
+			<File Name="src/linux_joystick.h"/>
+			<File Name="src/posix_time.h"/>
+			<File Name="src/posix_tls.h"/>
+			<File Name="src/x11_platform.h"/>
+			<File Name="src/xkb_unicode.h"/>
+		</VirtualDirectory>
+	</VirtualDirectory>
+	<Settings Type="Executable">
+		<Configuration Name="NoConfig" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+			<Compiler Options="-g" Required="yes" PreCompiledHeader="">
+				<IncludePath Value="."/>
+			</Compiler>
+			<Linker Options="" Required="yes"/>
+			<ResourceCompiler Options="" Required="no"/>
+			<General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./" Command="./$(ProjectName)" CommandArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes"/>
+			<Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="">
+				<PostConnectCommands/>
+				<StartupCommands/>
+			</Debugger>
+			<PreBuild/>
+			<PostBuild/>
+			<CustomBuild Enabled="yes">
+				<RebuildCommand>/usr/bin/make -j 72 clean &amp;&amp; /usr/bin/make -j 72</RebuildCommand>
+				<CleanCommand>/usr/bin/make -j 72 clean</CleanCommand>
+				<BuildCommand>/usr/bin/make -j 72</BuildCommand>
+				<SingleFileCommand>/usr/bin/make -f$(ProjectPath)/Makefile $(CurrentFileName).cpp.o</SingleFileCommand>
+				<PreprocessFileCommand/>
+				<WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+			</CustomBuild>
+			<AdditionalRules>
+				<CustomPostBuild/>
+				<CustomPreBuild/>
+			</AdditionalRules>
+		</Configuration>
+		<GlobalSettings>
+			<Compiler Options="">
+				<IncludePath Value="."/>
+			</Compiler>
+			<Linker Options="">
+				<LibraryPath Value="."/>
+			</Linker>
+			<ResourceCompiler Options=""/>
+		</GlobalSettings>
+	</Settings>
+</CodeLite_Project>
