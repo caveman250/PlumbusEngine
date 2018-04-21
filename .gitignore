@@ -35,3 +35,4 @@ include/glfw-3.2.1/src/glfw.dir/*
 *.stamp.depend
 *.sdf
 *.suo
+VulkanRenderer\.workspace\.layout
