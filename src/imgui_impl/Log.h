@@ -12,6 +12,6 @@ public:
 	static void Draw(const char* title);
 
 private:
-	static ImGuiTextBuffer m_Buffer;
+	static ImGuiTextBuffer* m_Buffer;
 	static bool m_ScrollToBottom;
 };

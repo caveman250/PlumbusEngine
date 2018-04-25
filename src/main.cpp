@@ -2,7 +2,7 @@
 #include <iostream>
 #include "imgui_impl/Log.h"
 
-int WinMain() 
+int main() 
 {
 	Application::CreateInstance();
 
