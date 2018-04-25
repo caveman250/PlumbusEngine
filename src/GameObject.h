@@ -13,7 +13,8 @@ class ModelComponent;
 class GameObject
 {
 public:
-	GameObject() {}
+	GameObject(std::string id) { m_ID = id; }
+	std::string GetID() { return m_ID; }
 
 	template <typename T>
 	GameObject* AddComponent(T* component);
@@ -25,6 +26,7 @@ public:
 
 private:
 	std::map<const Component::ComponentType, Component*> m_Components;
+	std::string m_ID;
 };
 
 template <typename T>

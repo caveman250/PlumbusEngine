@@ -14,6 +14,9 @@ public:
 	glm::vec3 GetColour() { return m_Colour; }
 	float GetRadius() { return m_Radius; }
 
+	void SetColour(glm::vec3 colour) { m_Colour = colour; }
+	void SetRadius(float radius) { m_Radius = radius; }
+
 	static const ComponentType GetType() { return Component::PointLightComponent; }
 
 private:

@@ -26,7 +26,7 @@ public:
 
 		if (vkCreateImage(app.GetVulkanDevice()->GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
 		{
-			Helpers::LogFatal("failed to create image!");
+			Log::Fatal("failed to create image!");
 		}
 
 		VkMemoryRequirements memRequirements;
@@ -39,7 +39,7 @@ public:
 
 		if (vkAllocateMemory(app.GetVulkanDevice()->GetDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
 		{
-			Helpers::LogFatal("failed to allocate image memory!");
+			Log::Fatal("failed to allocate image memory!");
 		}
 
 		vkBindImageMemory(app.GetVulkanDevice()->GetDevice(), image, imageMemory, 0);
@@ -67,7 +67,7 @@ public:
 		VkImageView imageView;
 		if (vkCreateImageView(Application::Get().GetVulkanDevice()->GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
 		{
-			Helpers::LogFatal("failed to create image views!");
+			Log::Fatal("failed to create image views!");
 		}
 
 		return imageView;
@@ -201,6 +201,23 @@ public:
 			0, nullptr,
 			0, nullptr,
 			1, &imageMemoryBarrier);
+	}
+
+	static void SetImageLayout(
+		VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageAspectFlags aspectMask,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout,
+		VkPipelineStageFlags srcStageMask,
+		VkPipelineStageFlags dstStageMask)
+	{
+		VkImageSubresourceRange subresourceRange = {};
+		subresourceRange.aspectMask = aspectMask;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount = 1;
+		subresourceRange.layerCount = 1;
+		SetImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 	}
 
 	static void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkQueue queue)

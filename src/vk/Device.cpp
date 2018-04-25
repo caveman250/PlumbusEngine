@@ -24,7 +24,7 @@ namespace vk
 	{
 		VkPhysicalDeviceMemoryProperties memProperties;
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
-for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		{
 			if ((typeFilter & (1 << i))
 				&& (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
@@ -33,7 +33,8 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 			}
 		}
 
-		throw std::runtime_error("failed to find suitable memory type!");
+		Log::Fatal("failed to find suitable memory type!");
+		return -1;
 	}
 
 	VulkanDevice::QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice device)
@@ -56,7 +57,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 
 			if (queueFamily.queueCount > 0 && presentSupport)
 			{
-				//std::cout << "present family queue index: " << i << std::endl;
+				//Log::Info("present family queue index: " , i ");
 				indices.m_PresentFamily = i;
 			}
 
@@ -65,7 +66,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 			//then select it as our queue family by storing the index
 			if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
-				//std::cout << "graphics family queue index: " << i << std::endl;
+				//Log::Info("graphics family queue index: " , i ");
 				indices.m_GraphicsFamily = i;
 			}
 
@@ -85,7 +86,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 
 	void VulkanDevice::CreateLogicalDevice(std::vector<const char*> deviceExtensions, const std::vector<const char*> validationLayers, bool enableValidationLayers)
 	{
-		//std::cout << "Create logical device." << std::endl;
+		//Log::Info("Create logical device.");
 		//find a valid queue family(s?)
 		m_Indices = FindQueueFamilies(m_PhysicalDevice);
 
@@ -123,7 +124,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 
 		if (enableValidationLayers)
 		{
-			//std::cout << "\tAdding validation layers to logical device" << std::endl;
+			//Log::Info("\tAdding validation layers to logical device");
 			//todo: is this always just validation layers?
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -135,7 +136,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 
 		if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to create logical device!");
+			Log::Fatal("failed to create logical device!");
 		}
 
 		m_CommandPool = CreateCommandPool();
@@ -153,7 +154,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		bufferCreateInfo.usage = usageFlags;
 		bufferCreateInfo.size = size;
 		if (vkCreateBuffer(m_Device, &bufferCreateInfo, nullptr, &buffer->m_Buffer) != VK_SUCCESS)
-			Helpers::LogFatal("Failed to create buffer");
+			Log::Fatal("Failed to create buffer");
 
 		// Create the memory backing up the buffer handle
 		VkMemoryRequirements memReqs;
@@ -164,7 +165,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		// Find a memory type index that fits the properties of the buffer
 		memAllocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
 		if (vkAllocateMemory(m_Device, &memAllocInfo, nullptr, &buffer->m_Memory) != VK_SUCCESS)
-			Helpers::LogFatal("Failed to allocate buffer memory");
+			Log::Fatal("Failed to allocate buffer memory");
 
 		buffer->m_Alignment = memReqs.alignment;
 		buffer->m_Size = memAllocInfo.allocationSize;
@@ -175,7 +176,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		if (data != nullptr)
 		{
 			if (buffer->Map() != VK_SUCCESS)
-				Helpers::LogFatal("failed to map buffer");
+				Log::Fatal("failed to map buffer");
 
 			memcpy(buffer->m_Mapped, data, size);
 			buffer->Unmap();
@@ -197,7 +198,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		bufferCreateInfo.size = size;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		if (vkCreateBuffer(m_Device, &bufferCreateInfo, nullptr, buffer) != VK_SUCCESS)
-			Helpers::LogFatal("Failed to create buffer");
+			Log::Fatal("Failed to create buffer");
 
 		// Create the memory backing up the buffer handle
 		VkMemoryRequirements memReqs;
@@ -208,14 +209,14 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		// Find a memory type index that fits the properties of the buffer
 		memAllocInfo.memoryTypeIndex = FindMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
 		if (vkAllocateMemory(m_Device, &memAllocInfo, nullptr, memory) != VK_SUCCESS)
-			Helpers::LogFatal("Failed to allocate buffer memory");
+			Log::Fatal("Failed to allocate buffer memory");
 
 		// If a pointer to the buffer data has been passed, map the buffer and copy over the data
 		if (data != nullptr)
 		{
 			void *mapped;
 			if (vkMapMemory(m_Device, *memory, 0, size, 0, &mapped) != VK_SUCCESS)
-				Helpers::LogFatal("Failed to map buffer data");
+				Log::Fatal("Failed to map buffer data");
 			memcpy(mapped, data, size);
 			// If host coherency hasn't been requested, do a manual flush to make writes visible
 			if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
@@ -232,7 +233,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 
 		// Attach the memory to the buffer object
 		if (vkBindBufferMemory(m_Device, *buffer, *memory, 0) != VK_SUCCESS)
-			Helpers::LogFatal("failed to bind buffer memory");
+			Log::Fatal("failed to bind buffer memory");
 
 		return VK_SUCCESS;
 	}
@@ -250,7 +251,7 @@ for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 
 		if (vkCreateCommandPool(m_Device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to create command pool!");
+			Log::Fatal("failed to create command pool!");
 		}
 
 		return commandPool;

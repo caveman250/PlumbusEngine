@@ -38,12 +38,12 @@ public:
 
 	static const ComponentType GetType() { return Component::ModelComponent; }
 
-private:
-	void UpdateUniformBuffer(Scene* scene);
-
 	std::string m_ModelPath;
 	std::string m_TexturePath;
 	std::string m_NormalPath;
+
+private:
+	void UpdateUniformBuffer(Scene* scene);
 
 	vk::Buffer m_UniformBuffer;
 	UniformBufferObject m_UniformBufferObject;

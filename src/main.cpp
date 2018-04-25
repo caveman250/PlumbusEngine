@@ -1,7 +1,8 @@
 #include "Application.h"
 #include <iostream>
+#include "imgui_impl/Log.h"
 
-int main() 
+int WinMain() 
 {
 	Application::CreateInstance();
 
@@ -11,7 +12,7 @@ int main()
 	}
 	catch (const std::runtime_error& e) 
 	{
-		std::cerr << e.what() << std::endl;
+		Log::Fatal(e.what());
 		throw e;
 		return EXIT_FAILURE;
 	}

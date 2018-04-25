@@ -23,6 +23,11 @@ void TranslationComponent::SetRotation(glm::vec3 rotation)
 	m_Rotation = rotation;
 }
 
+void TranslationComponent::SetScale(glm::vec3 scale)
+{
+	m_Scale = scale;
+}
+
 void TranslationComponent::Translate(glm::vec3 translation)
 {
 	m_Translation += translation;
@@ -31,5 +36,10 @@ void TranslationComponent::Translate(glm::vec3 translation)
 void TranslationComponent::Rotate(glm::vec3 rotation)
 {
 	m_Rotation += rotation;
+}
+
+void TranslationComponent::Scale(glm::vec3 scale)
+{
+	m_Scale += scale;
 }
 

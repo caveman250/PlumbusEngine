@@ -21,9 +21,12 @@ void Camera::OnUpdate()
 	m_MousePos = glm::vec2(xpos, ypos);
 	float deltaTime = (float)Application::Get().GetDeltaTime();
 
-	if (glfwGetMouseButton(Application::Get().GetWindow(), GLFW_MOUSE_BUTTON_1))
+	if (Application::Get().m_GameFocued)
 	{
-		m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
+		if (glfwGetMouseButton(Application::Get().GetWindow(), GLFW_MOUSE_BUTTON_1))
+		{
+			m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
+		}
 	}
 
 	glm::mat4 rotM = glm::mat4(1.0f);

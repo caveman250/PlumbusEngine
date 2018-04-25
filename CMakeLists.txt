@@ -27,8 +27,12 @@ file(GLOB COMPONENTS src/components/*.cpp src/components/*.h)
 source_group("src\\components" FILES ${COMPONENTS})
 file(GLOB VK src/vk/*.cpp src/vk/*.h)
 source_group("src\\vk" FILES ${VK})
+file(GLOB IMGUI src/imgui/*.cpp src/imgui/*.h)
+source_group("src\\imgui" FILES ${IMGUI})
+file(GLOB IMGUIIMGUI src/imgui/imgui*.cpp src/imgui/imgui*.h)
+source_group("src\\imgui\\imgui" FILES ${IMGUIIMGUI})
 
-add_executable(${NAME} src/main.cpp ${SOURCE} ${COMPONENTS} ${VK})
+add_executable(${NAME} src/main.cpp ${SOURCE} ${COMPONENTS} ${VK} ${IMGUI} ${IMGUIIMGUI})
 
 
 if (WIN32)

@@ -40,7 +40,7 @@ std::vector<char> Helpers::ReadFile(const std::string& filename)
 
 	if (!file.is_open())
 	{
-		Helpers::LogFatal("failed to open file!");
+		Log::Fatal("failed to open file!");
 	}
 
 	size_t fileSize = (size_t)file.tellg();
@@ -52,17 +52,4 @@ std::vector<char> Helpers::ReadFile(const std::string& filename)
 	file.close();
 
 	return buffer;
-}
-
-void Helpers::LogInfo(std::string msg)
-{
-	msg += "\n";
-	printf(msg.c_str());
-}
-
-void Helpers::LogFatal(std::string msg)
-{
-	msg += "\n";
-	printf(msg.c_str());
-	assert(false);
 }

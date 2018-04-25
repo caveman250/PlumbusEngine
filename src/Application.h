@@ -11,6 +11,7 @@
 #include "vk/FrameBuffer.h"
 
 class Scene;
+class ImGUIImpl;
 namespace vk
 {
 	class Model;
@@ -71,7 +72,8 @@ private:
 	{
 		VkPipeline m_Deferred;
 		VkPipeline m_Offscreen;
-		VkPipeline m_Debug;
+		//VkPipeline m_Debug;
+		VkPipeline m_Output;
 	};
 
 public:
@@ -87,8 +89,14 @@ public:
 	VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
 	GLFWwindow* GetWindow() { return m_Window; }
 	double GetDeltaTime() { return m_DeltaTime; }
+	VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
+	Scene* GetScene() { return m_Scene; }
 
 	double m_LightTime = 0;
+	bool m_GameFocued = false;
+
+	//used for imgui
+	vk::Texture m_OutputTexture;
 
 	VkFormat FindDepthFormat();
 
@@ -113,6 +121,7 @@ private:
 	void CreateDescriptorSet();
 	void BuildCommandBuffers();
 	void BuildDefferedCommandBuffer();
+	void BuildOutputFrameBuffer();
 	void CreateSwapChain();
 	void RecreateSwapChain();
 	void CleanupSwapChain();
@@ -124,12 +133,14 @@ private:
 	void CreateFrameBuffers();
 	void CreateCommandBuffers();
 	void CreateSemaphores();
+	void SetupImGui();
 
 	void MainLoop();
 	void UpdateScene();
 	void DrawFrame();
 	void Cleanup();
 	static void OnWindowResized(GLFWwindow* window, int width, int height);
+
 
 	std::vector<const char*> GetRequiredExtensions();
 	bool CheckValidationLayerSupport();
@@ -142,7 +153,6 @@ private:
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
-	VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
 
 	GLFWwindow* m_Window;
 	VkInstance m_VulkanInstance;
@@ -160,7 +170,7 @@ private:
 	VkRenderPass m_RenderPass;
 	VkDescriptorPool m_DescriptorPool;
 	VkDescriptorSetLayout m_DescriptorSetLayout;
-	VkDescriptorSet m_DescriptorSet;
+	VkDescriptorSet m_OutputDescriptorSet;
 	PipelineLayouts m_PipelineLayouts;
 	Pipelines m_Pipelines;
 	std::vector<VkFramebuffer> m_Framebuffers;
@@ -168,18 +178,23 @@ private:
 	VkSemaphore m_ImageAvailableSemaphore;
 	VkSemaphore m_RenderFinishedSemaphore;
 	VkSemaphore m_OffscreenSemaphore;
+	VkSemaphore m_OutputSemaphore;
 	VertexDescription m_VertexDescriptions;
 	vk::FrameBuffer* m_OffscreenFrameBuffer;
+	vk::FrameBuffer* m_OutputFrameBuffer;
 	UniformBuffers m_UniformBuffers;
 	UniformBufferVert m_VertUBO;
 	UniformBufferLights m_LightsUBO;
 	VkPipelineCache m_PipelineCache;
 	VkCommandBuffer m_OffScreenCmdBuffer = VK_NULL_HANDLE;
+	VkCommandBuffer m_OutputCmdBuffer = VK_NULL_HANDLE;
 	VkImage m_DepthImage;
 	VkDeviceMemory m_DepthImageMemory;
 	VkImageView m_DepthImageView;
 	vk::Model m_Quad;
 	std::vector<VkShaderModule> m_ShaderModules;
+
+	ImGUIImpl* m_ImGui = nullptr;
 
 	static Application* m_Instance;
 	Scene* m_Scene;

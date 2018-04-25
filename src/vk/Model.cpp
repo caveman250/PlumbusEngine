@@ -35,8 +35,7 @@ namespace vk
 		pScene = Importer.ReadFile(filename.c_str(), flags);
 		if (!pScene)
 		{
-			std::string error = Importer.GetErrorString();
-			Helpers::LogFatal(error);
+			Log::Fatal(Importer.GetErrorString());
 		}
 
 		std::vector<ModelPart> parts;
@@ -169,7 +168,7 @@ namespace vk
 				&vertexStaging,
 				vBufferSize,
 				vertexBuffer.data()) != VK_SUCCESS)
-				Helpers::LogFatal("failed to create vertex staging buffer");
+				Log::Fatal("failed to create vertex staging buffer");
 
 			// Index buffer staging
 			if (Application::Get().GetVulkanDevice()->CreateBuffer(
@@ -178,7 +177,7 @@ namespace vk
 				&indexStaging,
 				iBufferSize,
 				indexBuffer.data()) != VK_SUCCESS)
-				Helpers::LogFatal("failed to create index staging buffer");
+				Log::Fatal("failed to create index staging buffer");
 			// Create device local target buffers
 			// Vertex buffer
 			if (Application::Get().GetVulkanDevice()->CreateBuffer(
@@ -186,7 +185,7 @@ namespace vk
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				&m_VertexBuffer,
 				vBufferSize) != VK_SUCCESS)
-				Helpers::LogFatal("failed to create vertex buffer");
+				Log::Fatal("failed to create vertex buffer");
 
 			// Index buffer
 			if (Application::Get().GetVulkanDevice()->CreateBuffer(
@@ -194,7 +193,7 @@ namespace vk
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				&m_IndexBuffer,
 				iBufferSize) != VK_SUCCESS)
-				Helpers::LogFatal("failed to create index buffer");
+				Log::Fatal("failed to create index buffer");
 
 			// Copy from staging buffers
 			VkCommandBuffer copyCmd = Application::Get().GetVulkanDevice()->CreateCommandBuffer();
@@ -217,7 +216,7 @@ namespace vk
 		}
 		else
 		{
-			Helpers::LogFatal("Error loading model");
+			Log::Fatal("Error loading model");
 		}
 	};
 

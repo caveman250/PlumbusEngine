@@ -22,11 +22,11 @@
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "components/PointLightComponent.h"
+#include "imgui_impl/ImGuiImpl.h"
+#include "imgui_impl/Log.h"
 
-bool debugDisplay = false;
-
-const int WIDTH = 1280;
-const int HEIGHT = 720;
+const int WIDTH = 1600;
+const int HEIGHT = 900;
 
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -44,7 +44,7 @@ vk::VertexLayout vertexLayout = vk::VertexLayout(
 
 const std::vector<const char*> validationLayers = 
 {
-	//"VK_LAYER_LUNARG_standard_validation",
+	"VK_LAYER_LUNARG_standard_validation",
 	//"VK_LAYER_RENDERDOC_Capture"
 };
 
@@ -64,7 +64,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	const char* msg,
 	void* userData)
 {
-	std::cerr << "validation layer: " << msg << std::endl;
+	Log::Info("validation layer: %s" , msg);
 
 	return VK_FALSE;
 }
@@ -118,7 +118,7 @@ void Application::InitWindow()
 
 	glfwSetWindowUserPointer(m_Window, this);
 	glfwSetWindowSizeCallback(m_Window, Application::OnWindowResized);
-	glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+	//glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 }
 
 void Application::InitScene()
@@ -149,13 +149,13 @@ void Application::InitVulkan()
 	CreateFrameBuffers();
 	CreateSemaphores();
 
-	GameObject* obj = new GameObject();
+	GameObject* obj = new GameObject("Knight");
 	m_Scene->AddGameObject(obj->
 		AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
 		AddComponent<TranslationComponent>(new TranslationComponent())
 	);
 
-	GameObject* plane = new GameObject();
+	GameObject* plane = new GameObject("Plane");
 	m_Scene->AddGameObject(plane->
 		AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
 		AddComponent<TranslationComponent>(new TranslationComponent())
@@ -176,7 +176,7 @@ void Application::InitVulkan()
 
 	for (int i = 0; i < 6; ++i)
 	{
-		GameObject* light = new GameObject();
+		GameObject* light = new GameObject("Light " + std::to_string(i));
 		m_Scene->AddGameObject(light->
 			AddComponent<TranslationComponent>(new TranslationComponent())->
 			AddComponent<PointLightComponent>(new PointLightComponent(colours[i], 25.0f)));
@@ -188,6 +188,8 @@ void Application::InitVulkan()
 	CreateVertexDescriptions();
 	m_OffscreenFrameBuffer = new vk::FrameBuffer();
 	m_OffscreenFrameBuffer->PrepareOffscreenFramebuffer();
+	m_OutputFrameBuffer = new vk::FrameBuffer();
+	m_OutputFrameBuffer->PrepareOutputFramebuffer();
 	InitLightsVBO();
 	CreateUniformBuffers();
 
@@ -195,8 +197,12 @@ void Application::InitVulkan()
 	CreatePipelines();
 	CreateDescriptorPool();
 	CreateDescriptorSet();
-	BuildCommandBuffers();
+	SetupImGui();
+	m_OutputTexture.CreateTextureSampler();
+	m_OutputTexture.m_ImageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
+	//BuildCommandBuffers();
 	BuildDefferedCommandBuffer();
+	BuildOutputFrameBuffer();
 }
 
 void Application::PickPhysicalDevice()
@@ -206,18 +212,18 @@ void Application::PickPhysicalDevice()
 
 	if (deviceCount == 0)
 	{
-		throw std::runtime_error("failed to find GPUs with Vulkan support!");
+		Log::Fatal("failed to find GPUs with Vulkan support!");
 	}
 
 	std::vector<VkPhysicalDevice> devices(deviceCount);
 	vkEnumeratePhysicalDevices(m_VulkanInstance, &deviceCount, devices.data());
 
-	std::cout << "Found " << devices.size() << " device(s)" << std::endl;
+	Log::Info("Found %i device(s)", devices.size());
 	for (const auto& device : devices)
 	{
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
-		std::cout << deviceProperties.deviceName << std::endl;
+		Log::Info(deviceProperties.deviceName);
 	}
 
 	for (const auto& device : devices)
@@ -231,7 +237,7 @@ void Application::PickPhysicalDevice()
 
 	if (m_PhysicalDevice == VK_NULL_HANDLE)
 	{
-		throw std::runtime_error("failed to find a suitable GPU!");
+		Log::Fatal("failed to find a suitable GPU!");
 	}
 }
 
@@ -241,7 +247,7 @@ bool Application::IsDeviceSuitable(VkPhysicalDevice device)
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
 	if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 	{
-		std::cout << "Device: " << deviceProperties.deviceName << " Invalid! type is not a discrete gpu." << std::endl;
+		Log::Info("Device: %s Invalid! type is not a discrete gpu." , deviceProperties.deviceName);
 		return false;
 	}
 
@@ -249,20 +255,20 @@ bool Application::IsDeviceSuitable(VkPhysicalDevice device)
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 	if (!deviceFeatures.geometryShader)
 	{
-		std::cout << "Device: " << deviceProperties.deviceName << " Invalid! no geometry shader support." << std::endl;
+		Log::Info("Device: %s Invalid! no geometry shader support." , deviceProperties.deviceName);
 		return false;
 	}
 
 	if (!CheckDeviceExtensionSupport(device))
 	{
-		std::cout << "Device: " << deviceProperties.deviceName << " Invalid! missing required extension support" << std::endl;
+		Log::Info("Device: %s Invalid! missing required extension support" , deviceProperties.deviceName);
 		return false;
 	}
 
 	SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
 	if (swapChainSupport.m_Formats.empty() || swapChainSupport.m_PresentModes.empty())
 	{
-		std::cout << "Device: " << deviceProperties.deviceName << " Invalid! missing swap chain support." << std::endl;
+		Log::Info("Device: %s Invalid! missing swap chain support." , deviceProperties.deviceName);
 		return false;
 	}
 
@@ -270,7 +276,7 @@ bool Application::IsDeviceSuitable(VkPhysicalDevice device)
 	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 	if (!supportedFeatures.samplerAnisotropy)
 	{
-		std::cout << "Device: " << deviceProperties.deviceName << " Invalid! missing missing Anisotropy sampler support." << std::endl;
+		Log::Info("Device: %s Invalid! missing missing Anisotropy sampler support." , deviceProperties.deviceName);
 		return false;
 	}
 
@@ -288,10 +294,10 @@ bool Application::CheckDeviceExtensionSupport(VkPhysicalDevice device)
 
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
-	std::cout << "Device: " << deviceProperties.deviceName << ": Available extensions:" << std::endl;
+	Log::Info("Device: %s: Available extensions:", deviceProperties.deviceName);
 	for (VkExtensionProperties prop : availableExtensions)
 	{
-		std::cout << "\t" << prop.extensionName << std::endl;
+		Log::Info("\t %s", prop.extensionName);
 	}
 
 	std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
@@ -316,7 +322,7 @@ void Application::SetupDebugCallback()
 
 	if (CreateDebugReportCallbackEXT(m_VulkanInstance, &createInfo, nullptr, &m_Callback) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to set up debug callback!");
+		Log::Fatal("failed to set up debug callback!");
 	}
 }
 
@@ -332,6 +338,9 @@ void Application::MainLoop()
 
 		UpdateScene();
 		DrawFrame();
+
+		if (glfwGetKey(m_Window, GLFW_KEY_ESCAPE))
+			glfwSetWindowShouldClose(m_Window, GLFW_TRUE);
 	}
 
 	vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
@@ -354,8 +363,10 @@ void Application::DrawFrame()
 	}
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
 	{
-		throw std::runtime_error("failed to acquire swap chain image!");
+		Log::Fatal("failed to acquire swap chain image!");
 	}
+
+	BuildCommandBuffers();
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -376,6 +387,12 @@ void Application::DrawFrame()
 	CHECK_VK_RESULT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
 
 	submitInfo.pWaitSemaphores = &m_OffscreenSemaphore;
+	submitInfo.pSignalSemaphores = &m_OutputSemaphore;
+
+	submitInfo.pCommandBuffers = &m_OutputCmdBuffer;
+	CHECK_VK_RESULT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+
+	submitInfo.pWaitSemaphores = &m_OutputSemaphore;
 	submitInfo.pSignalSemaphores = &m_RenderFinishedSemaphore;
 
 	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
@@ -400,7 +417,7 @@ void Application::DrawFrame()
 	}
 	else if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to present swap chain image!");
+		Log::Fatal("failed to present swap chain image!");
 	}
 
 	vkQueueWaitIdle(m_PresentQueue);
@@ -411,21 +428,21 @@ void Application::DrawFrame()
 void Application::Cleanup()
 {
 	// Color attachments
-	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Position.m_ImageView, nullptr);
-	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Position.m_Image, nullptr);
-	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Position.m_Memory, nullptr);
+	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_ImageView, nullptr);
+	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Image, nullptr);
+	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Memory, nullptr);
 
-	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Normal.m_ImageView, nullptr);
-	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Normal.m_Image, nullptr);
-	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Normal.m_Memory, nullptr);
+	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_ImageView, nullptr);
+	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Image, nullptr);
+	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Memory, nullptr);
 
-	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Albedo.m_ImageView, nullptr);
-	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Albedo.m_Image, nullptr);
-	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Albedo.m_Memory, nullptr);
+	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
+	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
+	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
 
-	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Depth.m_ImageView, nullptr);
-	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Depth.m_Image, nullptr);
-	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Depth.m_Memory, nullptr);
+	vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
+	vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
+	vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
 
 	vkDestroySampler(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_ColourSampler, nullptr);
 
@@ -433,7 +450,6 @@ void Application::Cleanup()
 
 	vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Deferred, nullptr);
 	vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Offscreen, nullptr);
-	vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Debug, nullptr);
 
 	vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Deferred, nullptr);
 	vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
@@ -452,6 +468,8 @@ void Application::Cleanup()
 
 	m_UniformBuffers.m_VertFullScreen.Cleanup();
 	m_UniformBuffers.m_FragLights.Cleanup();
+
+	delete m_ImGui;
 
 	vkFreeCommandBuffers(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), 1, &m_OffScreenCmdBuffer);
 
@@ -514,14 +532,15 @@ VkFormat Application::FindSupportedFormat(const std::vector<VkFormat>& candidate
 		}
 	}
 
-	throw std::runtime_error("failed to find supported format!");
+	Log::Fatal("failed to find supported format!");
+	return VK_FORMAT_MAX_ENUM;
 }
 
 void Application::CreateVulkanInstance()
 {
 	if (enableValidationLayers && !CheckValidationLayerSupport())
 	{
-		throw std::runtime_error("validation layers requested, but not available!");
+		Log::Fatal("validation layers requested, but not available!");
 	}
 
 	//App Info
@@ -540,11 +559,11 @@ void Application::CreateVulkanInstance()
 
 	auto reqExtensions = GetRequiredExtensions();
 
-	std::cout << "required extensions:" << std::endl;
+	Log::Info("required extensions:");
 
 	for (const auto& extension : reqExtensions)
 	{
-		std::cout << "\t" << extension << std::endl;
+		Log::Info("\t %s", extension);
 	}
 
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(reqExtensions.size());
@@ -561,7 +580,7 @@ void Application::CreateVulkanInstance()
 
 	if (vkCreateInstance(&createInfo, nullptr, &m_VulkanInstance) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create instance!");
+		Log::Fatal("failed to create instance!");
 	}
 
 	uint32_t extensionCount = 0;
@@ -569,11 +588,11 @@ void Application::CreateVulkanInstance()
 	std::vector<VkExtensionProperties> extensions(extensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-	std::cout << "available extensions:" << std::endl;
+	Log::Info("available extensions:");
 
 	for (const auto& extension : extensions)
 	{
-		std::cout << "\t" << extension.extensionName << std::endl;
+		Log::Info("\t %s" , extension.extensionName );
 	}
 }
 
@@ -603,15 +622,14 @@ bool Application::CheckValidationLayerSupport()
 
 	for (const char* layerName : validationLayers)
 	{
-		std::cout << "Looking for validation layer: " << layerName << std::endl;
-
+		Log::Info("Looking for validation layer: %s" , layerName);
 		bool layerFound = false;
 
 		for (const auto& layerProperties : availableLayers)
 		{
 			if (strcmp(layerName, layerProperties.layerName) == 0)
 			{
-				std::cout << "Found." << std::endl;
+				Log::Info("Found.");
 				layerFound = true;
 				break;
 			}
@@ -619,7 +637,7 @@ bool Application::CheckValidationLayerSupport()
 
 		if (!layerFound)
 		{
-			std::cout << layerName << " not found." << std::endl;
+			Log::Info("%s not found.", layerName);
 			return false;
 		}
 	}
@@ -631,7 +649,7 @@ void Application::CreateSurface()
 {
 	if (glfwCreateWindowSurface(m_VulkanInstance, m_Window, nullptr, &m_Surface) != VK_SUCCESS) 
 	{
-		throw std::runtime_error("failed to create window surface!");
+		Log::Fatal("failed to create window surface!");
 	}
 }
 
@@ -774,7 +792,7 @@ void Application::InitLightsVBO()
 		if (PointLightComponent* comp = obj->GetComponent<PointLightComponent>())
 		{
 			if (index >= MAX_LIGHTS)
-				Helpers::LogFatal("Light count exceeds MAX_LIGHTS");
+				Log::Fatal("Light count exceeds MAX_LIGHTS");
 
 			LightBufferInfo info = {};
 			info.m_Colour = comp->GetColour();
@@ -974,13 +992,8 @@ void Application::CreatePipelines()
 	pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
 	CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Deferred));
 
-	// Debug display pipeline
-	pipelineCreateInfo.pVertexInputState = &m_VertexDescriptions.m_InputState;
-	shaderStages[0] = LoadShader("shaders/debug.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = LoadShader("shaders/debug.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-	CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Debug));
-
 	// Offscreen pipeline
+	pipelineCreateInfo.pVertexInputState = &m_VertexDescriptions.m_InputState;
 	shaderStages[0] = LoadShader("shaders/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
 	shaderStages[1] = LoadShader("shaders/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -1013,6 +1026,33 @@ void Application::CreatePipelines()
 	colorBlendState.pAttachments = blendAttachmentStates.data();
 
 	CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Offscreen));
+
+
+	// Output pipeline
+	shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	// Separate render pass
+	pipelineCreateInfo.renderPass = m_OutputFrameBuffer->m_RenderPass;
+
+	// Separate layout
+	pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
+
+	// Blend attachment states required for all color attachments
+	// This is important, as color write mask will otherwise be 0x0 and you
+	// won't see anything rendered to the attachment
+	VkPipelineColorBlendAttachmentState blendAttachmentStateOutput{};
+	blendAttachmentStateOutput.colorWriteMask = 0xf;
+	blendAttachmentStateOutput.blendEnable = VK_FALSE;
+
+	std::array<VkPipelineColorBlendAttachmentState, 1> blendAttachmentStatesOutput = {
+		blendAttachmentStateOutput,
+	};
+
+	colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStatesOutput.size());
+	colorBlendState.pAttachments = blendAttachmentStatesOutput.data();
+
+	CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Output));
 }
 
 void Application::CreateDescriptorPool()
@@ -1023,7 +1063,7 @@ void Application::CreateDescriptorPool()
 
 	VkDescriptorPoolSize imageSamplerPoolSize{};
 	imageSamplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	imageSamplerPoolSize.descriptorCount = 9;
+	imageSamplerPoolSize.descriptorCount = 12;
 
 	std::vector<VkDescriptorPoolSize> poolSizes =
 	{
@@ -1035,7 +1075,7 @@ void Application::CreateDescriptorPool()
 	descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	descriptorPoolInfo.pPoolSizes = poolSizes.data();
-	descriptorPoolInfo.maxSets = 3;
+	descriptorPoolInfo.maxSets = 4;
 
 	CHECK_VK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 }
@@ -1051,28 +1091,33 @@ void Application::CreateDescriptorSet()
 	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
 	allocInfo.descriptorSetCount = 1;
 
-	CHECK_VK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->GetDevice(), &allocInfo, &m_DescriptorSet));
+	CHECK_VK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->GetDevice(), &allocInfo, &m_OutputDescriptorSet));
 
 	// Image descriptors for the offscreen color attachments
 	VkDescriptorImageInfo texDescriptorPosition{};
 	texDescriptorPosition.sampler = m_OffscreenFrameBuffer->m_ColourSampler;
-	texDescriptorPosition.imageView = m_OffscreenFrameBuffer->m_Position.m_ImageView;
+	texDescriptorPosition.imageView = m_OffscreenFrameBuffer->m_Attachments["position"].m_ImageView;
 	texDescriptorPosition.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	VkDescriptorImageInfo texDescriptorNormal{};
 	texDescriptorNormal.sampler = m_OffscreenFrameBuffer->m_ColourSampler;
-	texDescriptorNormal.imageView = m_OffscreenFrameBuffer->m_Normal.m_ImageView;
+	texDescriptorNormal.imageView = m_OffscreenFrameBuffer->m_Attachments["normal"].m_ImageView;
 	texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	VkDescriptorImageInfo texDescriptorAlbedo{};
 	texDescriptorAlbedo.sampler = m_OffscreenFrameBuffer->m_ColourSampler;
-	texDescriptorAlbedo.imageView = m_OffscreenFrameBuffer->m_Albedo.m_ImageView;
+	texDescriptorAlbedo.imageView = m_OffscreenFrameBuffer->m_Attachments["colour"].m_ImageView;
 	texDescriptorAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	VkDescriptorImageInfo texDescriptorOutput{};
+	texDescriptorOutput.sampler = m_OutputFrameBuffer->m_ColourSampler;
+	texDescriptorOutput.imageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
+	texDescriptorOutput.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	// Binding 0 : Vertex shader uniform buffer
 	VkWriteDescriptorSet uniformWriteSet{};
 	uniformWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	uniformWriteSet.dstSet = m_DescriptorSet;
+	uniformWriteSet.dstSet = m_OutputDescriptorSet;
 	uniformWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uniformWriteSet.dstBinding = 0;
 	uniformWriteSet.pBufferInfo = &m_UniformBuffers.m_VertFullScreen.m_Descriptor;
@@ -1081,7 +1126,7 @@ void Application::CreateDescriptorSet()
 	// Binding 1 : Position texture target
 	VkWriteDescriptorSet positionWriteSet{};
 	positionWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	positionWriteSet.dstSet = m_DescriptorSet;
+	positionWriteSet.dstSet = m_OutputDescriptorSet;
 	positionWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	positionWriteSet.dstBinding = 1;
 	positionWriteSet.pImageInfo = &texDescriptorPosition;
@@ -1090,7 +1135,7 @@ void Application::CreateDescriptorSet()
 	// Binding 2 : Normals texture target
 	VkWriteDescriptorSet normalWriteSet{};
 	normalWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	normalWriteSet.dstSet = m_DescriptorSet;
+	normalWriteSet.dstSet = m_OutputDescriptorSet;
 	normalWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	normalWriteSet.dstBinding = 2;
 	normalWriteSet.pImageInfo = &texDescriptorNormal;
@@ -1099,7 +1144,7 @@ void Application::CreateDescriptorSet()
 	// Binding 3 : Albedo texture target
 	VkWriteDescriptorSet albedoWriteSet{};
 	albedoWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	albedoWriteSet.dstSet = m_DescriptorSet;
+	albedoWriteSet.dstSet = m_OutputDescriptorSet;
 	albedoWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	albedoWriteSet.dstBinding = 3;
 	albedoWriteSet.pImageInfo = &texDescriptorAlbedo;
@@ -1108,11 +1153,29 @@ void Application::CreateDescriptorSet()
 	// Binding 4 : Fragment shader uniform buffer
 	VkWriteDescriptorSet fragWriteSet{};
 	fragWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	fragWriteSet.dstSet = m_DescriptorSet;
+	fragWriteSet.dstSet = m_OutputDescriptorSet;
 	fragWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	fragWriteSet.dstBinding = 4;
 	fragWriteSet.pBufferInfo = &m_UniformBuffers.m_FragLights.m_Descriptor;
 	fragWriteSet.descriptorCount = 1;
+
+	//// Binding 0 : output Vertex shader uniform buffer
+	//VkWriteDescriptorSet uniformWriteSetOutput{};
+	//uniformWriteSetOutput.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//uniformWriteSetOutput.dstSet = m_OutputDescriptorSet;
+	//uniformWriteSetOutput.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	//uniformWriteSetOutput.dstBinding = 0;
+	//uniformWriteSetOutput.pBufferInfo = &m_UniformBuffers.m_VertFullScreen.m_Descriptor;
+	//uniformWriteSetOutput.descriptorCount = 1;
+	//
+	//// Binding 0 : output colour
+	//VkWriteDescriptorSet colourWriteSetOutput{};
+	//colourWriteSetOutput.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	//colourWriteSetOutput.dstSet = m_OutputDescriptorSet;
+	//colourWriteSetOutput.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	//colourWriteSetOutput.dstBinding = 1;
+	//colourWriteSetOutput.pImageInfo = &texDescriptorOutput;
+	//colourWriteSetOutput.descriptorCount = 1;
 
 	writeDescriptorSets = {
 		uniformWriteSet,
@@ -1120,6 +1183,8 @@ void Application::CreateDescriptorSet()
 		normalWriteSet,
 		albedoWriteSet,
 		fragWriteSet,
+		//uniformWriteSetOutput,
+		//colourWriteSetOutput
 	};
 
 	vkUpdateDescriptorSets(m_VulkanDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
@@ -1152,6 +1217,9 @@ void Application::BuildCommandBuffers()
 	renderPassBeginInfo.clearValueCount = 2;
 	renderPassBeginInfo.pClearValues = clearValues;
 
+	m_ImGui->NewFrame();
+	m_ImGui->UpdateBuffers();
+
 	for (int32_t i = 0; i < m_CommandBuffers.size(); ++i)
 	{
 		// Set target frame buffer
@@ -1161,43 +1229,7 @@ void Application::BuildCommandBuffers()
 
 		vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		VkViewport viewport{};
-		viewport.width = (float)m_SwapChainExtent.width;
-		viewport.height = (float)m_SwapChainExtent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		vkCmdSetViewport(m_CommandBuffers[i], 0, 1, &viewport);
-
-		VkRect2D scissor{};
-		scissor.extent.width = m_SwapChainExtent.width;
-		scissor.extent.height = m_SwapChainExtent.height;
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
-		vkCmdSetScissor(m_CommandBuffers[i], 0, 1, &scissor);
-
-		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayouts.m_Deferred, 0, 1, &m_DescriptorSet, 0, NULL);
-
-		if (debugDisplay)
-		{
-			vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Debug);
-			vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, &m_Quad.m_VertexBuffer.m_Buffer, offsets);
-			vkCmdBindIndexBuffer(m_CommandBuffers[i], m_Quad.m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(m_CommandBuffers[i], m_Quad.m_IndexSize, 1, 0, 0, 1);
-			// Move viewport to display final composition in lower right corner
-			viewport.x = viewport.width * 0.5f;
-			viewport.y = viewport.height * 0.5f;
-			viewport.width = viewport.width * 0.5f;
-			viewport.height = viewport.height * 0.5f;
-			vkCmdSetViewport(m_CommandBuffers[i], 0, 1, &viewport);
-		}
-
-		// Final composition as full screen quad
-		vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Deferred);
-		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, &m_Quad.m_VertexBuffer.m_Buffer, offsets);
-		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_Quad.m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(m_CommandBuffers[i], 6, 1, 0, 0, 1);
+		m_ImGui->DrawFrame(m_CommandBuffers[i]);
 
 		vkCmdEndRenderPass(m_CommandBuffers[i]);
 
@@ -1269,6 +1301,70 @@ void Application::BuildDefferedCommandBuffer()
 	CHECK_VK_RESULT(vkEndCommandBuffer(m_OffScreenCmdBuffer));
 }
 
+void Application::BuildOutputFrameBuffer()
+{
+	if (m_OutputCmdBuffer == VK_NULL_HANDLE)
+	{
+		m_OutputCmdBuffer = m_VulkanDevice->CreateCommandBuffer(false);
+	}
+
+	// Create a semaphore used to synchronize offscreen rendering and usage
+	VkSemaphoreCreateInfo semaphoreCreateInfo{};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	CHECK_VK_RESULT(vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreCreateInfo, nullptr, &m_OutputSemaphore));
+
+	VkCommandBufferBeginInfo cmdBufInfo{};
+	cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	// Clear values for all attachments written in the fragment sahder
+	std::array<VkClearValue, 2> clearValues;
+	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[1].depthStencil = { 1.0f, 0 };
+
+	VkRenderPassBeginInfo renderPassBeginInfo{};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.renderPass = m_OutputFrameBuffer->m_RenderPass;
+	renderPassBeginInfo.framebuffer = m_OutputFrameBuffer->m_FrameBuffer;
+	renderPassBeginInfo.renderArea.extent.width = m_OutputFrameBuffer->m_Width;
+	renderPassBeginInfo.renderArea.extent.height = m_OutputFrameBuffer->m_Height;
+	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+	renderPassBeginInfo.pClearValues = clearValues.data();
+
+	CHECK_VK_RESULT(vkBeginCommandBuffer(m_OutputCmdBuffer, &cmdBufInfo));
+
+	vkCmdBeginRenderPass(m_OutputCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Output);
+
+	VkViewport viewport{};
+	viewport.width = (float)m_SwapChainExtent.width;
+	viewport.height = (float)m_SwapChainExtent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	vkCmdSetViewport(m_OutputCmdBuffer, 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.extent.width = m_SwapChainExtent.width;
+	scissor.extent.height = m_SwapChainExtent.height;
+	scissor.offset.x = 0;
+	scissor.offset.y = 0;
+	vkCmdSetScissor(m_OutputCmdBuffer, 0, 1, &scissor);
+
+	VkDeviceSize offsets[1] = { 0 };
+	vkCmdBindDescriptorSets(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayouts.m_Deferred, 0, 1, &m_OutputDescriptorSet, 0, NULL);
+
+	// Final composition as full screen quad
+	vkCmdBindPipeline(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Output);
+	vkCmdBindVertexBuffers(m_OutputCmdBuffer, 0, 1, &m_Quad.m_VertexBuffer.m_Buffer, offsets);
+	vkCmdBindIndexBuffer(m_OutputCmdBuffer, m_Quad.m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdDrawIndexed(m_OutputCmdBuffer, 6, 1, 0, 0, 1);
+
+	vkCmdEndRenderPass(m_OutputCmdBuffer);
+
+	CHECK_VK_RESULT(vkEndCommandBuffer(m_OutputCmdBuffer));
+}
+
 void Application::CreateSwapChain()
 {
 	SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_PhysicalDevice);
@@ -1282,7 +1378,7 @@ void Application::CreateSwapChain()
 	{
 		
 		imageCount = swapChainSupport.m_Capabilities.maxImageCount;
-		std::cout << "Max image count: " << imageCount << std::endl;
+		Log::Info("Max image count: " , imageCount);
 	}
 
 	VkSwapchainCreateInfoKHR createInfo = {};
@@ -1293,7 +1389,7 @@ void Application::CreateSwapChain()
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	vk::VulkanDevice::QueueFamilyIndices indices = m_VulkanDevice->GetQueueFamilyIndices();
 	uint32_t queueFamilyIndices[] = { (uint32_t)indices.m_GraphicsFamily, (uint32_t)indices.m_PresentFamily };
@@ -1319,7 +1415,7 @@ void Application::CreateSwapChain()
 
 	if (vkCreateSwapchainKHR(m_VulkanDevice->GetDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS) 
 	{
-		throw std::runtime_error("failed to create swap chain!");
+		Log::Fatal("failed to create swap chain!");
 	}
 
 	vkGetSwapchainImagesKHR(m_VulkanDevice->GetDevice(), m_SwapChain, &imageCount, nullptr);
@@ -1435,20 +1531,13 @@ void Application::CreateRenderPass()
 
 	if (vkCreateRenderPass(m_VulkanDevice->GetDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS) 
 	{
-		throw std::runtime_error("failed to create render pass!");
+		Log::Fatal("failed to create render pass!");
 	}
 }
 
 void Application::UpdateUniformBuffersScreen()
 {
-	if (debugDisplay)
-	{
-		m_VertUBO.m_Projection = glm::ortho(0.0f, 2.0f, 0.0f, 2.0f, -1.0f, 1.0f);
-	}
-	else
-	{
-		m_VertUBO.m_Projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-	}
+	m_VertUBO.m_Projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
 
 	m_VertUBO.m_Model = glm::mat4(1.0f);
 
@@ -1477,11 +1566,11 @@ void Application::UpdateUniformBufferDeferredLights()
 		if (PointLightComponent* lightComp = obj->GetComponent<PointLightComponent>())
 		{
 			TranslationComponent* comp = obj->GetComponent<TranslationComponent>();
-			float radians = (glm::radians(degrees)) + m_LightTime;
+			float radians = (glm::radians(degrees)) + (float)m_LightTime;
 			float x = 5 * cos(radians);
 			float z = 5 * sin(radians);
 
-			comp->SetTranslation(glm::vec3(x, 0.f, z) + modelTranslation);
+			comp->SetTranslation(glm::vec3(x, 0.f, z));
 
 			m_LightsUBO.m_Lights[index].m_Position = glm::vec4(comp->GetTranslation(), 0.f);
 			m_LightsUBO.m_Lights[index].m_Colour = lightComp->GetColour();
@@ -1547,8 +1636,15 @@ void Application::CreateSemaphores()
 		vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS) 
 	{
 
-		throw std::runtime_error("failed to create semaphores!");
+		Log::Fatal("failed to create semaphores!");
 	}
+}
+
+void Application::SetupImGui()
+{
+	m_ImGui = new ImGUIImpl(m_VulkanDevice);
+	m_ImGui->Init((float)WIDTH, (float)HEIGHT);
+	m_ImGui->InitResources(m_RenderPass, m_GraphicsQueue);
 }
 
 void Application::CreateDepthResources()
@@ -1677,7 +1773,7 @@ VkShaderModule Application::CreateShaderModule(const std::vector<char>& code)
 	VkShaderModule shaderModule;
 	if (vkCreateShaderModule(m_VulkanDevice->GetDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) 
 	{
-		throw std::runtime_error("failed to create shader module!");
+		Log::Fatal("failed to create shader module!");
 	}
 
 	return shaderModule;

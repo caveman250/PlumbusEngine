@@ -36,3 +36,5 @@ include/glfw-3.2.1/src/glfw.dir/*
 *.sdf
 *.suo
 VulkanRenderer\.workspace\.layout
+include/glfw-3.2.1/examples/*
+include/glfw-3.2.1/tests/*

@@ -40,7 +40,7 @@ namespace vk
 
 		if (vkCreateSampler(Application::Get().GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 		{
-			Helpers::LogFatal("failed to create texture sampler!");
+			Log::Fatal("failed to create texture sampler!");
 		}
 	}
 

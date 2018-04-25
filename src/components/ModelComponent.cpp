@@ -57,6 +57,9 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	model = glm::rotate(model, transComp->GetRotation().x, glm::vec3(1.0f, 0.0f, 0.0f));
 	model = glm::rotate(model, transComp->GetRotation().y, glm::vec3(0.0f, 1.0f, 0.0f));
 	model = glm::rotate(model, transComp->GetRotation().z, glm::vec3(0.0f, 0.0f, 1.0f));
+
+	model = glm::scale(model, transComp->GetScale());
+
 	m_UniformBufferObject.m_Model = model;
 
 	memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));

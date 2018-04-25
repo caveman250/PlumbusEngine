@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan/vulkan.h"
+#include <map>
 namespace vk
 {
 	class FrameBuffer
@@ -17,21 +18,17 @@ namespace vk
 		int32_t m_Width;
 		int32_t m_Height;
 		VkFramebuffer m_FrameBuffer;
-		FrameBufferAttachment m_Position;
-		FrameBufferAttachment m_Normal;
-		FrameBufferAttachment m_Albedo;
-		FrameBufferAttachment m_Depth;
+		std::map<std::string, FrameBufferAttachment> m_Attachments;
 		VkRenderPass m_RenderPass;
 		VkSampler m_ColourSampler;
 
 
 		// Create a frame buffer attachment
-		void CreateAttachment(
-			VkFormat format,
-			VkImageUsageFlagBits usage,
-			FrameBufferAttachment *attachment);
+		void CreateAttachment(VkFormat format, VkImageUsageFlagBits usage, const char* id);
 
 		// Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
 		void PrepareOffscreenFramebuffer();
+		//used as a render target instead of the swap chain when using IMGui
+		void PrepareOutputFramebuffer();
 	};
 }
