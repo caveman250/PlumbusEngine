@@ -38,3 +38,5 @@ include/glfw-3.2.1/src/glfw.dir/*
 VulkanRenderer\.workspace\.layout
 include/glfw-3.2.1/examples/*
 include/glfw-3.2.1/tests/*
+include/glfw-3.2.1/cmake_uninstall.cmake
+VulkanRenderer.opensdf
