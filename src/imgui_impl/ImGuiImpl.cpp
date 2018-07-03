@@ -52,9 +52,11 @@ void ImGUIImpl::InitGLFWCallbacks()
 	io.KeyMap[ImGuiKey_Delete] = GLFW_KEY_DELETE;
 	io.KeyMap[ImGuiKey_Backspace] = GLFW_KEY_BACKSPACE;
 
-	glfwSetScrollCallback(Application::Get().GetWindow(), OnMouseScolled);
-	glfwSetKeyCallback(Application::Get().GetWindow(), OnKeyDown);
-	glfwSetCharCallback(Application::Get().GetWindow(), OnChar);
+    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+
+	glfwSetScrollCallback(renderer->GetWindow(), OnMouseScolled);
+	glfwSetKeyCallback(renderer->GetWindow(), OnKeyDown);
+	glfwSetCharCallback(renderer->GetWindow(), OnChar);
 }
 
 void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
@@ -384,8 +386,8 @@ void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
 
 	pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-	shaderStages[0] = Application::Get().LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shaderStages[1] = Application::Get().LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderStages[0] = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderStages[1] = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	io.Fonts->TexID = m_DescriptorSet;
 
@@ -394,8 +396,10 @@ void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
 
 void ImGUIImpl::NewFrame()
 {
+    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+
 	if (m_GameViewTextureDescSet == VK_NULL_HANDLE)
-		m_GameViewTextureDescSet = AddTexture(Application::Get().m_OutputTexture.m_TextureSampler, Application::Get().m_OutputTexture.m_ImageView);
+		m_GameViewTextureDescSet = AddTexture(renderer->m_OutputTexture.m_TextureSampler, renderer->m_OutputTexture.m_ImageView);
 
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -403,10 +407,10 @@ void ImGUIImpl::NewFrame()
 	io.DeltaTime = (float)Application::Get().GetDeltaTime();
 
 	double xpos, ypos;
-	glfwGetCursorPos(Application::Get().GetWindow(), &xpos, &ypos);
+	glfwGetCursorPos(renderer->GetWindow(), &xpos, &ypos);
 	io.MousePos = ImVec2((float)xpos, (float)ypos);
-	io.MouseDown[0] = glfwGetMouseButton(Application::Get().GetWindow(), GLFW_MOUSE_BUTTON_1);
-	io.MouseDown[1] = glfwGetMouseButton(Application::Get().GetWindow(), GLFW_MOUSE_BUTTON_2);
+	io.MouseDown[0] = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_1);
+	io.MouseDown[1] = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_2);
 
 
 

@@ -6,6 +6,7 @@
 #include "Helpers.h"
 #include "GameObject.h"
 #include <cstring>
+#include "VulkanRenderer.h"
 
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 	: Component()
@@ -17,9 +18,9 @@ ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, s
 
 ModelComponent::~ModelComponent()
 {
-	Application& app = Application::Get();
-	vkDestroyBuffer(app.GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
-	vkFreeMemory(app.GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
+    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+	vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
+	vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 }
 
 vk::Model* ModelComponent::GetModel()
@@ -78,7 +79,7 @@ void ModelComponent::CreateUniformBuffer(vk::VulkanDevice* vulkanDevice)
 
 void ModelComponent::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
 {
-	VkDevice device = Application::Get().GetVulkanDevice()->GetDevice();
+	VkDevice device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
 
 	CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_Model->m_DescriptorSet));
 

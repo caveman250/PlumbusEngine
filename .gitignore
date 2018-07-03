@@ -40,3 +40,4 @@ include/glfw-3.2.1/examples/*
 include/glfw-3.2.1/tests/*
 include/glfw-3.2.1/cmake_uninstall.cmake
 VulkanRenderer.opensdf
+include/glfw-3.2.1/src/Release/glfw3.lib

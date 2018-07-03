@@ -1,13 +1,14 @@
 #pragma once
 #include "Application.h"
 #include "Helpers.h"
+#include "VulkanRenderer.h"
 
 class ImageHelpers
 {
 public:
 	static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 	{
-		Application& app = Application::Get();
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
 
 		VkImageCreateInfo imageInfo = {};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -24,25 +25,25 @@ public:
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-		if (vkCreateImage(app.GetVulkanDevice()->GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
+		if (vkCreateImage(renderer->GetVulkanDevice()->GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to create image!");
 		}
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(app.GetVulkanDevice()->GetDevice(), image, &memRequirements);
+		vkGetImageMemoryRequirements(renderer->GetVulkanDevice()->GetDevice(), image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = app.GetVulkanDevice()->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		allocInfo.memoryTypeIndex = renderer->GetVulkanDevice()->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-		if (vkAllocateMemory(app.GetVulkanDevice()->GetDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(renderer->GetVulkanDevice()->GetDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to allocate image memory!");
 		}
 
-		vkBindImageMemory(app.GetVulkanDevice()->GetDevice(), image, imageMemory, 0);
+		vkBindImageMemory(renderer->GetVulkanDevice()->GetDevice(), image, imageMemory, 0);
 	}
 
 	static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
@@ -65,7 +66,7 @@ public:
 		createInfo.subresourceRange.layerCount = 1;
 
 		VkImageView imageView;
-		if (vkCreateImageView(Application::Get().GetVulkanDevice()->GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
+		if (vkCreateImageView(static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to create image views!");
 		}
@@ -222,9 +223,9 @@ public:
 
 	static void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkQueue queue)
 	{
-		Application& app = Application::Get();
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
 
-		VkCommandBuffer commandBuffer = app.GetVulkanDevice()->CreateCommandBuffer();
+		VkCommandBuffer commandBuffer = renderer->GetVulkanDevice()->CreateCommandBuffer();
 
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -295,13 +296,13 @@ public:
 			1, &barrier
 		);
 
-		app.GetVulkanDevice()->FlushCommandBuffer(commandBuffer, queue);
+        renderer->GetVulkanDevice()->FlushCommandBuffer(commandBuffer, queue);
 	}
 
 	static void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkQueue queue)
 	{
-		Application& app = Application::Get();
-		VkCommandBuffer commandBuffer = app.GetVulkanDevice()->CreateCommandBuffer();
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+		VkCommandBuffer commandBuffer = renderer->GetVulkanDevice()->CreateCommandBuffer();
 
 		VkBufferImageCopy region = {};
 		region.bufferOffset = 0;
@@ -329,6 +330,6 @@ public:
 			&region
 		);
 
-		app.GetVulkanDevice()->FlushCommandBuffer(commandBuffer, queue);
+        renderer->GetVulkanDevice()->FlushCommandBuffer(commandBuffer, queue);
 	}
 };

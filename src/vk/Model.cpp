@@ -15,7 +15,7 @@ namespace vk
 {
 	Model::~Model()
 	{
-		Application& app = Application::Get();
+		//Application& app = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
 		//vkDestroyImage(app.GetVulkanDevice()->GetDevice(), m_Image, nullptr);
 		//vkFreeMemory(app.GetVulkanDevice()->GetDevice(), m_ImageMemory, nullptr);
 		//
@@ -25,8 +25,10 @@ namespace vk
 
 	void Model::LoadModel(const std::string& filename, vk::VertexLayout layout, VkQueue queue)
 	{
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+
 		const int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
-		VkDevice device = Application::Get().GetVulkanDevice()->GetDevice();
+		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
 
 		Assimp::Importer Importer;
 		const aiScene* pScene;
@@ -162,7 +164,7 @@ namespace vk
 			vk::Buffer vertexStaging, indexStaging;
 
 			// Vertex buffer staging
-			if (Application::Get().GetVulkanDevice()->CreateBuffer(
+			if (renderer->GetVulkanDevice()->CreateBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				&vertexStaging,
@@ -171,7 +173,7 @@ namespace vk
 				Log::Fatal("failed to create vertex staging buffer");
 
 			// Index buffer staging
-			if (Application::Get().GetVulkanDevice()->CreateBuffer(
+			if (renderer->GetVulkanDevice()->CreateBuffer(
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				&indexStaging,
@@ -180,7 +182,7 @@ namespace vk
 				Log::Fatal("failed to create index staging buffer");
 			// Create device local target buffers
 			// Vertex buffer
-			if (Application::Get().GetVulkanDevice()->CreateBuffer(
+			if (renderer->GetVulkanDevice()->CreateBuffer(
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				&m_VertexBuffer,
@@ -188,7 +190,7 @@ namespace vk
 				Log::Fatal("failed to create vertex buffer");
 
 			// Index buffer
-			if (Application::Get().GetVulkanDevice()->CreateBuffer(
+			if (renderer->GetVulkanDevice()->CreateBuffer(
 				VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				&m_IndexBuffer,
@@ -196,7 +198,7 @@ namespace vk
 				Log::Fatal("failed to create index buffer");
 
 			// Copy from staging buffers
-			VkCommandBuffer copyCmd = Application::Get().GetVulkanDevice()->CreateCommandBuffer();
+			VkCommandBuffer copyCmd = renderer->GetVulkanDevice()->CreateCommandBuffer();
 
 			VkBufferCopy copyRegion{};
 
@@ -206,13 +208,13 @@ namespace vk
 			copyRegion.size = m_IndexBuffer.m_Size;
 			vkCmdCopyBuffer(copyCmd, indexStaging.m_Buffer, m_IndexBuffer.m_Buffer, 1, &copyRegion);
 
-			Application::Get().GetVulkanDevice()->FlushCommandBuffer(copyCmd, queue);
+            renderer->GetVulkanDevice()->FlushCommandBuffer(copyCmd, queue);
 
 			// Destroy staging resources
-			vkDestroyBuffer(Application::Get().GetVulkanDevice()->GetDevice(), vertexStaging.m_Buffer, nullptr);
-			vkFreeMemory(Application::Get().GetVulkanDevice()->GetDevice(), vertexStaging.m_Memory, nullptr);
-			vkDestroyBuffer(Application::Get().GetVulkanDevice()->GetDevice(), indexStaging.m_Buffer, nullptr);
-			vkFreeMemory(Application::Get().GetVulkanDevice()->GetDevice(), indexStaging.m_Memory, nullptr);
+			vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), vertexStaging.m_Buffer, nullptr);
+			vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), vertexStaging.m_Memory, nullptr);
+			vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), indexStaging.m_Buffer, nullptr);
+			vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), indexStaging.m_Memory, nullptr);
 		}
 		else
 		{

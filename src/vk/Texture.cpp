@@ -38,7 +38,7 @@ namespace vk
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(Application::Get().GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
+		if (vkCreateSampler(static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to create texture sampler!");
 		}
@@ -50,7 +50,7 @@ namespace vk
 
 		assert(!tex2D.empty());
 
-		vk::VulkanDevice* device = Application::Get().GetVulkanDevice();
+		vk::VulkanDevice* device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice();
 
 		uint32_t width = static_cast<uint32_t>(tex2D[0].extent().x);
 		uint32_t height = static_cast<uint32_t>(tex2D[0].extent().y);

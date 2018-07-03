@@ -3,6 +3,7 @@
 #include "Helpers.h"
 #include "Application.h"
 #include "Device.h"
+#include "VulkanRenderer.h"
 
 namespace vk
 {
@@ -42,7 +43,7 @@ namespace vk
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		vk::VulkanDevice* device = Application::Get().GetVulkanDevice();
+		vk::VulkanDevice* device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice();
 
 		VkMemoryAllocateInfo memAlloc{};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -71,10 +72,12 @@ namespace vk
 
 	void FrameBuffer::PrepareOffscreenFramebuffer()
 	{
-		vk::VulkanDevice* device = Application::Get().GetVulkanDevice();
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
 
-		m_Width = Application::Get().GetSwapChainExtent().width;
-		m_Height = Application::Get().GetSwapChainExtent().height;
+		vk::VulkanDevice* device = renderer->GetVulkanDevice();
+
+		m_Width = renderer->GetSwapChainExtent().width;
+		m_Height = renderer->GetSwapChainExtent().height;
 
 		// Color attachments
 
@@ -90,7 +93,7 @@ namespace vk
 		// Depth attachment
 
 		// Find a suitable depth format
-		VkFormat attDepthFormat = Application::Get().FindDepthFormat();
+		VkFormat attDepthFormat = renderer->FindDepthFormat();
 
 		CreateAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, "depth");
 
@@ -205,10 +208,11 @@ namespace vk
 
 	void FrameBuffer::PrepareOutputFramebuffer()
 	{
-		vk::VulkanDevice* device = Application::Get().GetVulkanDevice();
+        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+		vk::VulkanDevice* device = renderer->GetVulkanDevice();
 
-		m_Width = Application::Get().GetSwapChainExtent().width;
-		m_Height = Application::Get().GetSwapChainExtent().height;
+		m_Width = renderer->GetSwapChainExtent().width;
+		m_Height = renderer->GetSwapChainExtent().height;
 
 		// Albedo (color)
 		CreateAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "colour");
@@ -216,7 +220,7 @@ namespace vk
 		// Depth attachment
 
 		// Find a suitable depth format
-		VkFormat attDepthFormat = Application::Get().FindDepthFormat();
+		VkFormat attDepthFormat = renderer->FindDepthFormat();
 
 		CreateAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, "depth");
 
