@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/vulkan.h"
-#include "vk/Device.h"
-#include "vk/Buffer.h"
+#include "renderer/vk/Device.h"
+#include "renderer/vk/Buffer.h"
 #include "glm/glm.hpp"
 #include "imgui_impl/imgui/imgui.h"
 #include "ImageHelpers.h"

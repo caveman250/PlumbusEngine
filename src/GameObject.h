@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include "components/Component.h"
+#include "components/ModelComponent.h"
 
 namespace vk
 {

@@ -4,7 +4,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include "VulkanRenderer.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 void Camera::Init()
 {

@@ -6,10 +6,10 @@
 #include <array>
 #include <glm/glm.hpp>
 
-#include "Renderer.h"
-#include "vk/Model.h"
-#include "vk/Device.h"
-#include "vk/FrameBuffer.h"
+#include "renderer/base/Renderer.h"
+#include "renderer/vk/Model.h"
+#include "renderer/vk/Device.h"
+#include "renderer/vk/FrameBuffer.h"
 
 class ImGUIImpl;
 
@@ -18,7 +18,7 @@ namespace vk
     class Model;
 }
 
-class VulkanRenderer : public Renderer
+class VulkanRenderer : public base::Renderer
 {
 private:
     struct SwapChainSupportDetails
@@ -78,6 +78,7 @@ private:
     };
 
 public:
+
     virtual void Init() override;
     virtual void Cleanup() override;
 
@@ -92,6 +93,9 @@ public:
     VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
     GLFWwindow* GetWindow() { return m_Window; }
     VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
+	VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
+
+	VkDescriptorSetAllocateInfo GetDescriptorSetAllocateInfo();
 
     //used for imgui
     vk::Texture m_OutputTexture;

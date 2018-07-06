@@ -1,4 +1,4 @@
-#include "vk/Texture.h"
+#include "renderer/vk/Texture.h"
 #include "Application.h"
 #include "gli/gli.hpp"
 #include "ImageHelpers.h"
@@ -44,8 +44,14 @@ namespace vk
 		}
 	}
 
-	void Texture::LoadTexture(std::string filename, VkQueue queue, VkFormat format, VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout)
+	void Texture::LoadTexture(std::string filename)
 	{
+		VkFormat format = VK_FORMAT_BC3_UNORM_BLOCK;
+		VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
+		VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		VkQueue queue = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetGraphicsQueue();
+
 		gli::texture2d tex2D(gli::load(filename.c_str()));
 
 		assert(!tex2D.empty());
@@ -163,8 +169,10 @@ namespace vk
 		UpdateDescriptor();
 	}
 
-	void Texture::Cleanup(VkDevice device)
+	void Texture::Cleanup()
 	{
+		VkDevice device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+
 		if(m_ImageView)
 			vkDestroyImageView(device, m_ImageView, nullptr);
 		if(m_Image)

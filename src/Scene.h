@@ -1,7 +1,7 @@
 #pragma once
 #include "Application.h"
 #include "Camera.h"
-#include "vk/Model.h"
+#include "renderer/vk/Model.h"
 
 class GameObject;
 class Scene
@@ -15,7 +15,7 @@ public:
 
 	void AddGameObject(GameObject* obj) { m_GameObjects.push_back(obj); }
 	std::vector<GameObject*> GetObjects() { return m_GameObjects; }
-	void LoadModels(VkQueue queue, vk::VertexLayout layout);
+	void LoadModels();
 
 private:
 	Camera m_Camera;

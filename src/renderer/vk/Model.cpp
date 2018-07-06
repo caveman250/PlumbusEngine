@@ -1,4 +1,4 @@
-#include "vk/Model.h"
+#include "renderer/vk/Model.h"
 
 #include "assimp/Importer.hpp"
 #include "assimp/scene.h"     
@@ -10,20 +10,25 @@
 #include "Application.h"
 #include "ImageHelpers.h"
 #include "Helpers.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 namespace vk
 {
-	Model::~Model()
+
+	Model::Model()
 	{
-		//Application& app = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
-		//vkDestroyImage(app.GetVulkanDevice()->GetDevice(), m_Image, nullptr);
-		//vkFreeMemory(app.GetVulkanDevice()->GetDevice(), m_ImageMemory, nullptr);
-		//
-		//vkDestroySampler(app.GetVulkanDevice()->GetDevice(), m_TextureSampler, nullptr);
-		//vkDestroyImageView(app.GetVulkanDevice()->GetDevice(), m_ImageView, nullptr);
+		m_ColourMap = new vk::Texture();
+		m_NormalMap = new vk::Texture();
 	}
 
-	void Model::LoadModel(const std::string& filename, vk::VertexLayout layout, VkQueue queue)
+	Model::~Model()
+	{
+		VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+		vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
+		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
+	}
+
+	void Model::LoadModel(const std::string& filename)
 	{
         VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
 
@@ -75,6 +80,15 @@ namespace vk
 
 				Dimension dim;
 
+				VertexLayout layout = VertexLayout(
+					{
+						VERTEX_COMPONENT_POSITION,
+						VERTEX_COMPONENT_UV,
+						VERTEX_COMPONENT_COLOR,
+						VERTEX_COMPONENT_NORMAL,
+						VERTEX_COMPONENT_TANGENT,
+					});
+
 				for (unsigned int j = 0; j < paiMesh->mNumVertices; j++)
 				{
 					const aiVector3D* pPos = &(paiMesh->mVertices[j]);
@@ -87,40 +101,40 @@ namespace vk
 					{
 						switch (component)
 						{
-						case vk::VERTEX_COMPONENT_POSITION:
+						case VERTEX_COMPONENT_POSITION:
 							vertexBuffer.push_back(pPos->x * scale.x + center.x);
 							vertexBuffer.push_back(-pPos->y * scale.y + center.y);
 							vertexBuffer.push_back(pPos->z * scale.z + center.z);
 							break;
-						case vk::VERTEX_COMPONENT_NORMAL:
+						case VERTEX_COMPONENT_NORMAL:
 							vertexBuffer.push_back(pNormal->x);
 							vertexBuffer.push_back(-pNormal->y);
 							vertexBuffer.push_back(pNormal->z);
 							break;
-						case vk::VERTEX_COMPONENT_UV:
+						case VERTEX_COMPONENT_UV:
 							vertexBuffer.push_back(pTexCoord->x * uvscale.s);
 							vertexBuffer.push_back(pTexCoord->y * uvscale.t);
 							break;
-						case vk::VERTEX_COMPONENT_COLOR:
+						case VERTEX_COMPONENT_COLOR:
 							vertexBuffer.push_back(pColor.r);
 							vertexBuffer.push_back(pColor.g);
 							vertexBuffer.push_back(pColor.b);
 							break;
-						case vk::VERTEX_COMPONENT_TANGENT:
+						case VERTEX_COMPONENT_TANGENT:
 							vertexBuffer.push_back(pTangent->x);
 							vertexBuffer.push_back(pTangent->y);
 							vertexBuffer.push_back(pTangent->z);
 							break;
-						case vk::VERTEX_COMPONENT_BITANGENT:
+						case VERTEX_COMPONENT_BITANGENT:
 							vertexBuffer.push_back(pBiTangent->x);
 							vertexBuffer.push_back(pBiTangent->y);
 							vertexBuffer.push_back(pBiTangent->z);
 							break;
 							// Dummy components for padding
-						case vk::VERTEX_COMPONENT_DUMMY_FLOAT:
+						case VERTEX_COMPONENT_DUMMY_FLOAT:
 							vertexBuffer.push_back(0.0f);
 							break;
-						case vk::VERTEX_COMPONENT_DUMMY_VEC4:
+						case VERTEX_COMPONENT_DUMMY_VEC4:
 							vertexBuffer.push_back(0.0f);
 							vertexBuffer.push_back(0.0f);
 							vertexBuffer.push_back(0.0f);
@@ -161,7 +175,7 @@ namespace vk
 
 			m_IndexSize = (uint32_t)indexBuffer.size();
 
-			vk::Buffer vertexStaging, indexStaging;
+			Buffer vertexStaging, indexStaging;
 
 			// Vertex buffer staging
 			if (renderer->GetVulkanDevice()->CreateBuffer(
@@ -208,7 +222,7 @@ namespace vk
 			copyRegion.size = m_IndexBuffer.m_Size;
 			vkCmdCopyBuffer(copyCmd, indexStaging.m_Buffer, m_IndexBuffer.m_Buffer, 1, &copyRegion);
 
-            renderer->GetVulkanDevice()->FlushCommandBuffer(copyCmd, queue);
+            renderer->GetVulkanDevice()->FlushCommandBuffer(copyCmd, renderer->GetGraphicsQueue());
 
 			// Destroy staging resources
 			vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), vertexStaging.m_Buffer, nullptr);
@@ -222,13 +236,91 @@ namespace vk
 		}
 	};
 
-	void Model::Cleanup(VkDevice device)
+	void Model::Cleanup()
 	{
+		m_UniformBuffer.Cleanup();
+
 		m_VertexBuffer.Cleanup();
 		m_IndexBuffer.Cleanup();
 
-		m_ColourMap.Cleanup(device);
-		m_NormalMap.Cleanup(device);
+		m_ColourMap->Cleanup();
+		m_NormalMap->Cleanup();
+	}
+
+	void Model::Setup(base::Renderer* renderer)
+	{
+		VulkanRenderer* vkRenderer = static_cast<VulkanRenderer*>(renderer);
+
+		CreateUniformBuffer(vkRenderer->GetVulkanDevice());
+		CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
+	}
+
+	void Model::UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo)
+	{
+		memcpy(m_UniformBuffer.m_Mapped, &ubo, sizeof(ubo));
+	}
+
+	void Model::CreateUniformBuffer(VulkanDevice* vulkanDevice)
+	{
+		CHECK_VK_RESULT(vulkanDevice->CreateBuffer(
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			&m_UniformBuffer,
+			sizeof(ModelComponent::UniformBufferObject)));
+
+		CHECK_VK_RESULT(m_UniformBuffer.Map());
+	}
+
+	void Model::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
+	{
+		VkDevice device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+
+		CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_DescriptorSet));
+
+		// Binding 0: Vertex shader uniform buffer
+		VkWriteDescriptorSet vertUniformModelWrite{};
+		vertUniformModelWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		vertUniformModelWrite.dstSet = m_DescriptorSet;
+		vertUniformModelWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		vertUniformModelWrite.dstBinding = 0;
+		vertUniformModelWrite.pBufferInfo = &m_UniformBuffer.m_Descriptor;
+		vertUniformModelWrite.descriptorCount = 1;
+
+		// Binding 1: Color map
+		VkWriteDescriptorSet colourWrite{};
+		colourWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		colourWrite.dstSet = m_DescriptorSet;
+		colourWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		colourWrite.dstBinding = 1;
+		colourWrite.pImageInfo = &static_cast<vk::Texture*>(m_ColourMap)->m_Descriptor;
+		colourWrite.descriptorCount = 1;
+
+		// Binding 2: Normal map
+		VkWriteDescriptorSet normalWrite{};
+		normalWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		normalWrite.dstSet = m_DescriptorSet;
+		normalWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		normalWrite.dstBinding = 2;
+		normalWrite.pImageInfo = &static_cast<vk::Texture*>(m_NormalMap)->m_Descriptor;
+		normalWrite.descriptorCount = 1;
+
+		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
+		{
+			vertUniformModelWrite,
+			colourWrite,
+			normalWrite
+		};
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+	}
+
+	void Model::SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+	{
+		VkDeviceSize offsets[1] = { 0 };
+		// Object
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_DescriptorSet, 0, NULL);
+		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &m_VertexBuffer.m_Buffer, offsets);
+		vkCmdBindIndexBuffer(cmdBuffer, m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(cmdBuffer, m_IndexSize, 1, 0, 0, 0);
 	}
 
 }

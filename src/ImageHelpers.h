@@ -1,7 +1,7 @@
 #pragma once
 #include "Application.h"
 #include "Helpers.h"
-#include "VulkanRenderer.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 class ImageHelpers
 {

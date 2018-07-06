@@ -1,4 +1,4 @@
-#include "vk/VulkanRenderer.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -18,7 +18,7 @@
 #include "GameObject.h"
 #include "components/Component.h"
 #include "components/ModelComponent.h"
-#include "vk/Model.h"
+#include "renderer/vk/Model.h"
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "components/PointLightComponent.h"
@@ -28,19 +28,19 @@
 const int WIDTH = 1600;
 const int HEIGHT = 900;
 
+// Vertex layout for the models
+vk::VertexLayout vertexLayout = vk::VertexLayout(
+	{
+		vk::VERTEX_COMPONENT_POSITION,
+		vk::VERTEX_COMPONENT_UV,
+		vk::VERTEX_COMPONENT_COLOR,
+		vk::VERTEX_COMPONENT_NORMAL,
+		vk::VERTEX_COMPONENT_TANGENT,
+	});
+
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-// Vertex layout for the models
-vk::VertexLayout vertexLayout = vk::VertexLayout(
-    {
-        vk::VERTEX_COMPONENT_POSITION,
-        vk::VERTEX_COMPONENT_UV,
-        vk::VERTEX_COMPONENT_COLOR,
-        vk::VERTEX_COMPONENT_NORMAL,
-        vk::VERTEX_COMPONENT_TANGENT,
-    });
 
 const std::vector<const char*> validationLayers =
 {
@@ -159,7 +159,7 @@ void VulkanRenderer::InitVulkan()
             AddComponent<PointLightComponent>(new PointLightComponent(colours[i], 25.0f)));
     }
     
-    Application::Get().GetScene()->LoadModels(m_GraphicsQueue, vertexLayout);
+    Application::Get().GetScene()->LoadModels();
 
     GenerateQuads();
     CreateVertexDescriptions();
@@ -174,6 +174,13 @@ void VulkanRenderer::InitVulkan()
     CreatePipelines();
     CreateDescriptorPool();
     CreateDescriptorSet();
+
+	for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+	{
+		if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+			comp->GetModel()->Setup(this);
+	}
+
     SetupImGui();
     m_OutputTexture.CreateTextureSampler();
     m_OutputTexture.m_ImageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
@@ -428,11 +435,11 @@ void VulkanRenderer::Cleanup()
     {
         if (ModelComponent* modelComp = obj->GetComponent<ModelComponent>())
         {
-            modelComp->Cleanup(m_VulkanDevice->GetDevice());
+            modelComp->Cleanup();
         }
     }
 
-    m_Quad.Cleanup(m_VulkanDevice->GetDevice());
+    m_Quad.Cleanup();
 
     m_UniformBuffers.m_VertFullScreen.Cleanup();
     m_UniformBuffers.m_FragLights.Cleanup();
@@ -785,15 +792,6 @@ void VulkanRenderer::CreateUniformBuffers()
         &m_UniformBuffers.m_VertFullScreen,
         sizeof(m_VertUBO)));
 
-
-    for (GameObject* obj : Application::Get().GetScene()->GetObjects())
-    {
-        if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-        {
-            comp->CreateUniformBuffer(m_VulkanDevice);
-        }
-    }
-
     // Deferred fragment shader
     CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -1053,11 +1051,7 @@ void VulkanRenderer::CreateDescriptorSet()
     std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
     // Textured quad descriptor set
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_DescriptorPool;
-    allocInfo.pSetLayouts = &m_DescriptorSetLayout;
-    allocInfo.descriptorSetCount = 1;
+	VkDescriptorSetAllocateInfo allocInfo = GetDescriptorSetAllocateInfo();
 
     CHECK_VK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->GetDevice(), &allocInfo, &m_OutputDescriptorSet));
 
@@ -1157,13 +1151,6 @@ void VulkanRenderer::CreateDescriptorSet()
 
     vkUpdateDescriptorSets(m_VulkanDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
-    // Offscreen (scene)
-    for (GameObject* obj : Application::Get().GetScene()->GetObjects())
-    {
-        if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-            comp->CreateDescriptorSet(allocInfo);
-    }
-
 }
 
 void VulkanRenderer::BuildCommandBuffers()
@@ -1260,7 +1247,8 @@ void VulkanRenderer::BuildDefferedCommandBuffer()
     {
         if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
         {
-            comp->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+			vk::Model* model = static_cast<vk::Model*>(comp->GetModel());
+			model->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
         }
     }
 
@@ -1729,6 +1717,17 @@ VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName,
     assert(shaderStage.module != VK_NULL_HANDLE);
     m_ShaderModules.push_back(shaderStage.module);
     return shaderStage;
+}
+
+VkDescriptorSetAllocateInfo VulkanRenderer::GetDescriptorSetAllocateInfo()
+{
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = m_DescriptorPool;
+	allocInfo.pSetLayouts = &m_DescriptorSetLayout;
+	allocInfo.descriptorSetCount = 1;
+
+	return allocInfo;
 }
 
 VkShaderModule VulkanRenderer::CreateShaderModule(const std::vector<char>& code)

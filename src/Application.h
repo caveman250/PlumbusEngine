@@ -8,7 +8,10 @@
 #include "Scene.h"
 
 class Scene;
-class Renderer;
+namespace base
+{
+	class Renderer;
+}
 
 class Application
 {
@@ -20,7 +23,7 @@ public:
 	void Run();
 	double GetDeltaTime() { return m_DeltaTime; }
 	Scene* GetScene() { return m_Scene; }
-    Renderer* GetRenderer() { return m_Renderer; }
+    base::Renderer* GetRenderer() { return m_Renderer; }
 
 	double m_LightTime = 0;
 	bool m_GameFocued = false;
@@ -36,6 +39,6 @@ private:
 	double m_DeltaTime = 0;
 	double m_lastUpdateTime;
 
-    Renderer* m_Renderer;
+    base::Renderer* m_Renderer;
 
 };

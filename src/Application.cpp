@@ -18,17 +18,17 @@
 #include "GameObject.h"
 #include "components/Component.h"
 #include "components/ModelComponent.h"
-#include "vk/Model.h"
+#include "renderer/vk/Model.h"
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "components/PointLightComponent.h"
 #include "imgui_impl/ImGuiImpl.h"
 #include "imgui_impl/Log.h"
 
-#include "Renderer.h"
+#include "renderer/base/Renderer.h"
 
 #ifdef VULKAN_RENDERER
-    #include "VulkanRenderer.h"
+    #include "renderer/vk/VulkanRenderer.h"
 #endif
 
 

@@ -20,13 +20,13 @@ void Scene::OnUpdate()
 		obj->OnUpdate(this);
 }
 
-void Scene::LoadModels(VkQueue queue, vk::VertexLayout layout)
+void Scene::LoadModels()
 {
 	for (GameObject* obj : m_GameObjects)
 	{
 		if (ModelComponent* component = obj->GetComponent<ModelComponent>())
 		{
-			component->LoadModel(queue, layout);
+			component->LoadModel();
 		}
 	}
 }

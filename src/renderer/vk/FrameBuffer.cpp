@@ -3,7 +3,7 @@
 #include "Helpers.h"
 #include "Application.h"
 #include "Device.h"
-#include "VulkanRenderer.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 namespace vk
 {
