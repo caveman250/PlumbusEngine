@@ -4,7 +4,7 @@
 #include "renderer/vk/Buffer.h"
 #include "glm/glm.hpp"
 #include "imgui_impl/imgui/imgui.h"
-#include "ImageHelpers.h"
+#include "renderer/vk/ImageHelpers.h"
 
 class ImGUIImpl 
 {

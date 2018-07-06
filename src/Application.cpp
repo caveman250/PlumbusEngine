@@ -14,7 +14,6 @@
 #include <chrono>
 #include <cstring>
 
-#include "ImageHelpers.h"
 #include "GameObject.h"
 #include "components/Component.h"
 #include "components/ModelComponent.h"
