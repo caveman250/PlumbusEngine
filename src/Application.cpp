@@ -24,8 +24,10 @@
 
 #include "renderer/base/Renderer.h"
 
-#ifdef VULKAN_RENDERER
+#if VULKAN_RENDERER
     #include "renderer/vk/VulkanRenderer.h"
+#elif METAL_RENDERER
+    #include "renderer/mtl/MetalRenderer.hpp"
 #endif
 
 
@@ -39,7 +41,7 @@ Application::Application() :
 #if VULKAN_RENDERER
     m_Renderer = new VulkanRenderer();
 #elif METAL_RENDERER
-    //TODO
+    m_Renderer = new mtl::MetalRenderer();
 #endif
 
 }
