@@ -1,7 +1,7 @@
 #pragma once
 
-#define VULKAN_RENDERER 1
-#define METAL_RENDERER 0
+#define VULKAN_RENDERER 0
+#define METAL_RENDERER 1
 
 #include <vector>
 #include <array>

@@ -28,7 +28,11 @@ base::Model* ModelComponent::GetModel()
 
 void ModelComponent::LoadModel()
 {
+#if VULKAN_RENDERER
 	m_Model = new vk::Model();
+//#elif MTL_RENDERER
+//    m_Model = new base::Model();
+#endif
 	m_Model->LoadModel(m_ModelPath);
 	m_Model->m_ColourMap->LoadTexture(m_TexturePath);
 	m_Model->m_NormalMap->LoadTexture(m_NormalPath);
@@ -49,7 +53,7 @@ void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	m_UniformBufferObject.m_Proj = scene->GetCamera()->GetProjectionMatrix();
 	m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
 
-	::TranslationComponent* transComp = GetOwner()->GetComponent<::TranslationComponent>();
+	::TranslationComponent* transComp = GetOwner()->GetComponent< ::TranslationComponent>();
 	glm::mat4 model;
 	model = glm::translate(model, transComp->GetTranslation());
 	model = glm::rotate(model, transComp->GetRotation().x, glm::vec3(1.0f, 0.0f, 0.0f));

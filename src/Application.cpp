@@ -21,8 +21,6 @@
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "components/PointLightComponent.h"
-#include "imgui_impl/ImGuiImpl.h"
-#include "imgui_impl/Log.h"
 
 #include "renderer/base/Renderer.h"
 

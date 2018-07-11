@@ -12,7 +12,7 @@
 	VkResult res = (f);																												\
 	if (res != VK_SUCCESS)																											\
 	{																																\
-		Log::Info("Fatal : VkResult is \"" , ErrorString(res) , "\" in " , __FILE__ , " at line " , __LINE__ );						\
+		/*Log::Info("Fatal : VkResult is \"" , ErrorString(res) , "\" in " , __FILE__ , " at line " , __LINE__ );*/					\
 		assert(res == VK_SUCCESS);																									\
 	}																																\
 }
