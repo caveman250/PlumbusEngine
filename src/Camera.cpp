@@ -11,13 +11,13 @@ void Camera::Init()
 	m_Position = glm::vec3(0, 1, -8);
 	m_Rotation = glm::vec3(0, 0, 0);
 
-    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+    vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 	m_ProjectionMatrix = glm::perspective(glm::radians(60.0f), renderer->GetSwapChainExtent().width / (float)renderer->GetSwapChainExtent().height, 0.1f,  256.0f);
 }
 
 void Camera::OnUpdate()
 {
-    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+    vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
 	double xpos, ypos;
 	glfwGetCursorPos(renderer->GetWindow(), &xpos, &ypos);

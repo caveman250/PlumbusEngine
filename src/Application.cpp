@@ -39,7 +39,7 @@ Application::Application() :
 	m_lastUpdateTime(glfwGetTime())
 {
 #if VULKAN_RENDERER
-    m_Renderer = new VulkanRenderer();
+    m_Renderer = new vk::VulkanRenderer();
 #elif METAL_RENDERER
     m_Renderer = new mtl::MetalRenderer();
 #endif

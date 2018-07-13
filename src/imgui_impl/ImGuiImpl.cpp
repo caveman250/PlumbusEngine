@@ -52,7 +52,7 @@ void ImGUIImpl::InitGLFWCallbacks()
 	io.KeyMap[ImGuiKey_Delete] = GLFW_KEY_DELETE;
 	io.KeyMap[ImGuiKey_Backspace] = GLFW_KEY_BACKSPACE;
 
-    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+    vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
 	glfwSetScrollCallback(renderer->GetWindow(), OnMouseScolled);
 	glfwSetKeyCallback(renderer->GetWindow(), OnKeyDown);
@@ -386,8 +386,8 @@ void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
 
 	pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-    shaderStages[0] = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-    shaderStages[1] = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+    shaderStages[0] = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+    shaderStages[1] = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	io.Fonts->TexID = m_DescriptorSet;
 
@@ -396,7 +396,7 @@ void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
 
 void ImGUIImpl::NewFrame()
 {
-    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+    vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
 	if (m_GameViewTextureDescSet == VK_NULL_HANDLE)
 		m_GameViewTextureDescSet = AddTexture(renderer->m_OutputTexture.m_TextureSampler, renderer->m_OutputTexture.m_ImageView);

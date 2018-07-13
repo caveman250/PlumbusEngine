@@ -43,7 +43,7 @@ namespace vk
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		vk::VulkanDevice* device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice();
+		vk::VulkanDevice* device = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice();
 
 		VkMemoryAllocateInfo memAlloc{};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -72,7 +72,7 @@ namespace vk
 
 	void FrameBuffer::PrepareOffscreenFramebuffer()
 	{
-        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
 		vk::VulkanDevice* device = renderer->GetVulkanDevice();
 
@@ -208,7 +208,7 @@ namespace vk
 
 	void FrameBuffer::PrepareOutputFramebuffer()
 	{
-        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 		vk::VulkanDevice* device = renderer->GetVulkanDevice();
 
 		m_Width = renderer->GetSwapChainExtent().width;

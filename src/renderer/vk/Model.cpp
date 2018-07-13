@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include "Application.h"
-#include "ImageHelpers.h"
+#include "renderer/vk/ImageHelpers.h"
 #include "Helpers.h"
 #include "renderer/vk/VulkanRenderer.h"
 
@@ -23,14 +23,14 @@ namespace vk
 
 	Model::~Model()
 	{
-		VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 		vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
 		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 	}
 
 	void Model::LoadModel(const std::string& filename)
 	{
-        VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Application::Get().GetRenderer());
+        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
 		const int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
 		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
@@ -249,7 +249,7 @@ namespace vk
 
 	void Model::Setup(base::Renderer* renderer)
 	{
-		VulkanRenderer* vkRenderer = static_cast<VulkanRenderer*>(renderer);
+		vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
 
 		CreateUniformBuffer(vkRenderer->GetVulkanDevice());
 		CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
@@ -273,7 +273,7 @@ namespace vk
 
 	void Model::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
 	{
-		VkDevice device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+		VkDevice device = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
 
 		CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_DescriptorSet));
 

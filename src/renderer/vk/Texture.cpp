@@ -1,7 +1,7 @@
 #include "renderer/vk/Texture.h"
 #include "Application.h"
 #include "gli/gli.hpp"
-#include "ImageHelpers.h"
+#include "renderer/vk/ImageHelpers.h"
 
 namespace vk
 {
@@ -38,7 +38,7 @@ namespace vk
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
+		if (vkCreateSampler(static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to create texture sampler!");
 		}
@@ -50,13 +50,13 @@ namespace vk
 		VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
 		VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		VkQueue queue = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetGraphicsQueue();
+		VkQueue queue = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetGraphicsQueue();
 
 		gli::texture2d tex2D(gli::load(filename.c_str()));
 
 		assert(!tex2D.empty());
 
-		vk::VulkanDevice* device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice();
+		vk::VulkanDevice* device = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice();
 
 		uint32_t width = static_cast<uint32_t>(tex2D[0].extent().x);
 		uint32_t height = static_cast<uint32_t>(tex2D[0].extent().y);
@@ -171,7 +171,7 @@ namespace vk
 
 	void Texture::Cleanup()
 	{
-		VkDevice device = static_cast<VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+		VkDevice device = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
 
 		if(m_ImageView)
 			vkDestroyImageView(device, m_ImageView, nullptr);
