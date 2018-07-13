@@ -1,3 +1,6 @@
 [submodule "include/assimp"]
 	path = include/assimp
 	url = https://github.com/assimp/assimp
+[submodule "include/glfw-3.2.1"]
+	path = include/glfw-3.2.1
+	url = https://github.com/glfw/glfw
