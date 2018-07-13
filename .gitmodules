@@ -4,3 +4,9 @@
 [submodule "include/glfw-3.2.1"]
 	path = include/glfw-3.2.1
 	url = https://github.com/glfw/glfw
+[submodule "include/gli"]
+	path = include/gli
+	url = https://github.com/g-truc/gli/
+[submodule "include/glm"]
+	path = include/glm
+	url = https://github.com/g-truc/glm/
