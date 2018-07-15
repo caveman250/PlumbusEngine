@@ -1,5 +1,5 @@
 #include "Scene.h"
-#include "components/Component.h"
+#include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 #include "GameObject.h"
 

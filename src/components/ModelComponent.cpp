@@ -9,7 +9,7 @@
 #include "renderer/base/Model.h"
 
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
-	: Component()
+	: GameComponent()
 {
 	m_ModelPath = modelPath;
 	m_TexturePath = texturePath;

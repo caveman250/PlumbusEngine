@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 TranslationComponent::TranslationComponent() :
-	Component()
+	GameComponent()
 {
 
 }

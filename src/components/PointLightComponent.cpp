@@ -2,7 +2,7 @@
 #include "glm/glm.hpp"
 
 PointLightComponent::PointLightComponent(glm::vec3 colour, float radius)
-	: Component()
+	: GameComponent()
 {
 	m_Colour = colour;
 	m_Radius = radius;

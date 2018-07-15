@@ -2,7 +2,7 @@
 #include "glm/glm.hpp"
 #include <vector>
 #include <map>
-#include "components/Component.h"
+#include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 
 namespace vk
@@ -26,7 +26,7 @@ public:
 	T* GetComponent();
 
 private:
-	std::map<const Component::ComponentType, Component*> m_Components;
+	std::map<const GameComponent::ComponentType, GameComponent*> m_Components;
 	std::string m_ID;
 };
 

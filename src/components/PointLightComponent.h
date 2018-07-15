@@ -1,9 +1,9 @@
 #pragma once
-#include "components/Component.h"
+#include "components/GameComponent.h"
 #include "glm/glm.hpp"
 
 
-class PointLightComponent : public Component
+class PointLightComponent : public GameComponent
 {
 public:
 	PointLightComponent(glm::vec3 colour, float radius);
@@ -17,7 +17,7 @@ public:
 	void SetColour(glm::vec3 colour) { m_Colour = colour; }
 	void SetRadius(float radius) { m_Radius = radius; }
 
-	static const ComponentType GetType() { return Component::PointLightComponent; }
+	static const ComponentType GetType() { return GameComponent::PointLightComponent; }
 
 private:
 	glm::vec3 m_Colour;

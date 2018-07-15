@@ -15,7 +15,7 @@
 #include <cstring>
 
 #include "GameObject.h"
-#include "components/Component.h"
+#include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 #include "renderer/vk/Model.h"
 #include "components/TranslationComponent.h"

@@ -1,7 +1,7 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "Component.h"
+#include "GameComponent.h"
 #include <string>
 #include "glm/glm.hpp"
 #include "renderer/vk/Buffer.h"
@@ -11,7 +11,7 @@ namespace base
 	class Model;
 }
 class Scene;
-class ModelComponent : public Component
+class ModelComponent : public GameComponent
 {
 public:
 
@@ -30,7 +30,7 @@ public:
 	void Cleanup();
 	void UpdateUniformBuffer(Scene* scene);
 
-	static const ComponentType GetType() { return Component::ModelComponent; }
+	static const ComponentType GetType() { return GameComponent::ModelComponent; }
 
 	std::string m_ModelPath;
 	std::string m_TexturePath;

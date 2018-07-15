@@ -1,9 +1,9 @@
 #pragma once
-#include "Component.h"
+#include "GameComponent.h"
 #include "glm/glm.hpp"
 
 
-class TranslationComponent : public Component
+class TranslationComponent : public GameComponent
 {
 public:
 	TranslationComponent();
@@ -22,7 +22,7 @@ public:
 	void Rotate(glm::vec3 rotation);
 	void Scale(glm::vec3 scale);
 
-	static const ComponentType GetType() { return Component::TranslationComponent; }
+	static const ComponentType GetType() { return GameComponent::TranslationComponent; }
 
 private:
 	glm::vec3 m_Translation;

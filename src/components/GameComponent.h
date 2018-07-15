@@ -3,7 +3,7 @@
 class GameObject;
 class Scene;
 
-class Component
+class GameComponent
 {
 public:
 	enum ComponentType
@@ -14,13 +14,13 @@ public:
 		Count
 	};
 
-	Component() { }
+	GameComponent() { }
 	virtual void OnUpdate(Scene* scene) = 0;
 
 	void SetOwner(GameObject* owner) { m_Owner = owner; }
 	GameObject* GetOwner() { return m_Owner; }
 
-	static const ComponentType GetType() { return Component::Count; }
+	static const ComponentType GetType() { return GameComponent::Count; }
 
 private:
 	GameObject* m_Owner;
