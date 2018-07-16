@@ -17,6 +17,7 @@ void Camera::Init()
 
 void Camera::OnUpdate()
 {
+#if VULKAN_RENDERER //TODO
     vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
 	double xpos, ypos;
@@ -33,6 +34,7 @@ void Camera::OnUpdate()
 			m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
 		}
 	}
+#endif
 
 	glm::mat4 rotM = glm::mat4(1.0f);
 	glm::mat4 transM;
@@ -41,6 +43,7 @@ void Camera::OnUpdate()
 	rotM = glm::rotate(rotM, glm::radians(m_Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 	rotM = glm::rotate(rotM, glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 	
+#if VULKAN_RENDERER //TODO
 	glm::vec3 forward(rotM[0][2], rotM[1][2], rotM[2][2]);
 
 	if (glfwGetKey(renderer->GetWindow(), GLFW_KEY_W))
@@ -59,7 +62,8 @@ void Camera::OnUpdate()
 	{
 		m_Position += glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 5.f;
 	}
-
+#endif
+    
 	transM = glm::translate(glm::mat4(1.0f), m_Position);
 
 	m_ViewMatrix = rotM * transM;

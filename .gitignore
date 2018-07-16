@@ -169,3 +169,9 @@ Debug/VulkanRenderer.exp
 bin/Debug/assimp-vc140-mt.lib
 bin/Debug/*
 bin/*
+build/*
+build
+VulkanRenderer.xcodeproj/xcuserdata/jasonwood.xcuserdatad/xcschemes/VulkanRenderer.xcscheme
+VulkanRenderer.build/*
+lib/Release/libassimp.a
+lib/Release/libIrrXML.a
