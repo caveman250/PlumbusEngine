@@ -10,6 +10,7 @@
 #include "renderer/vk/Model.h"
 #include "renderer/vk/Device.h"
 #include "renderer/vk/FrameBuffer.h"
+#include "renderer/vk/Window.h"
 
 class ImGUIImpl;
 
@@ -91,7 +92,7 @@ namespace vk
         VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
         VkExtent2D& GetSwapChainExtent() { return m_SwapChainExtent; }
         VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
-        GLFWwindow* GetWindow() { return m_Window; }
+        GLFWwindow* GetWindow() { return static_cast<vk::Window*>(m_Window)->GetWindow(); }
         VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
         VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
 
@@ -103,14 +104,12 @@ namespace vk
         VkFormat FindDepthFormat();
 
     private:
-        void InitWindow();
         void InitVulkan();
         void CreateVulkanInstance();
         void SetupDebugCallback();
         void PickPhysicalDevice();
         bool IsDeviceSuitable(VkPhysicalDevice device);
         bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-        void CreateSurface();
         void CreatePipelineCache();
         void GenerateQuads();
         void CreateVertexDescriptions();
@@ -151,7 +150,6 @@ namespace vk
 
         VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-        GLFWwindow* m_Window;
         VkInstance m_VulkanInstance;
         VkDebugReportCallbackEXT m_Callback;
         vk::VulkanDevice* m_VulkanDevice;

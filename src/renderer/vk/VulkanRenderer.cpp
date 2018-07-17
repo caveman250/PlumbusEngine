@@ -93,25 +93,11 @@ void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT
 
 namespace vk
 {
-
-    void VulkanRenderer::InitWindow()
-    {
-        glfwInit();
-        //dont use OpenGl
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-        m_Window = glfwCreateWindow(WIDTH, HEIGHT, "Super Awesome Happy Times", nullptr, nullptr);
-
-        glfwSetWindowUserPointer(m_Window, this);
-        glfwSetWindowSizeCallback(m_Window, VulkanRenderer::OnWindowResized);
-        //glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-    }
-
     void VulkanRenderer::InitVulkan()
     {
         CreateVulkanInstance();
         SetupDebugCallback();
-        CreateSurface();
+		static_cast<vk::Window*>(m_Window)->CreateSurface(m_VulkanInstance, &m_Surface);
         PickPhysicalDevice();
         //Create the vulkan "side" of the device, what we use to speak to it and control it.
         m_VulkanDevice = new vk::VulkanDevice(m_PhysicalDevice, m_Surface);
@@ -389,7 +375,7 @@ namespace vk
 
     bool VulkanRenderer::WindowShouldClose()
     {
-        return glfwWindowShouldClose(m_Window);
+		return static_cast<vk::Window*>(m_Window)->ShouldClose();
     }
 
     void VulkanRenderer::AwaitIdle()
@@ -399,7 +385,8 @@ namespace vk
 
     void VulkanRenderer::Init()
     {
-        InitWindow();
+		m_Window = new vk::Window();
+		m_Window->Init(WIDTH, HEIGHT);
         InitVulkan();
     }
 
@@ -473,10 +460,6 @@ namespace vk
         DestroyDebugReportCallbackEXT(m_VulkanInstance, m_Callback, nullptr);
         vkDestroySurfaceKHR(m_VulkanInstance, m_Surface, nullptr);
         vkDestroyInstance(m_VulkanInstance, nullptr);
-
-        glfwDestroyWindow(m_Window);
-
-        glfwTerminate();
     }
 
     void VulkanRenderer::OnWindowResized(GLFWwindow* window, int width, int height)
@@ -621,14 +604,6 @@ namespace vk
         }
 
         return true;
-    }
-
-    void VulkanRenderer::CreateSurface()
-    {
-        if (glfwCreateWindowSurface(m_VulkanInstance, m_Window, nullptr, &m_Surface) != VK_SUCCESS)
-        {
-            Log::Fatal("failed to create window surface!");
-        }
     }
 
     void VulkanRenderer::CreatePipelineCache()
@@ -1386,9 +1361,8 @@ namespace vk
 
     void VulkanRenderer::RecreateSwapChain()
     {
-        int width, height;
-        glfwGetWindowSize(m_Window, &width, &height);
-        if (width == 0 || height == 0) return;
+        if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0) 
+			return;
 
         CleanupSwapChain();
 
@@ -1698,10 +1672,7 @@ namespace vk
         }
         else
         {
-            int width, height;
-            glfwGetWindowSize(m_Window, &width, &height);
-
-            VkExtent2D actualExtent = { (uint32_t)width, (uint32_t)height };
+            VkExtent2D actualExtent = { m_Window->GetWidth(), m_Window->GetHeight() };
 
             actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
             actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));

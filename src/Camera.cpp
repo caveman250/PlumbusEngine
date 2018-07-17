@@ -7,6 +7,10 @@
 #include "renderer/base/Renderer.h"
 #include "renderer/base/Window.h"
 
+#if VULKAN_RENDERER
+#include "renderer/vk/VulkanRenderer.h"
+#endif
+
 void Camera::Init()
 {
 	m_Position = glm::vec3(0, 1, -8);
