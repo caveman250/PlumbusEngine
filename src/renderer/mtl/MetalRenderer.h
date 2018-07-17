@@ -14,6 +14,13 @@ namespace mtl
         bool WindowShouldClose() override;
         
         void AwaitIdle() override;
+        
+        void* GetDevice();
+        
+        void StartFrameTimer();
+        
+    private:
+        void* m_ObjcManager;
     };
 }
 

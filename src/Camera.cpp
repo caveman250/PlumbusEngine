@@ -4,15 +4,15 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include "renderer/vk/VulkanRenderer.h"
+#include "renderer/base/Renderer.h"
+#include "renderer/base/Window.h"
 
 void Camera::Init()
 {
 	m_Position = glm::vec3(0, 1, -8);
 	m_Rotation = glm::vec3(0, 0, 0);
-
-    vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
-	m_ProjectionMatrix = glm::perspective(glm::radians(60.0f), renderer->GetSwapChainExtent().width / (float)renderer->GetSwapChainExtent().height, 0.1f,  256.0f);
+    
+    m_ProjectionMatrix = glm::perspective(glm::radians(60.0f), Application::Get().GetRenderer()->GetWindow()->GetWidth() / (float)Application::Get().GetRenderer()->GetWindow()->GetHeight(), 0.1f,  256.0f);
 }
 
 void Camera::OnUpdate()

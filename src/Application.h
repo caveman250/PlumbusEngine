@@ -21,14 +21,13 @@ public:
 	double GetDeltaTime() { return m_DeltaTime; }
 	Scene* GetScene() { return m_Scene; }
     base::Renderer* GetRenderer() { return m_Renderer; }
+    void MainLoop();
 
 	double m_LightTime = 0;
 	bool m_GameFocued = false;
 
 private:
-
 	void InitScene();
-	void MainLoop();
 	void UpdateScene();
 
 	static Application* m_Instance;
@@ -37,5 +36,9 @@ private:
 	double m_lastUpdateTime;
 
     base::Renderer* m_Renderer;
+    
+#if METAL_RENDERER
+    void* m_ObjcManager;
+#endif
 
 };

@@ -1,7 +1,9 @@
 #pragma once
+#include <stdint.h>
 
 namespace base
 {
+    class Window;
 	class Renderer
 	{
 	public:
@@ -12,5 +14,11 @@ namespace base
 		virtual bool WindowShouldClose() = 0;
 
 		virtual void AwaitIdle() = 0;
+        
+        Window* GetWindow() { return m_Window; };
+        
+    protected:
+        Window* m_Window;
+        
 	};
 }
