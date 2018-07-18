@@ -19,6 +19,16 @@ endmacro(ADD_OSX_FRAMEWORK)
 
 set(NAME VulkanRenderer)
 
+IF(DEFINED CMAKE_BUILD_TYPE)
+   SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "Was Allready Defined Choose the type of
+build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug
+Release RelWithDebInfo MinSizeRel.")
+ELSE()
+   SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build,
+options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
+RelWithDebInfo MinSizeRel.")
+ENDIF()
+
 project(${NAME})
 
 add_subdirectory(include/glfw-3.2.1)
@@ -63,12 +73,12 @@ endif(APPLE)
 
 if(APPLE)
 	add_executable(${NAME} src/main.cpp ${SOURCE} ${COMPONENTS} ${MTL} ${BASE} ${PLATFORM})
-	add_compile_definitions(METAL_RENDERER=1)
-    add_compile_definitions(VULKAN_RENDERER=0)
+	add_definitions(-DMETAL_RENDERER=1)
+    add_definitions(-DVULKAN_RENDERER=0)
 else(APPLE)
 	add_executable(${NAME} src/main.cpp ${SOURCE} ${COMPONENTS} ${VK} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
-	add_compile_definitions(VULKAN_RENDERER=1)
-    add_compile_definitions(METAL_RENDERER=0)
+	add_definitions(-DMETAL_RENDERER=0)
+    add_definitions(-DVULKAN_RENDERER=1)
 endif(APPLE)
 
 if (WIN32)
