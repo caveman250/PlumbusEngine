@@ -175,3 +175,7 @@ VulkanRenderer.xcodeproj/xcuserdata/jasonwood.xcuserdatad/xcschemes/VulkanRender
 VulkanRenderer.build/*
 lib/Release/libassimp.a
 lib/Release/libIrrXML.a
+lib/libIrrXML.a
+lib/libIrrXMLd.a
+lib/libassimp.a
+lib/libassimpd.a
