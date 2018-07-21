@@ -14,7 +14,11 @@
 void Camera::Init()
 {
 	m_Position = glm::vec3(0, 1, -8);
+#if VULKAN_RENDERER
+	m_Rotation = glm::vec3(0, 0, 0);
+#elif METAL_RENDERER
 	m_Rotation = glm::vec3(0, 0, 180);
+#endif
     
     m_ProjectionMatrix = glm::perspective(glm::radians(60.0f), Application::Get().GetRenderer()->GetWindow()->GetWidth() / (float)Application::Get().GetRenderer()->GetWindow()->GetHeight(), 0.1f,  256.0f);
 }

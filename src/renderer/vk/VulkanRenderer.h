@@ -137,7 +137,6 @@ namespace vk
 
         static void OnWindowResized(GLFWwindow* window, int width, int height);
 
-
         std::vector<const char*> GetRequiredExtensions();
         bool CheckValidationLayerSupport();
 

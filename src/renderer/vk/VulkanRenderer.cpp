@@ -29,13 +29,13 @@ const int WIDTH = 1600;
 const int HEIGHT = 900;
 
 // Vertex layout for the models
-vk::VertexLayout vertexLayout = vk::VertexLayout(
+VertexLayout vertexLayout = VertexLayout(
 	{
-		vk::VERTEX_COMPONENT_POSITION,
-		vk::VERTEX_COMPONENT_UV,
-		vk::VERTEX_COMPONENT_COLOR,
-		vk::VERTEX_COMPONENT_NORMAL,
-		vk::VERTEX_COMPONENT_TANGENT,
+		VERTEX_COMPONENT_POSITION,
+		VERTEX_COMPONENT_UV,
+		VERTEX_COMPONENT_COLOR,
+		VERTEX_COMPONENT_NORMAL,
+		VERTEX_COMPONENT_TANGENT,
 	});
 
 const std::vector<const char*> deviceExtensions = {

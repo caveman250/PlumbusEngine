@@ -28,7 +28,7 @@ namespace vk
 		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 	}
 
-	void Model::LoadModel(const std::string& filename)
+	void Model::LoadModel(const std::string& fileName)
 	{
         vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 
@@ -45,6 +45,9 @@ namespace vk
         std::vector<uint32_t> indexBuffer;
         
         LoadFromFile(fileName, vertLayoutComponents, vertexBuffer, indexBuffer);
+
+		uint32_t vBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(float);
+		uint32_t iBufferSize = static_cast<uint32_t>(indexBuffer.size()) * sizeof(uint32_t);
 
 		m_IndexSize = (uint32_t)indexBuffer.size();
 

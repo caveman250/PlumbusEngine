@@ -77,14 +77,14 @@ namespace base
 		virtual void Cleanup() = 0;
 		virtual void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo) = 0;
 		virtual void Setup(Renderer* renderer) = 0;
+
+		base::Texture* m_ColourMap;
+		base::Texture* m_NormalMap;
         
     protected:
         void LoadFromFile(const std::string& fileName,
                           std::vector<VertexLayoutComponent> vertLayoutComponents,
                           std::vector<float>& vertexBuffer,
                           std::vector<uint32_t>& indexBuffer);
-
-		base::Texture* m_ColourMap;
-		base::Texture* m_NormalMap;
 	};
 }
