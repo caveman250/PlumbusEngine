@@ -24,6 +24,7 @@
 #include "renderer/base/Renderer.h"
 #include "renderer/mtl/MetalRenderer.h"
 #include "renderer/mtl/Window.h"
+#import "renderer/mtl/MetalView.h"
 
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
@@ -89,6 +90,9 @@ void Application::Run()
     ((ApplicationObjc*)m_ObjcManager)->m_App = this;
     ((ApplicationObjc*)m_ObjcManager)->m_UpdateFunc = &Application::MainLoop;
     [(ApplicationObjc*)m_ObjcManager StartFrameTimer];
+    
+    mtl::Window* window = static_cast<mtl::Window*>(m_Renderer->GetWindow());
+    [(MetalView*)window->GetView() StartDrawing];
 
     [NSApp run];
     

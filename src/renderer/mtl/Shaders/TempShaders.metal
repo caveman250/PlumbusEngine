@@ -1,14 +1,37 @@
 #include <metal_stdlib>
 using namespace metal;
 
-vertex float4 basic_vertex(const device packed_float3* vertexArray [[buffer(0)]],
-                       unsigned int vID[[vertex_id]])
+struct Vertex
 {
-    return float4(vertexArray[vID], 1.0);
+    float4 position [[position]];
+//    float2 uv;
+//    float3 colour;
+//    float3 normal;
+//    float3 tangent;
+};
+
+struct Uniforms
+{
+    float4x4 model;
+    float4x4 view;
+    float4x4 proj;
+};
+
+
+vertex Vertex basic_vertex(device Vertex *vertices [[buffer(0)]],
+                             constant Uniforms *uniforms [[buffer(1)]],
+                             uint vid [[vertex_id]])
+{
+    Vertex vertexOut;
+    vertexOut.position = uniforms->proj * uniforms->view * uniforms->model * vertices[vid].position;
+    
+    //vertexOut.colour = float3(1,0,0);
+    
+    return vertexOut;
 }
 
-fragment half4 basic_fragment()
+fragment half4 basic_fragment(Vertex vertexIn [[stage_in]])
 {
-    return half4(1.0, 0.0, 0.0, 1.0);
+    return half4(1,1,1,1);
 }
 

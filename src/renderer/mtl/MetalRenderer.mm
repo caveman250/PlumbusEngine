@@ -1,5 +1,6 @@
 #include "renderer/mtl/MetalRenderer.h"
 #include "renderer/mtl/Window.h"
+#include "renderer/mtl/Model.h"
 
 #include "Application.h"
 #import <Foundation/Foundation.h>
@@ -8,16 +9,25 @@
 #import <Metal/MTLDevice.h>
 #import <MetalKit/MetalKit.h>
 
+#include "GameObject.h"
+#include "components/TranslationComponent.h"
+#include "components/ModelComponent.h"
+
+#import "renderer/mtl/MetalView.h"
+
+#include <stdint.h>
+
 @interface RendererObjC : NSObject
 {
     @public id<MTLDevice> m_Device;
     id<MTLCommandQueue> m_CommandQueue;
     id<MTLRenderPipelineState> m_RenderPipelineState;
-    id<MTLBuffer> m_VertexBuffer;
+    id<MTLDepthStencilState> m_DepthStencilState;
+    dispatch_semaphore_t m_DisplaySemaphore;
 }
 
 -(void) Init;
--(void) DrawFrame:(nonnull MTKView *)view;
+-(void) DrawFrame:(nonnull MetalView*)view;
 -(id<MTLDevice>) GetDevice;
 
 @end
@@ -28,45 +38,69 @@
 {
     m_Device = MTLCreateSystemDefaultDevice();
     m_CommandQueue = [m_Device newCommandQueue];
-    
-    const float vertexData[] =
-    {
-        0.0f,  1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-    };
+
+    m_DisplaySemaphore = dispatch_semaphore_create(1);
     
     //Create Shaders
     id<MTLLibrary> defaultLibrary = [m_Device newDefaultLibrary];
     id<MTLFunction> vertexFunc = [defaultLibrary newFunctionWithName:@"basic_vertex"];
     id<MTLFunction> fragFunc = [defaultLibrary newFunctionWithName:@"basic_fragment"];
-    
-    m_VertexBuffer = [m_Device newBufferWithBytes:vertexData length:sizeof(vertexData) options:MTLResourceCPUCacheModeDefaultCache];
-    
+
     MTLRenderPipelineDescriptor* renderPipelineDesc = [MTLRenderPipelineDescriptor new];
     [renderPipelineDesc setVertexFunction:vertexFunc];
     [renderPipelineDesc setFragmentFunction:fragFunc];
     [renderPipelineDesc.colorAttachments[0] setPixelFormat:MTLPixelFormatBGRA8Unorm];
+    renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     m_RenderPipelineState = [m_Device newRenderPipelineStateWithDescriptor:renderPipelineDesc error:nil];
+    
+    MTLDepthStencilDescriptor* depthStencilDescriptor = [MTLDepthStencilDescriptor new];
+    depthStencilDescriptor.depthCompareFunction = MTLCompareFunctionLess;
+    depthStencilDescriptor.depthWriteEnabled = YES;
+    m_DepthStencilState = [m_Device newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+    
 }
 
--(void)DrawFrame:(nonnull MTKView *)view;
+-(void)DrawFrame:(nonnull MetalView*)view;
 {
+    dispatch_semaphore_wait(m_DisplaySemaphore, DISPATCH_TIME_FOREVER);
+    
     id<MTLCommandBuffer> commandBuffer = [m_CommandQueue commandBuffer];
     
-    MTLRenderPassDescriptor* renderPassDesc = [view currentRenderPassDescriptor];
-    if (renderPassDesc)
+    MTLRenderPassDescriptor* renderPassDesc = [view m_CurrentRenderPassDescriptor];
+
+    id<MTLRenderCommandEncoder> renderPass = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
+    [renderPass setRenderPipelineState:m_RenderPipelineState];
+    [renderPass setDepthStencilState:m_DepthStencilState];
+    [renderPass setFrontFacingWinding:MTLWindingCounterClockwise];
+    [renderPass setCullMode:MTLCullModeNone];
+
+    for (GameObject* obj : Application::Get().GetScene()->GetObjects())
     {
-        id<MTLRenderCommandEncoder> renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDesc];
-        [renderCommandEncoder setRenderPipelineState:m_RenderPipelineState];
-        [renderCommandEncoder setVertexBuffer:m_VertexBuffer offset:0 atIndex:0];
-        [renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-        [renderCommandEncoder endEncoding];
-        [commandBuffer presentDrawable:[view currentDrawable]];
+        if (ModelComponent* component = obj->GetComponent<ModelComponent>())
+        {
+            mtl::Model* model = static_cast<mtl::Model*>(component->GetModel());
+            
+            [renderPass setVertexBuffer:(id<MTLBuffer>)model->GetVertexBuffer() offset:0 atIndex:0];
+            [renderPass setVertexBuffer:(id<MTLBuffer>)model->GetUniformBuffer() offset:0 atIndex:1];
+            
+            [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                    indexCount:[(id<MTLBuffer>)model->GetIndexBuffer() length] / sizeof(uint32_t)
+                                    indexType:MTLIndexTypeUInt32
+                                    indexBuffer:(id<MTLBuffer>)model->GetIndexBuffer()
+                                    indexBufferOffset:0];
+        }
     }
     
+    [renderPass endEncoding];
+    
+    [commandBuffer presentDrawable:view.m_CurrentDrawable];
+    
+    [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer)
+    {
+        dispatch_semaphore_signal(m_DisplaySemaphore);
+    }];
+    
     [commandBuffer commit];
-    [commandBuffer waitUntilCompleted];
 }
 
 -(id<MTLDevice>) GetDevice
@@ -85,6 +119,29 @@ namespace mtl
         
         m_Window = new mtl::Window();
         m_Window->Init(720, 480);
+        
+        GameObject* obj = new GameObject("Knight");
+        Application::Get().GetScene()->AddGameObject(obj->
+                                                     AddComponent<ModelComponent>(new ModelComponent("../models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
+                                                     AddComponent<TranslationComponent>(new TranslationComponent())
+                                                     );
+        
+        GameObject* plane = new GameObject("Plane");
+        Application::Get().GetScene()->AddGameObject(plane->
+                                                     AddComponent<ModelComponent>(new ModelComponent("../models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
+                                                     AddComponent<TranslationComponent>(new TranslationComponent())
+                                                     );
+
+        plane->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, 2.3, 0));
+        
+        Application::Get().GetScene()->LoadModels();
+        
+        
+        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        {
+            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+                comp->GetModel()->Setup(this);
+        }
     }
     
     void MetalRenderer::Cleanup()
@@ -94,7 +151,7 @@ namespace mtl
     
     void MetalRenderer::DrawFrame()
     {
-        MTKView* view = (MTKView*)static_cast<mtl::Window*>(m_Window)->GetView();
+        MetalView* view = (MetalView*)static_cast<mtl::Window*>(m_Window)->GetView();
         [(RendererObjC*)m_ObjcManager DrawFrame:view];
     }
     

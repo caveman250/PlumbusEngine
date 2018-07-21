@@ -8,6 +8,12 @@
 #include <cstring>
 #include "renderer/base/Model.h"
 
+#if METAL_RENDERER
+#include "renderer/mtl/Model.h"
+#elif VULKAN_RENDERER
+#include "renderer/vk/Model.h"
+#endif
+
 ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 	: GameComponent()
 {
@@ -29,13 +35,13 @@ base::Model* ModelComponent::GetModel()
 void ModelComponent::LoadModel()
 {
 #if VULKAN_RENDERER
-	m_Model = new vk::Model();
-//#elif MTL_RENDERER
-//    m_Model = new base::Model();
+    m_Model = new vk::Model();
+#elif METAL_RENDERER
+    m_Model = new mtl::Model();
 #endif
 	m_Model->LoadModel(m_ModelPath);
-	m_Model->m_ColourMap->LoadTexture(m_TexturePath);
-	m_Model->m_NormalMap->LoadTexture(m_NormalPath);
+	//m_Model->m_ColourMap->LoadTexture(m_TexturePath);
+	//m_Model->m_NormalMap->LoadTexture(m_NormalPath);
 }
 
 void ModelComponent::OnUpdate(Scene* scene)

@@ -11,6 +11,7 @@ namespace mtl
         ~Window() {}
         
         void Init(uint32_t width, uint32_t height) override;
+        void Destroy() override;
         uint32_t GetWidth() override;
         uint32_t GetHeight() override;
         

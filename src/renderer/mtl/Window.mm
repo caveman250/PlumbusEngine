@@ -7,7 +7,9 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-@interface WindowViewController : NSViewController<MTKViewDelegate>
+#import "renderer/mtl/MetalView.h"
+
+@interface WindowViewController : NSViewController<MetalViewDelegate>
 {
 @public mtl::MetalRenderer* m_Renderer;
 @public void (mtl::MetalRenderer::* m_Render)();
@@ -16,12 +18,8 @@
 @end
 
 @implementation WindowViewController
--(void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
-{
-    
-}
 
--(void)drawInMTKView:(nonnull MTKView *)view
+-(void)DrawInView:(MetalView *)view
 {
     (m_Renderer->*m_Render)();
 }
@@ -45,9 +43,10 @@ namespace mtl
         viewController->m_Renderer = renderer;
         viewController->m_Render = &mtl::MetalRenderer::DrawFrame;
         
-        MTKView* view = [[MTKView alloc] initWithFrame:frame];
-        view.device = (id<MTLDevice>)renderer->GetDevice();
-        view.delegate = viewController;
+        MetalView* view = [[MetalView alloc] initWithFrame:frame];
+        [view setDevice:(id<MTLDevice>)renderer->GetDevice()];
+        [view makeBackingLayer];
+        view.m_Delegate = viewController;
         view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         
         m_View = view;
@@ -55,6 +54,11 @@ namespace mtl
         [((NSWindow*)m_Window).contentView addSubview:view];
         [((NSWindow*)m_Window) center];
         [((NSWindow*)m_Window) orderFrontRegardless];;
+    }
+    
+    void Window::Destroy()
+    {
+        //TODO
     }
     
     uint32_t Window::GetWidth()
