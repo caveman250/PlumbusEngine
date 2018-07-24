@@ -1,6 +1,7 @@
 #include "renderer/mtl/MetalRenderer.h"
 #include "renderer/mtl/Window.h"
 #include "renderer/mtl/Model.h"
+#include "renderer/mtl/Texture.h"
 
 #include "Application.h"
 #import <Foundation/Foundation.h>
@@ -29,6 +30,7 @@
 -(void) Init;
 -(void) DrawFrame:(nonnull MetalView*)view;
 -(id<MTLDevice>) GetDevice;
+-(id<MTLCommandQueue>) GetCommandQueue;
 
 @end
 
@@ -83,6 +85,14 @@
             [renderPass setVertexBuffer:(id<MTLBuffer>)model->GetVertexBuffer() offset:0 atIndex:0];
             [renderPass setVertexBuffer:(id<MTLBuffer>)model->GetUniformBuffer() offset:0 atIndex:1];
             
+            mtl::Texture* diffuse = (mtl::Texture*)model->m_ColourMap;
+            
+            id<MTLTexture> texture = (id<MTLTexture>)diffuse->GetTexture();
+            id<MTLSamplerState> samplerState = (id<MTLSamplerState>)diffuse->GetSamplerState();
+            
+            [renderPass setFragmentTexture:texture atIndex:0];
+            [renderPass setFragmentSamplerState:samplerState atIndex:0];
+            
             [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                     indexCount:[(id<MTLBuffer>)model->GetIndexBuffer() length] / sizeof(uint32_t)
                                     indexType:MTLIndexTypeUInt32
@@ -108,6 +118,11 @@
     return m_Device;
 }
 
+-(id<MTLCommandQueue>) GetCommandQueue
+{
+    return m_CommandQueue;
+}
+
 @end
 
 namespace mtl
@@ -122,13 +137,13 @@ namespace mtl
         
         GameObject* obj = new GameObject("Knight");
         Application::Get().GetScene()->AddGameObject(obj->
-                                                     AddComponent<ModelComponent>(new ModelComponent("../models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
+                                                     AddComponent<ModelComponent>(new ModelComponent("../models/armor.dae", "../textures/color_bc3_unorm.png", "../textures/normal_bc3_unorm.png"))->
                                                      AddComponent<TranslationComponent>(new TranslationComponent())
                                                      );
         
         GameObject* plane = new GameObject("Plane");
         Application::Get().GetScene()->AddGameObject(plane->
-                                                     AddComponent<ModelComponent>(new ModelComponent("../models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
+                                                     AddComponent<ModelComponent>(new ModelComponent("../models/plane.obj", "../textures/stonefloor01_color_bc3_unorm.png", "../textures/stonefloor01_normal_bc3_unorm.png"))->
                                                      AddComponent<TranslationComponent>(new TranslationComponent())
                                                      );
 
@@ -170,5 +185,10 @@ namespace mtl
     {
         return (void*)[(RendererObjC*)m_ObjcManager GetDevice];
         
+    }
+    
+    void* MetalRenderer::GetCommandQueue()
+    {
+        return (void*)[(RendererObjC*)m_ObjcManager GetCommandQueue];
     }
 }

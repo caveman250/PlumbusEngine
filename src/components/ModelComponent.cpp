@@ -41,11 +41,8 @@ void ModelComponent::LoadModel()
 #endif
 	m_Model->LoadModel(m_ModelPath);
 
-	//hack for now
-#if !METAL_RENDERER
 	m_Model->m_ColourMap->LoadTexture(m_TexturePath);
 	m_Model->m_NormalMap->LoadTexture(m_NormalPath);
-#endif
 }
 
 void ModelComponent::OnUpdate(Scene* scene)

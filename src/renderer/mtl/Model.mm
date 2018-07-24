@@ -1,4 +1,5 @@
 #include "renderer/mtl/Model.h"
+#include "renderer/mtl/Texture.h"
 #include "Application.h"
 
 #import "Metal/Metal.h"
@@ -39,8 +40,8 @@ namespace mtl
     Model::Model()
     {
         m_ObjcManager = [ModelObjc new];
-        //m_ColourMap = new mtl::Texture();
-        //m_NormalMap = new mtl::Texture();
+        m_ColourMap = new mtl::Texture();
+        m_NormalMap = new mtl::Texture();
     }
     
     Model::~Model(){}
@@ -49,11 +50,13 @@ namespace mtl
     {
         std::vector<VertexLayoutComponent> vertLayoutComponents;
         vertLayoutComponents.push_back(VERTEX_COMPONENT_POSITION);
-        vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT);
-        //TODO                vertLayoutComponents.push_back(VERTEX_COMPONENT_UV);
-        //TODO                vertLayoutComponents.push_back(VERTEX_COMPONENT_COLOR);
-        //TODO                vertLayoutComponents.push_back(VERTEX_COMPONENT_NORMAL);
-        //TODO                vertLayoutComponents.push_back(VERTEX_COMPONENT_TANGENT);
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //metal needs a vec 4 for position
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_UV);
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //padding
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //padding
+        //ertLayoutComponents.push_back(VERTEX_COMPONENT_COLOR);
+        //ertLayoutComponents.push_back(VERTEX_COMPONENT_NORMAL);
+        //ertLayoutComponents.push_back(VERTEX_COMPONENT_TANGENT);
         
         std::vector<float> vertexBuffer;
         std::vector<uint32_t> indexBuffer;

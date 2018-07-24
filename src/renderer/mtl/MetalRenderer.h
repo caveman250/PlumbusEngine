@@ -16,6 +16,7 @@ namespace mtl
         void AwaitIdle() override;
         
         void* GetDevice();
+        void* GetCommandQueue();
         
         void StartFrameTimer();
         
