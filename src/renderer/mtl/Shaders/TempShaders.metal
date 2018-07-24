@@ -4,7 +4,7 @@ using namespace metal;
 struct Vertex
 {
     float4 position [[position]];
-//    float2 uv;
+    float2 uv;
 //    float3 colour;
 //    float3 normal;
 //    float3 tangent;
@@ -24,14 +24,20 @@ vertex Vertex basic_vertex(device Vertex *vertices [[buffer(0)]],
 {
     Vertex vertexOut;
     vertexOut.position = uniforms->proj * uniforms->view * uniforms->model * vertices[vid].position;
+    vertexOut.uv = vertices[vid].uv;
     
     //vertexOut.colour = float3(1,0,0);
     
     return vertexOut;
 }
 
-fragment half4 basic_fragment(Vertex vertexIn [[stage_in]])
+fragment float4 basic_fragment(Vertex vert [[stage_in]],
+                                 constant Uniforms &uniforms [[buffer(0)]],
+                                 texture2d<float> diffuseTexture [[texture(0)]],
+                                 sampler samplr [[sampler(0)]])
 {
-    return half4(1,1,1,1);
+    float3 diffuseColor = diffuseTexture.sample(samplr, vert.uv).rgb;
+
+    return float4(diffuseColor, 1);
 }
 
