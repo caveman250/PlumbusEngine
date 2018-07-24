@@ -181,3 +181,4 @@ lib/libassimp.a
 lib/libassimpd.a
 .vscode/tasks.json
 ._.DS_Store
+._*
