@@ -55,8 +55,10 @@ namespace mtl
         vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //padding
         vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //padding
         //ertLayoutComponents.push_back(VERTEX_COMPONENT_COLOR);
-        //ertLayoutComponents.push_back(VERTEX_COMPONENT_NORMAL);
-        //ertLayoutComponents.push_back(VERTEX_COMPONENT_TANGENT);
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_NORMAL);
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //padding
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_TANGENT);
+        vertLayoutComponents.push_back(VERTEX_COMPONENT_DUMMY_FLOAT); //padding
         
         std::vector<float> vertexBuffer;
         std::vector<uint32_t> indexBuffer;

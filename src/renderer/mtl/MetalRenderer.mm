@@ -86,12 +86,12 @@
             [renderPass setVertexBuffer:(id<MTLBuffer>)model->GetUniformBuffer() offset:0 atIndex:1];
             
             mtl::Texture* diffuse = (mtl::Texture*)model->m_ColourMap;
+            mtl::Texture* normal = (mtl::Texture*)model->m_NormalMap;
             
-            id<MTLTexture> texture = (id<MTLTexture>)diffuse->GetTexture();
-            id<MTLSamplerState> samplerState = (id<MTLSamplerState>)diffuse->GetSamplerState();
-            
-            [renderPass setFragmentTexture:texture atIndex:0];
-            [renderPass setFragmentSamplerState:samplerState atIndex:0];
+            [renderPass setFragmentTexture:(id<MTLTexture>)diffuse->GetTexture() atIndex:0];
+            [renderPass setFragmentSamplerState:(id<MTLSamplerState>)diffuse->GetSamplerState() atIndex:0];
+            [renderPass setFragmentTexture:(id<MTLTexture>)normal->GetTexture() atIndex:1];
+            [renderPass setFragmentSamplerState:(id<MTLSamplerState>)normal->GetSamplerState() atIndex:1];
             
             [renderPass drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                     indexCount:[(id<MTLBuffer>)model->GetIndexBuffer() length] / sizeof(uint32_t)

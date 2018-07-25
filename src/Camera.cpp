@@ -25,6 +25,13 @@ void Camera::Init()
 
 void Camera::OnUpdate()
 {
+    glm::vec2 mousePos = Application::Get().GetRenderer()->GetWindow()->GetMousePos();
+    double dx = m_MousePos.x - mousePos.x;
+    double dy = m_MousePos.y - mousePos.y;
+    m_MousePos = mousePos;
+    float deltaTime = (float)Application::Get().GetDeltaTime();
+    m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
+    
 #if VULKAN_RENDERER //TODO
     vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
 

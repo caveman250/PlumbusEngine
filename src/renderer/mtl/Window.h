@@ -15,6 +15,8 @@ namespace mtl
         uint32_t GetWidth() override;
         uint32_t GetHeight() override;
         
+        glm::vec2 GetMousePos() override;
+        
         void* GetView() { return m_View; }
         
     private:

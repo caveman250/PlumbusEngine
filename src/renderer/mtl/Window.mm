@@ -70,4 +70,11 @@ namespace mtl
     {
         return [(NSWindow*)m_Window frame].size.height;
     }
+    
+    glm::vec2 Window::GetMousePos()
+    {
+        NSPoint mousePos = [NSEvent mouseLocation];
+        
+        return glm::vec2(mousePos.x, mousePos.y);
+    }
 }
