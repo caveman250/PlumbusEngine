@@ -45,7 +45,7 @@ const std::vector<const char*> deviceExtensions = {
 const std::vector<const char*> validationLayers =
 {
     "VK_LAYER_LUNARG_standard_validation",
-    //"VK_LAYER_RENDERDOC_Capture"
+    "VK_LAYER_RENDERDOC_Capture"
 };
 
 //#ifdef NDEBUG
@@ -368,7 +368,7 @@ namespace vk
             Log::Fatal("failed to present swap chain image!");
         }
 
-        vkQueueWaitIdle(m_PresentQueue);
+		vkQueueWaitIdle(m_PresentQueue);
 
         UpdateUniformBufferDeferredLights();
     }
@@ -1310,7 +1310,6 @@ namespace vk
         uint32_t imageCount = swapChainSupport.m_Capabilities.minImageCount + 1;
         if (swapChainSupport.m_Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.m_Capabilities.maxImageCount)
         {
-
             imageCount = swapChainSupport.m_Capabilities.maxImageCount;
             Log::Info("Max image count: ", imageCount);
         }
@@ -1364,17 +1363,20 @@ namespace vk
         if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0) 
 			return;
 
+		vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
+
         CleanupSwapChain();
 
-        vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
+		vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
 
         CreateSwapChain();
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2(m_SwapChainExtent.width, m_SwapChainExtent.height);
         CreateImageViews();
         CreateRenderPass();
-        //CreateGraphicsPipeline();
-        //CreateDepthResources();
-        //CreateFrameBuffers();
-        //CreateCommandBuffers();
+		CreateDepthResources();
+		CreateFrameBuffers();
+		CreateCommandBuffers();
     }
 
     void VulkanRenderer::CleanupSwapChain()
@@ -1666,19 +1668,12 @@ namespace vk
 
     VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
     {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-        {
-            return capabilities.currentExtent;
-        }
-        else
-        {
-            VkExtent2D actualExtent = { m_Window->GetWidth(), m_Window->GetHeight() };
+		VkExtent2D actualExtent = { m_Window->GetWidth(), m_Window->GetHeight() };
 
-            actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-            actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+		actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+		actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
-            return actualExtent;
-        }
+		return actualExtent;
     }
 
     VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage)

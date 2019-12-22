@@ -28,6 +28,14 @@ namespace vk
 		glfwTerminate();
 	}
 
+	glm::vec2 Window::GetMousePos()
+	{
+		double xpos, ypos;
+		glfwGetCursorPos(m_Window, &xpos, &ypos);
+
+		return glm::vec2(xpos, ypos);
+	}
+
 	uint32_t Window::GetWidth()
 	{
 		int width;

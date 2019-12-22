@@ -4,6 +4,7 @@
 #include "TranslationComponent.h"
 #include "ModelComponent.h"
 #include "PointLightComponent.h"
+#include "imgui/imgui_internal.h"
 
 ImGUIImpl::ImGUIImpl(vk::VulkanDevice* device)
 {
@@ -29,19 +30,22 @@ ImGUIImpl::~ImGUIImpl()
 
 void ImGUIImpl::Init(float width, float height)
 {
+	ImGui::CreateContext();
+
 	// Color scheme
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.Colors[ImGuiCol_TitleBg] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
-	style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-	style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-	style.Colors[ImGuiCol_Header] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-	style.Colors[ImGuiCol_CheckMark] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-	style.Colors[ImGuiCol_WindowBg] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
-	style.Colors[ImGuiCol_Button] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+	//ImGuiStyle& style = ImGui::GetStyle();
+	//style.Colors[ImGuiCol_TitleBg] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
+	//style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+	//style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+	//style.Colors[ImGuiCol_Header] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+	//style.Colors[ImGuiCol_CheckMark] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+	//style.Colors[ImGuiCol_WindowBg] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+	//style.Colors[ImGuiCol_Button] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
 	// Dimensions
 	ImGuiIO& io = ImGui::GetIO();
 	io.DisplaySize = ImVec2(width, height);
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	
 	InitGLFWCallbacks();
 }
@@ -403,7 +407,6 @@ void ImGUIImpl::NewFrame()
 
 	ImGuiIO& io = ImGui::GetIO();
 
-	io.DisplaySize = ImVec2((float)1600, (float)900);
 	io.DeltaTime = (float)Application::Get().GetDeltaTime();
 
 	double xpos, ypos;
@@ -412,92 +415,93 @@ void ImGUIImpl::NewFrame()
 	io.MouseDown[0] = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_1);
 	io.MouseDown[1] = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_2);
 
-
-
 	ImGui::NewFrame();
 
-	// Init imGui windows and elements
-
-	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiSetCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(288, 900), ImGuiSetCond_Once);
-	ImGui::Begin("Super Awesome Happy Times", 0, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
-	if (ImGui::CollapsingHeader("Objects", ImGuiTreeNodeFlags_DefaultOpen))
+	ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
+	if (ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus))
 	{
-		static int listbox_item_current = 1;
-		for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+		ImGuiID docspace_id = ImGui::GetCurrentWindow()->GetID("dockspace");
+		ImGui::DockSpace(docspace_id);
+		// Init imGui windows and elements
+
+		ImGui::Begin("Objects", 0);
+		if (ImGui::CollapsingHeader("Objects", ImGuiTreeNodeFlags_DefaultOpen))
 		{
-			if (ImGui::Button(obj->GetID().c_str()))
+			static int listbox_item_current = 1;
+			for (GameObject* obj : Application::Get().GetScene()->GetObjects())
 			{
-				m_SelectedObject = obj;
-			}
-		}
-	}
-
-	ImGui::End();
-
-	ImGui::SetNextWindowPos(ImVec2(1315, 0), ImGuiSetCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(288, 900), ImGuiSetCond_Once);
-	ImGui::Begin("Properties", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-	if (m_SelectedObject)
-	{
-		if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			if (TranslationComponent* comp = m_SelectedObject->GetComponent<TranslationComponent>())
-			{
-				if (ImGui::TreeNodeEx("Translation", ImGuiTreeNodeFlags_DefaultOpen))
+				if (ImGui::Button(obj->GetID().c_str()))
 				{
-					glm::vec3 translation = comp->GetTranslation();
-					ImGui::DragFloat3("Position", (float*)&translation, 0.05f);
-					comp->SetTranslation(translation);
-					glm::vec3 rotation = comp->GetRotation();
-					ImGui::DragFloat3("Rotation", (float*)&rotation, 0.05f);
-					comp->SetRotation(rotation);
-					glm::vec3 scale = comp->GetScale();
-					ImGui::DragFloat3("Scale", (float*)&scale, 0.05f);
-					comp->SetScale(scale);
-					ImGui::TreePop();
-				}
-			}
-			if (ModelComponent* comp = m_SelectedObject->GetComponent<ModelComponent>())
-			{
-				if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_DefaultOpen))
-				{
-					ImGui::Text(comp->m_ModelPath.c_str());
-					ImGui::Text(comp->m_TexturePath.c_str());
-					ImGui::Text(comp->m_NormalPath.c_str());
-					ImGui::TreePop();
-				}
-			}
-			if (PointLightComponent* comp = m_SelectedObject->GetComponent<PointLightComponent>())
-			{
-				if (ImGui::TreeNodeEx("Point Light", ImGuiTreeNodeFlags_DefaultOpen))
-				{
-					glm::vec3 colour = comp->GetColour();
-					ImGui::DragFloat3("Colour", (float*)&colour, 0.05f);
-					comp->SetColour(colour);
-
-					float radius = comp->GetRadius();
-					ImGui::DragFloat("Radius", &radius, 0.05f);
-					comp->SetRadius(radius);
-
-					ImGui::TreePop();
+					m_SelectedObject = obj;
 				}
 			}
 		}
+
+		ImGui::End();
+
+		ImGui::Begin("Properties", 0);
+		if (m_SelectedObject)
+		{
+			if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				if (TranslationComponent* comp = m_SelectedObject->GetComponent<TranslationComponent>())
+				{
+					if (ImGui::TreeNodeEx("Translation", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						glm::vec3 translation = comp->GetTranslation();
+						ImGui::DragFloat3("Position", (float*)&translation, 0.05f);
+						comp->SetTranslation(translation);
+						glm::vec3 rotation = comp->GetRotation();
+						ImGui::DragFloat3("Rotation", (float*)&rotation, 0.05f);
+						comp->SetRotation(rotation);
+						glm::vec3 scale = comp->GetScale();
+						ImGui::DragFloat3("Scale", (float*)&scale, 0.05f);
+						comp->SetScale(scale);
+						ImGui::TreePop();
+					}
+				}
+				if (ModelComponent* comp = m_SelectedObject->GetComponent<ModelComponent>())
+				{
+					if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::Text(comp->m_ModelPath.c_str());
+						ImGui::Text(comp->m_TexturePath.c_str());
+						ImGui::Text(comp->m_NormalPath.c_str());
+						ImGui::TreePop();
+					}
+				}
+				if (PointLightComponent* comp = m_SelectedObject->GetComponent<PointLightComponent>())
+				{
+					if (ImGui::TreeNodeEx("Point Light", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						glm::vec3 colour = comp->GetColour();
+						ImGui::DragFloat3("Colour", (float*)&colour, 0.05f);
+						comp->SetColour(colour);
+
+						float radius = comp->GetRadius();
+						ImGui::DragFloat("Radius", &radius, 0.05f);
+						comp->SetRadius(radius);
+
+						ImGui::TreePop();
+					}
+				}
+			}
+		}
+		ImGui::End();
+		//ImGui::ShowTestWindow();
+
+		ImGui::Begin("Game Window", nullptr, ImGuiWindowFlags_NoScrollbar);
+		Application::Get().m_GameFocued = ImGui::IsWindowHovered();
+
+		//TODO game size is fixed to initial window size, give more control over game resolution.
+		ImGui::Image(m_GameViewTextureDescSet, ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1,1,1,1), ImVec4(0,0,0,0), true);
+		ImGui::End();
+
+		Log::Draw("Log");
+
+		ImGui::End(); //Dockspace
 	}
-	ImGui::End();
-	//ImGui::ShowTestWindow();
-
-	ImGui::SetNextWindowPos(ImVec2(289, 0), ImGuiSetCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(1025, 610), ImGuiSetCond_Once);
-	ImGui::Begin("Game Window", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-	Application::Get().m_GameFocued = ImGui::IsItemHovered();
-	ImGui::Image(m_GameViewTextureDescSet, ImVec2(1024, 576));
-	ImGui::End();
-
-	ImGui::SetNextWindowPos(ImVec2(289, 612), ImGuiSetCond_Once);
-	ImGui::SetNextWindowSize(ImVec2(1025, 288), ImGuiSetCond_Once);
-	Log::Draw("Log");
 
 	// Render to generate draw buffers
 	ImGui::Render();

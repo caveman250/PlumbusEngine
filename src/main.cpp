@@ -11,7 +11,7 @@ int main()
 	}
 	catch (const std::runtime_error& e) 
 	{
-		//Log::Fatal(e.what());
+		Log::Fatal(e.what());
 		throw e;
 		return EXIT_FAILURE;
 	}

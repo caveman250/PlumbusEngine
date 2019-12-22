@@ -1,6 +1,7 @@
 #pragma once
 #include "vulkan/vulkan.h"
 #include <map>
+#include <string>
 namespace vk
 {
 	class FrameBuffer

@@ -57,7 +57,7 @@ namespace vk
 
 			if (queueFamily.queueCount > 0 && presentSupport)
 			{
-				//Log::Info("present family queue index: " , i ");
+				Log::Info("present family queue index: " , i);
 				indices.m_PresentFamily = i;
 			}
 
@@ -66,7 +66,7 @@ namespace vk
 			//then select it as our queue family by storing the index
 			if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
-				//Log::Info("graphics family queue index: " , i ");
+				Log::Info("graphics family queue index: " , i);
 				indices.m_GraphicsFamily = i;
 			}
 
@@ -86,7 +86,7 @@ namespace vk
 
 	void VulkanDevice::CreateLogicalDevice(std::vector<const char*> deviceExtensions, const std::vector<const char*> validationLayers, bool enableValidationLayers)
 	{
-		//Log::Info("Create logical device.");
+		Log::Info("Create logical device.");
 		//find a valid queue family(s?)
 		m_Indices = FindQueueFamilies(m_PhysicalDevice);
 
@@ -124,7 +124,7 @@ namespace vk
 
 		if (enableValidationLayers)
 		{
-			//Log::Info("\tAdding validation layers to logical device");
+			Log::Info("\tAdding validation layers to logical device");
 			//todo: is this always just validation layers?
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -168,7 +168,7 @@ namespace vk
 			Log::Fatal("Failed to allocate buffer memory");
 
 		buffer->m_Alignment = memReqs.alignment;
-		buffer->m_Size = memAllocInfo.allocationSize;
+		buffer->m_Size = size;
 		buffer->m_UsageFlags = usageFlags;
 		buffer->m_MemoryPropertyFlags = memoryPropertyFlags;
 

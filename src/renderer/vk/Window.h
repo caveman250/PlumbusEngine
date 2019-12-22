@@ -16,6 +16,8 @@ namespace vk
 		void CreateSurface(VkInstance instance, VkSurfaceKHR* surface);
 		void Destroy() override;
 
+		glm::vec2 GetMousePos();
+
 		uint32_t GetWidth() override;
 		uint32_t GetHeight() override;
 		bool ShouldClose();

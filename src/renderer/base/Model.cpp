@@ -15,20 +15,20 @@ namespace base
         const int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
         
         Assimp::Importer Importer;
-        const aiScene* pScene;
+        const aiScene* scene;
         
-        pScene = Importer.ReadFile(fileName.c_str(), flags);
-        if (!pScene)
+        scene = Importer.ReadFile(fileName.c_str(), flags);
+        if (!scene)
         {
-            //Log::Fatal(Importer.GetErrorString());
+            Log::Fatal(Importer.GetErrorString());
         }
         
         std::vector<ModelPart> parts;
         
-        if (pScene)
+        if (scene)
         {
             parts.clear();
-            parts.resize(pScene->mNumMeshes);
+            parts.resize(scene->mNumMeshes);
             
             glm::vec3 scale(1.0f);
             glm::vec2 uvscale(1.0f);
@@ -37,18 +37,18 @@ namespace base
             int vertexCount = 0;
             int indexCount = 0;
             
-            for (unsigned int i = 0; i < pScene->mNumMeshes; i++)
+            for (unsigned int i = 0; i < scene->mNumMeshes; i++)
             {
-                const aiMesh* paiMesh = pScene->mMeshes[i];
+                const aiMesh* paiMesh = scene->mMeshes[i];
                 
                 parts[i] = ModelPart();
                 parts[i].m_VertexBase = vertexCount;
                 parts[i].m_IndexBase = indexCount;
                 
-                vertexCount += pScene->mMeshes[i]->mNumVertices;
+                vertexCount += scene->mMeshes[i]->mNumVertices;
                 
                 aiColor3D pColor(0.f, 0.f, 0.f);
-                pScene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
+                scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
                 
                 const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
                 
@@ -138,7 +138,7 @@ namespace base
         }
         else
         {
-            //Log::Fatal("Error loading model");
+            Log::Fatal("Error loading model");
         }
     }
 }

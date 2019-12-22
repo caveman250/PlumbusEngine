@@ -11,28 +11,32 @@ void Log::Clear()
 	m_Buffer->clear();
 }
 
-void Log::Info(const char* fmt, ...) IM_PRINTFARGS(2)
+void Log::Info(const char* fmt, ...) IM_FMTARGS(2)
 {
 	if (!m_Buffer)
 		m_Buffer = new ImGuiTextBuffer();
 
 	va_list args;
 	va_start(args, fmt);
-	m_Buffer->appendv(fmt, args);
-	m_Buffer->appendv("\n", args);
+	vprintf(fmt, args);
+	printf("\n");
+	m_Buffer->appendfv(fmt, args);
+	m_Buffer->appendfv("\n", args);
 	va_end(args);
 	m_ScrollToBottom = true;
 }
 
-void Log::Fatal(const char* fmt, ...) IM_PRINTFARGS(2)
+void Log::Fatal(const char* fmt, ...) IM_FMTARGS(2)
 {
 	if (!m_Buffer)
 		m_Buffer = new ImGuiTextBuffer();
 
 	va_list args;
 	va_start(args, fmt);
-	m_Buffer->appendv(fmt, args);
-	m_Buffer->appendv("\n", args);
+	vprintf(fmt, args);
+	printf("\n");
+	m_Buffer->appendfv(fmt, args);
+	m_Buffer->appendfv("\n", args);
 	va_end(args);
 	m_ScrollToBottom = true;
 	assert(false);
@@ -43,7 +47,7 @@ void Log::Draw(const char* title)
 	if (!m_Buffer)
 		m_Buffer = new ImGuiTextBuffer();
 
-	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiSetCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
 	ImGui::Begin(title);
 	int scrollY = -1;
 

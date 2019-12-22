@@ -182,3 +182,5 @@ lib/libassimpd.a
 .vscode/tasks.json
 ._.DS_Store
 ._*
+AssimpLog.txt
+imgui.ini

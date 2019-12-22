@@ -6,8 +6,8 @@ class Log
 public:
 
 	static void Clear();
-	static void Info(const char* fmt, ...) IM_PRINTFARGS(2);
-	static void Fatal(const char* fmt, ...) IM_PRINTFARGS(2);
+	static void Info(const char* fmt, ...) IM_FMTARGS(2);
+	static void Fatal(const char* fmt, ...) IM_FMTARGS(2);
 
 	static void Draw(const char* title);
 
