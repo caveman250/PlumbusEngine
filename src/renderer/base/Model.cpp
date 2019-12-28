@@ -1,3 +1,5 @@
+#include "plumbus.h"
+
 #include "renderer/base/Model.h"
 
 #include "assimp/Importer.hpp"
@@ -5,7 +7,7 @@
 #include "assimp/postprocess.h"
 #include "assimp/cimport.h"
 
-namespace base
+namespace plumbus::base
 {
     void Model::LoadFromFile(const std::string& fileName,
                       std::vector<VertexLayoutComponent> vertLayoutComponents,

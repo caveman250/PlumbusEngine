@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include "plumbus.h"
 #include "renderer/base/Renderer.h"
 #include "renderer/base/Texture.h"
 #include "components/ModelComponent.h"
@@ -65,7 +65,7 @@ struct Dimension
     glm::vec3 size;
 };
 
-namespace base
+namespace plumbus::base
 {
 	class Model
 	{

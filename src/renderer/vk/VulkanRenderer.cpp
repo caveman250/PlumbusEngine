@@ -1,19 +1,7 @@
+#include "plumbus.h"
+
 #include "renderer/vk/VulkanRenderer.h"
-
-#include <iostream>
-#include <stdexcept>
-#include <functional>
-#include <cstdlib>
-#include <set>
-#include <algorithm>
 #include "Helpers.h"
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <chrono>
-#include <cstring>
-
 #include "renderer/vk/ImageHelpers.h"
 #include "GameObject.h"
 #include "components/GameComponent.h"
@@ -23,7 +11,7 @@
 #include "Camera.h"
 #include "components/PointLightComponent.h"
 #include "imgui_impl/ImGuiImpl.h"
-#include "imgui_impl/Log.h"
+#include "Scene.h"
 
 const int WIDTH = 1600;
 const int HEIGHT = 900;
@@ -45,7 +33,7 @@ const std::vector<const char*> deviceExtensions = {
 const std::vector<const char*> validationLayers =
 {
     "VK_LAYER_LUNARG_standard_validation",
-    "VK_LAYER_RENDERDOC_Capture"
+    //"VK_LAYER_RENDERDOC_Capture"
 };
 
 //#ifdef NDEBUG
@@ -53,6 +41,7 @@ const std::vector<const char*> validationLayers =
 //#else
 //const bool enableValidationLayers = true;
 //#endif
+
 const bool enableValidationLayers = true;
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugReportFlagsEXT flags,
@@ -91,7 +80,7 @@ void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT
     }
 }
 
-namespace vk
+namespace plumbus::vk
 {
     void VulkanRenderer::InitVulkan()
     {
@@ -115,48 +104,13 @@ namespace vk
         CreateFrameBuffers();
         CreateSemaphores();
 
-        GameObject* obj = new GameObject("Knight");
-        Application::Get().GetScene()->AddGameObject(obj->
-            AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
-            AddComponent<TranslationComponent>(new TranslationComponent())
-        );
-
-        GameObject* plane = new GameObject("Plane");
-        Application::Get().GetScene()->AddGameObject(plane->
-            AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
-            AddComponent<TranslationComponent>(new TranslationComponent())
-        );
-
-        plane->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, 2.3, 0));
-
-        //Lights
-        glm::vec3 colours[] =
-        {
-            glm::vec3(1.5f),
-            glm::vec3(1.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 0.0f, 2.5f),
-            glm::vec3(1.0f, 1.0f, 0.0f),
-            glm::vec3(0.0f, 1.0f, 0.2f),
-            glm::vec3(1.0f, 0.7f, 0.3f)
-        };
-    
-        for (int i = 0; i < 6; ++i)
-        {
-            GameObject* light = new GameObject("Light " + std::to_string(i));
-            Application::Get().GetScene()->AddGameObject(light->
-                AddComponent<TranslationComponent>(new TranslationComponent())->
-                AddComponent<PointLightComponent>(new PointLightComponent(colours[i], 25.0f)));
-        }
-    
-        Application::Get().GetScene()->LoadModels();
-
         GenerateQuads();
         CreateVertexDescriptions();
         m_OffscreenFrameBuffer = new vk::FrameBuffer();
         m_OffscreenFrameBuffer->PrepareOffscreenFramebuffer();
         m_OutputFrameBuffer = new vk::FrameBuffer();
         m_OutputFrameBuffer->PrepareOutputFramebuffer();
-        InitLightsVBO();
+
         CreateUniformBuffers();
 
         CreateDescriptorSetLayout();
@@ -164,18 +118,15 @@ namespace vk
         CreateDescriptorPool();
         CreateDescriptorSet();
 
-	    for (GameObject* obj : Application::Get().GetScene()->GetObjects())
-	    {
-		    if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-			    comp->GetModel()->Setup(this);
-	    }
-
         SetupImGui();
         m_OutputTexture.CreateTextureSampler();
         m_OutputTexture.m_ImageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
         //BuildCommandBuffers();
         BuildDefferedCommandBuffer();
         BuildOutputFrameBuffer();
+
+		//BaseApplication::Get().GetScene()->LoadAssets();
+
     }
 
     void VulkanRenderer::PickPhysicalDevice()
@@ -370,7 +321,7 @@ namespace vk
 
 		vkQueueWaitIdle(m_PresentQueue);
 
-        UpdateUniformBufferDeferredLights();
+        UpdateLightsUniformBuffer();
     }
 
     bool VulkanRenderer::WindowShouldClose()
@@ -421,7 +372,7 @@ namespace vk
 
         vkDestroyDescriptorSetLayout(m_VulkanDevice->GetDevice(), m_DescriptorSetLayout, nullptr);
 
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (ModelComponent* modelComp = obj->GetComponent<ModelComponent>())
             {
@@ -464,7 +415,7 @@ namespace vk
 
     void VulkanRenderer::OnWindowResized(GLFWwindow* window, int width, int height)
     {
-        Application* app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+        BaseApplication* app = reinterpret_cast<BaseApplication*>(glfwGetWindowUserPointer(window));
         static_cast<vk::VulkanRenderer*>(app->GetRenderer())->RecreateSwapChain();
     }
 
@@ -739,7 +690,7 @@ namespace vk
 
     void VulkanRenderer::InitLightsVBO()
     {
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             int index = 0;
             if (PointLightComponent* comp = obj->GetComponent<PointLightComponent>())
@@ -784,7 +735,7 @@ namespace vk
 
         // Update
         UpdateUniformBuffersScreen();
-        UpdateUniformBufferDeferredLights();
+        UpdateLightsUniformBuffer();
     }
 
     void VulkanRenderer::CreateDescriptorSetLayout()
@@ -1221,12 +1172,14 @@ namespace vk
 
         vkCmdBindPipeline(m_OffScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Offscreen);
 
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
-			    vk::Model* model = static_cast<vk::Model*>(comp->GetModel());
-			    model->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+				if (vk::Model* model = static_cast<vk::Model*>(comp->GetModel()))
+				{
+					model->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+				}
             }
         }
 
@@ -1473,50 +1426,30 @@ namespace vk
     void VulkanRenderer::UpdateUniformBuffersScreen()
     {
         m_VertUBO.m_Projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-
         m_VertUBO.m_Model = glm::mat4(1.0f);
 
         memcpy(m_UniformBuffers.m_VertFullScreen.m_Mapped, &m_VertUBO, sizeof(m_VertUBO));
     }
 
-    void VulkanRenderer::UpdateUniformBufferDeferredLights()
+    void VulkanRenderer::UpdateLightsUniformBuffer()
     {
-        //TEMP should be controlled by a scene
-        int index = 0;
-
-        glm::vec3 modelTranslation;
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
-        {
-            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-            {
-                modelTranslation = obj->GetComponent<TranslationComponent>()->GetTranslation();
-                break;
-            }
-        }
-
-        float degrees = 0.f;
-        Application::Get().m_LightTime += Application::Get().GetDeltaTime();
-        for (GameObject * obj : Application::Get().GetScene()->GetObjects())
+		int lightIndex = 0;
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (PointLightComponent* lightComp = obj->GetComponent<PointLightComponent>())
             {
-                TranslationComponent* comp = obj->GetComponent<TranslationComponent>();
-                float radians = (glm::radians(degrees)) + (float)Application::Get().m_LightTime;
-                float x = 5 * cos(radians);
-                float z = 5 * sin(radians);
-
-                comp->SetTranslation(glm::vec3(x, 0.f, z));
-
-                m_LightsUBO.m_Lights[index].m_Position = glm::vec4(comp->GetTranslation(), 0.f);
-                m_LightsUBO.m_Lights[index].m_Colour = lightComp->GetColour();
-                m_LightsUBO.m_Lights[index].m_Radius = lightComp->GetRadius();
-                index++;
-                degrees += 60.f;
+				if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
+				{
+					m_LightsUBO.m_Lights[lightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
+					m_LightsUBO.m_Lights[lightIndex].m_Colour = lightComp->GetColour();
+					m_LightsUBO.m_Lights[lightIndex].m_Radius = lightComp->GetRadius();
+					lightIndex++;
+				}
             }
         }
 
         // Current view position
-        m_LightsUBO.m_ViewPos = glm::vec4(Application::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+        m_LightsUBO.m_ViewPos = glm::vec4(BaseApplication::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
         memcpy(m_UniformBuffers.m_FragLights.m_Mapped, &m_LightsUBO, sizeof(m_LightsUBO));
     }
@@ -1712,6 +1645,34 @@ namespace vk
             Log::Fatal("failed to create shader module!");
         }
 
-        return shaderModule;
-    }
+		return shaderModule;
+	}
+
+	void VulkanRenderer::OnModelAddedToScene()
+	{
+		//todo this only works the first time, but not going to fix until i move all the descriptor set stuff into a material class.
+
+
+		//vkDestroyDescriptorPool(m_VulkanDevice->GetDevice(), m_DescriptorPool, nullptr);
+		//CreateDescriptorPool();
+		//CreateDescriptorSet();
+
+		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+		{
+			if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+				comp->GetModel()->Setup(this);
+		}
+		
+		InitLightsVBO();
+		BuildDefferedCommandBuffer();
+	}
+
+	void VulkanRenderer::OnModelRemovedFromScene()
+	{
+		//vkDestroyDescriptorPool(m_VulkanDevice->GetDevice(), m_DescriptorPool, nullptr);
+		CreateDescriptorPool();
+		InitLightsVBO();
+		BuildDefferedCommandBuffer();
+	}
+
 }

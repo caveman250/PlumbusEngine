@@ -1,10 +1,9 @@
 #pragma once
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+#include "plumbus.h"
 
 #include "renderer/base/Window.h"
 
-namespace vk
+namespace plumbus::vk
 {
 	class Window : public base::Window
 	{
@@ -16,7 +15,8 @@ namespace vk
 		void CreateSurface(VkInstance instance, VkSurfaceKHR* surface);
 		void Destroy() override;
 
-		glm::vec2 GetMousePos();
+		glm::vec2 GetMousePos() override;
+		bool IsKeyDown(const int key) override;
 
 		uint32_t GetWidth() override;
 		uint32_t GetHeight() override;

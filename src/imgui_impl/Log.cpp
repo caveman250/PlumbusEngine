@@ -1,7 +1,6 @@
+#include "plumbus.h"
 #include "imgui_impl/Log.h"
-#include <stdexcept>
-#include "GLFW/glfw3.h"
-#include "Application.h"
+#include "BaseApplication.h"
 
 ImGuiTextBuffer* Log::m_Buffer = nullptr;
 bool Log::m_ScrollToBottom = false;
@@ -31,14 +30,15 @@ void Log::Fatal(const char* fmt, ...) IM_FMTARGS(2)
 	if (!m_Buffer)
 		m_Buffer = new ImGuiTextBuffer();
 
+	char buffer[256];
 	va_list args;
 	va_start(args, fmt);
-	vprintf(fmt, args);
-	printf("\n");
-	m_Buffer->appendfv(fmt, args);
-	m_Buffer->appendfv("\n", args);
+	vsnprintf(buffer, 256, fmt, args);
+	printf("Fatal: %s%s", &buffer, "\n");
+	m_Buffer->appendf("Fatal: %s%s", &buffer, "\n");
 	va_end(args);
 	m_ScrollToBottom = true;
+
 	assert(false);
 }
 

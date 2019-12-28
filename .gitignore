@@ -184,3 +184,8 @@ lib/libassimpd.a
 ._*
 AssimpLog.txt
 imgui.ini
+.vs/Plumbus/v16/Solution.VC.db-shm
+.vs/Plumbus/v16/Solution.VC.db-wal
+intermediate/*
+PlumbusTester/bin/*
+PlumbusTester/intermediate/*

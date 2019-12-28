@@ -1,8 +1,7 @@
 #pragma once
-#include <stdint.h>
-#include <glm/glm.hpp>
+#include "plumbus.h"
 
-namespace base
+namespace plumbus::base
 {
     class Window
     {
@@ -13,5 +12,6 @@ namespace base
         virtual uint32_t GetHeight() = 0;
         
         virtual glm::vec2 GetMousePos() = 0;
+		virtual bool IsKeyDown(const int key) = 0;
     };
 }

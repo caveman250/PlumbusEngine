@@ -1,13 +1,12 @@
 #pragma once
-#include <string>
-#include <vector>
+#include "plumbus.h"
 #include "renderer/vk/Buffer.h"
 #include "renderer/vk/Texture.h"
 #include "glm/glm.hpp"
-#include "ModelComponent.h"
+#include "components/ModelComponent.h"
 #include "renderer/base/Model.h"
 
-namespace vk
+namespace plumbus::vk
 {
 	class Scene;
 	class VulkanDevice;

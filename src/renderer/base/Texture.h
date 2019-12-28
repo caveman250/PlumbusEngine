@@ -1,7 +1,7 @@
 #pragma once
-#include <string>
+#include "plumbus.h"
 
-namespace base
+namespace plumbus::base
 {
 	class Texture
 	{

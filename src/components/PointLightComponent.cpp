@@ -1,14 +1,18 @@
+#include "plumbus.h"
 #include "PointLightComponent.h"
 #include "glm/glm.hpp"
 
-PointLightComponent::PointLightComponent(glm::vec3 colour, float radius)
-	: GameComponent()
+namespace plumbus
 {
-	m_Colour = colour;
-	m_Radius = radius;
-}
+	PointLightComponent::PointLightComponent(glm::vec3 colour, float radius)
+		: GameComponent()
+	{
+		m_Colour = colour;
+		m_Radius = radius;
+	}
 
-void PointLightComponent::OnUpdate(Scene* scene)
-{
+	void PointLightComponent::OnUpdate(Scene* scene)
+	{
 
+	}
 }

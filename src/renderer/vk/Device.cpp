@@ -1,10 +1,9 @@
+#include "plumbus.h"
 #include "Device.h"
-#include <set>
 #include "Helpers.h"
 #include "Buffer.h"
-#include <cstring>
 
-namespace vk
+namespace plumbus::vk
 {
 	VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 	{

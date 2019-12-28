@@ -1,3 +1,5 @@
+#include "plumbus.h"
+
 #include "renderer/vk/Model.h"
 
 #include "assimp/Importer.hpp"
@@ -5,14 +7,12 @@
 #include "assimp/postprocess.h"
 #include "assimp/cimport.h"
 
-#include <unordered_map>
-
-#include "Application.h"
+#include "BaseApplication.h"
 #include "renderer/vk/ImageHelpers.h"
 #include "Helpers.h"
 #include "renderer/vk/VulkanRenderer.h"
 
-namespace vk
+namespace plumbus::vk
 {
 
 	Model::Model()
@@ -23,14 +23,14 @@ namespace vk
 
 	Model::~Model()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
 		vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
 		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 	}
 
 	void Model::LoadModel(const std::string& fileName)
 	{
-        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
+        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
 
 		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
 
@@ -144,7 +144,7 @@ namespace vk
 
 	void Model::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
 	{
-		VkDevice device = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+		VkDevice device = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
 
 		CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_DescriptorSet));
 

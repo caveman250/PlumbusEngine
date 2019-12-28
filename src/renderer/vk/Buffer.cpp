@@ -1,7 +1,7 @@
+#include "plumbus.h"
 #include "Buffer.h"
-#include <cstring>
 
-namespace vk
+namespace plumbus::vk
 {
 	VkResult Buffer::Map(VkDeviceSize size , VkDeviceSize offset)
 	{

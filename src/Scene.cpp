@@ -1,32 +1,51 @@
+#include "plumbus.h"
 #include "Scene.h"
+#include "renderer/base/Model.h"
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 #include "GameObject.h"
+#include "BaseApplication.h"
 
-Scene::Scene()
+namespace plumbus
 {
-
-}
-
-void Scene::Init()
-{
-	m_Camera.Init();
-}
-
-void Scene::OnUpdate()
-{
-	m_Camera.OnUpdate();
-	for (GameObject* obj : m_GameObjects)
-		obj->OnUpdate(this);
-}
-
-void Scene::LoadModels()
-{
-	for (GameObject* obj : m_GameObjects)
+	Scene::Scene()
 	{
-		if (ModelComponent* component = obj->GetComponent<ModelComponent>())
+
+	}
+
+	void Scene::Init()
+	{
+		m_Camera.Init();
+		m_Initialised = true;
+	}
+
+	void Scene::Shutdown()
+	{
+		m_Initialised = false;
+	}
+
+	bool Scene::IsInitialised()
+	{
+		return m_Initialised;
+	}
+
+	void Scene::OnUpdate()
+	{
+		m_Camera.OnUpdate();
+		for (GameObject* obj : m_GameObjects)
+			obj->OnUpdate(this);
+	}
+
+	void Scene::LoadAssets()
+	{
+		for (GameObject* obj : m_GameObjects)
 		{
-			component->LoadModel();
+			if (ModelComponent* component = obj->GetComponent<ModelComponent>())
+			{
+				component->LoadModel();
+			}
 		}
+
+		BaseApplication::Get().GetRenderer()->OnModelAddedToScene();
 	}
 }
