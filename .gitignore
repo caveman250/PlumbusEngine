@@ -25,10 +25,8 @@ VulkanRenderer\.cbp
 VulkanRenderer
 Makefile
 *.cmake
-*.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
-*.sln
 include/glfw-3.2.1/src/Debug/*
 include/glfw-3.2.1/src/glfw.dir/*
 *.stamp
@@ -189,3 +187,6 @@ imgui.ini
 intermediate/*
 PlumbusTester/bin/*
 PlumbusTester/intermediate/*
+third_party/include/gli/gli_dummy.vcxproj
+third_party/include/gli/INSTALL.vcxproj
+third_party/include/gli/RUN_TESTS.vcxproj
