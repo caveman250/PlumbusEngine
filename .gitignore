@@ -190,3 +190,4 @@ PlumbusTester/intermediate/*
 third_party/include/gli/gli_dummy.vcxproj
 third_party/include/gli/INSTALL.vcxproj
 third_party/include/gli/RUN_TESTS.vcxproj
+.vscode/*
