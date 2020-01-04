@@ -42,7 +42,7 @@ std::vector<char> Helpers::ReadFile(const std::string& filename)
 
 	if (!file.is_open())
 	{
-		Log::Fatal("failed to open file!");
+		plumbus::Log::Error("Helpers::ReadFile: failed to open file %s!", filename.c_str());
 	}
 
 	size_t fileSize = (size_t)file.tellg();

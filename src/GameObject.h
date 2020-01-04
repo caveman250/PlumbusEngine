@@ -15,6 +15,8 @@ namespace plumbus
 	{
 	public:
 		GameObject(std::string id) { m_ID = id; }
+		~GameObject();
+
 		std::string GetID() { return m_ID; }
 
 		template <typename T>

@@ -19,6 +19,7 @@ namespace plumbus
 
 		void AddGameObject(GameObject* obj) { m_GameObjects.push_back(obj); }
 		std::vector<GameObject*>& GetObjects() { return m_GameObjects; }
+		void ClearObjects();
 
 		void LoadAssets();
 

@@ -42,7 +42,7 @@ namespace plumbus::vk
 
 		if (vkCreateSampler(static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 		{
-			Log::Fatal("failed to create texture sampler!");
+			Log::Error("failed to create texture sampler!");
 		}
 	}
 
@@ -56,7 +56,7 @@ namespace plumbus::vk
 
 		gli::texture2d tex2D(gli::load(filename.c_str()));
 
-		assert(!tex2D.empty());
+		PLUMBUS_ASSERT(!tex2D.empty());
 
 		vk::VulkanDevice* device = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice();
 

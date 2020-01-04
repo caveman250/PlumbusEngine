@@ -3,7 +3,7 @@
 #include "renderer/vk/Device.h"
 #include "renderer/vk/Buffer.h"
 #include "glm/glm.hpp"
-#include "imgui_impl/imgui/imgui.h"
+#include "imgui/imgui.h"
 #include "renderer/vk/ImageHelpers.h"
 
 namespace plumbus

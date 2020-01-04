@@ -3,11 +3,13 @@
 #include "plumbus.h"
 
 #include "GameComponent.h"
-#include "renderer/vk/Buffer.h"
+#include "renderer/base/renderer_fwd.h"
 
 namespace plumbus::base
 {
 	class Model;
+	class Material;
+	class MaterialRef;
 }
 namespace plumbus
 {
@@ -24,23 +26,31 @@ namespace plumbus
 		};
 
 		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath);
+		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, base::Material* material);
 		~ModelComponent();
 		base::Model* GetModel();
 		void LoadModel();
+		void SetMaterial(MaterialRef material);
+
 		void OnUpdate(Scene* scene) override;
 		void Cleanup();
 		void UpdateUniformBuffer(Scene* scene);
 
-		static const ComponentType GetType() { return GameComponent::ModelComponent; }
+		std::string GetModelPath() { return m_ModelPath; }
+		std::string GetTexturePath() { return m_TexturePath; }
+		std::string GetNormalPath() { return m_NormalPath; }
 
-		std::string m_ModelPath;
-		std::string m_TexturePath;
-		std::string m_NormalPath;
+		static const ComponentType GetType() { return GameComponent::ModelComponent; }
 
 	private:
 
 		UniformBufferObject m_UniformBufferObject;
 
 		base::Model* m_Model;
+		MaterialRef m_Material;
+
+		std::string m_ModelPath;
+		std::string m_TexturePath;
+		std::string m_NormalPath;
 	};
 }

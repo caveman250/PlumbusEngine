@@ -16,6 +16,8 @@ namespace plumbus
 		};
 
 		GameComponent() { }
+		virtual ~GameComponent() {}
+
 		virtual void OnUpdate(Scene* scene) = 0;
 
 		void SetOwner(GameObject* owner) { m_Owner = owner; }

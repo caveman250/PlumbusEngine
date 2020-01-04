@@ -6,6 +6,14 @@
 
 namespace plumbus
 {
+	GameObject::~GameObject()
+	{
+		for (auto& [_, component] : m_Components)
+		{
+			delete component;
+		}
+	}
+
 	void GameObject::OnUpdate(Scene* scene)
 	{
 		for (auto kvp : m_Components)

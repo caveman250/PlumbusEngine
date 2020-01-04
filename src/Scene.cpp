@@ -36,6 +36,16 @@ namespace plumbus
 			obj->OnUpdate(this);
 	}
 
+	void Scene::ClearObjects()
+	{
+		for (GameObject* obj : m_GameObjects)
+		{
+			delete obj;
+		}
+
+		m_GameObjects.clear();
+	}
+
 	void Scene::LoadAssets()
 	{
 		for (GameObject* obj : m_GameObjects)

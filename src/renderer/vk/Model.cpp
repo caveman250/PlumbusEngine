@@ -14,18 +14,24 @@
 
 namespace plumbus::vk
 {
-
 	Model::Model()
+		: base::Model()
 	{
+		m_VertexLayout = VertexLayout(
+		{
+			VERTEX_COMPONENT_POSITION,
+			VERTEX_COMPONENT_UV,
+			VERTEX_COMPONENT_COLOR,
+			VERTEX_COMPONENT_NORMAL,
+			VERTEX_COMPONENT_TANGENT,
+		});
+
 		m_ColourMap = new vk::Texture();
 		m_NormalMap = new vk::Texture();
 	}
 
 	Model::~Model()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
-		vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Buffer, nullptr);
-		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), m_UniformBuffer.m_Memory, nullptr);
 	}
 
 	void Model::LoadModel(const std::string& fileName)
@@ -109,6 +115,9 @@ namespace plumbus::vk
 
 	void Model::Cleanup()
 	{
+		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
+
 		m_UniformBuffer.Cleanup();
 
 		m_VertexBuffer.Cleanup();
@@ -120,10 +129,13 @@ namespace plumbus::vk
 
 	void Model::Setup(base::Renderer* renderer)
 	{
-		vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
-
-		CreateUniformBuffer(vkRenderer->GetVulkanDevice());
-		CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
+		if (PLUMBUS_VERIFY(m_Material != nullptr))
+		{
+			vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
+			m_Material->Setup(&m_VertexLayout);
+			CreateUniformBuffer(vkRenderer->GetVulkanDevice());
+			CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
+		}
 	}
 
 	void Model::UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo)
@@ -186,12 +198,36 @@ namespace plumbus::vk
 
 	void Model::SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
 	{
+		vk::Material* vkMaterial = static_cast<vk::Material*>(m_Material.get());
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkMaterial->GetPipeline());
+
 		VkDeviceSize offsets[1] = { 0 };
 		// Object
-		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &m_DescriptorSet, 0, NULL);
+		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkMaterial->GetPipelineLayout(), 0, 1, &m_DescriptorSet, 0, NULL);
 		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &m_VertexBuffer.m_Buffer, offsets);
 		vkCmdBindIndexBuffer(cmdBuffer, m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(cmdBuffer, m_IndexSize, 1, 0, 0, 0);
+	}
+
+	Buffer& Model::GetVertexBuffer()
+	{
+		return m_VertexBuffer;
+	}
+
+	Buffer& Model::GetIndexBuffer()
+	{
+		return m_IndexBuffer;
+	}
+
+	void Model::SetIndexSize(uint32_t indexSize)
+	{
+		m_IndexSize = indexSize;
+	}
+
+	void Model::SetMaterial(MaterialRef material)
+	{
+		PLUMBUS_ASSERT(dynamic_cast<vk::Material*>(material.get()) != nullptr);
+		m_Material = material;
 	}
 
 }

@@ -28,27 +28,31 @@
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Helpers.h" />
     <ClInclude Include="src\imgui_impl\ImGuiImpl.h" />
-    <ClInclude Include="src\imgui_impl\imgui\imconfig.h" />
-    <ClInclude Include="src\imgui_impl\imgui\imgui.h" />
-    <ClInclude Include="src\imgui_impl\imgui\imgui_internal.h" />
-    <ClInclude Include="src\imgui_impl\imgui\imstb_rectpack.h" />
-    <ClInclude Include="src\imgui_impl\imgui\imstb_textedit.h" />
-    <ClInclude Include="src\imgui_impl\imgui\imstb_truetype.h" />
     <ClInclude Include="src\imgui_impl\Log.h" />
     <ClInclude Include="src\plumbus.h" />
+    <ClInclude Include="src\renderer\base\Material.h" />
     <ClInclude Include="src\renderer\base\Model.h" />
     <ClInclude Include="src\renderer\base\Renderer.h" />
+    <ClInclude Include="src\renderer\base\renderer_fwd.h" />
     <ClInclude Include="src\renderer\base\Texture.h" />
     <ClInclude Include="src\renderer\base\Window.h" />
     <ClInclude Include="src\renderer\vk\Buffer.h" />
     <ClInclude Include="src\renderer\vk\Device.h" />
     <ClInclude Include="src\renderer\vk\FrameBuffer.h" />
     <ClInclude Include="src\renderer\vk\ImageHelpers.h" />
+    <ClInclude Include="src\renderer\vk\Material.h" />
     <ClInclude Include="src\renderer\vk\Model.h" />
+    <ClInclude Include="src\renderer\vk\renderer_fwd_vk.h" />
     <ClInclude Include="src\renderer\vk\Texture.h" />
     <ClInclude Include="src\renderer\vk\VulkanRenderer.h" />
     <ClInclude Include="src\renderer\vk\Window.h" />
     <ClInclude Include="src\Scene.h" />
+    <ClInclude Include="third_party\include\imgui\imconfig.h" />
+    <ClInclude Include="third_party\include\imgui\imgui.h" />
+    <ClInclude Include="third_party\include\imgui\imgui_internal.h" />
+    <ClInclude Include="third_party\include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="third_party\include\imgui\imstb_textedit.h" />
+    <ClInclude Include="third_party\include\imgui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Camera.cpp" />
@@ -58,15 +62,6 @@
     <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\Helpers.cpp" />
     <ClCompile Include="src\imgui_impl\ImGuiImpl.cpp" />
-    <ClCompile Include="src\imgui_impl\imgui\imgui.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\imgui_impl\imgui\imgui_draw.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\imgui_impl\imgui\imgui_widgets.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="src\imgui_impl\Log.cpp" />
     <ClCompile Include="src\platform\windows\BaseApplication.cpp" />
     <ClCompile Include="src\pch.cpp">
@@ -76,11 +71,22 @@
     <ClCompile Include="src\renderer\vk\Buffer.cpp" />
     <ClCompile Include="src\renderer\vk\Device.cpp" />
     <ClCompile Include="src\renderer\vk\FrameBuffer.cpp" />
+    <ClCompile Include="src\renderer\vk\Material.cpp" />
     <ClCompile Include="src\renderer\vk\Model.cpp" />
     <ClCompile Include="src\renderer\vk\Texture.cpp" />
     <ClCompile Include="src\renderer\vk\VulkanRenderer.cpp" />
     <ClCompile Include="src\renderer\vk\Window.cpp" />
     <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="third_party\include\imgui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\include\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="third_party\include\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="WindowsPlatform.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -172,12 +178,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;VULKAN_RENDERER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;PLUMBUS_DEBUG;VULKAN_RENDERER=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>third_party/include; src/;</AdditionalIncludeDirectories>
       <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeaderFile>plumbus.h</PrecompiledHeaderFile>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

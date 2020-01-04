@@ -394,8 +394,8 @@ namespace plumbus
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->LoadShader("shaders/bin/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->LoadShader("shaders/bin/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		io.Fonts->TexID = (void*)m_DescriptorSet;
 
@@ -469,9 +469,9 @@ namespace plumbus
 					{
 						if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_DefaultOpen))
 						{
-							ImGui::Text(comp->m_ModelPath.c_str());
-							ImGui::Text(comp->m_TexturePath.c_str());
-							ImGui::Text(comp->m_NormalPath.c_str());
+							ImGui::Text(comp->GetModelPath().c_str());
+							ImGui::Text(comp->GetTexturePath().c_str());
+							ImGui::Text(comp->GetNormalPath().c_str());
 							ImGui::TreePop();
 						}
 					}

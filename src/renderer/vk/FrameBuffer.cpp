@@ -28,7 +28,7 @@ namespace plumbus::vk
 			imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		}
 
-		assert(aspectMask > 0);
+		PLUMBUS_ASSERT(aspectMask > 0);
 
 		VkImageCreateInfo image{ };
 		image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

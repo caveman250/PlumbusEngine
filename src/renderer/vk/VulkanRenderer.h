@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulkan/vulkan.h"
 #include "renderer/base/Renderer.h"
 #include "renderer/vk/Model.h"
 #include "renderer/vk/Device.h"
@@ -23,13 +24,6 @@ namespace plumbus
 				VkSurfaceCapabilitiesKHR m_Capabilities;
 				std::vector<VkSurfaceFormatKHR> m_Formats;
 				std::vector<VkPresentModeKHR> m_PresentModes;
-			};
-
-			struct VertexDescription
-			{
-				VkPipelineVertexInputStateCreateInfo m_InputState;
-				std::vector<VkVertexInputBindingDescription> m_BindingDescriptions;
-				std::vector<VkVertexInputAttributeDescription> m_AttributeDescriptions;
 			};
 
 			struct UniformBuffers
@@ -97,6 +91,9 @@ namespace plumbus
 
 			VkDescriptorSetAllocateInfo GetDescriptorSetAllocateInfo();
 
+			vk::FrameBuffer* GetOffscreenFramebuffer() { return m_OffscreenFrameBuffer; }
+			VkPipelineCache& GetPipelineCache() { return m_PipelineCache; }
+
 			//used for imgui
 			vk::Texture m_OutputTexture;
 
@@ -111,7 +108,7 @@ namespace plumbus
 			bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 			void CreatePipelineCache();
 			void GenerateQuads();
-			void CreateVertexDescriptions();
+			
 			void CreateUniformBuffers();
 			void InitLightsVBO();
 			void CreateDescriptorSetLayout();
@@ -172,7 +169,7 @@ namespace plumbus
 			VkSemaphore m_RenderFinishedSemaphore;
 			VkSemaphore m_OffscreenSemaphore;
 			VkSemaphore m_OutputSemaphore;
-			VertexDescription m_VertexDescriptions;
+
 			vk::FrameBuffer* m_OffscreenFrameBuffer;
 			vk::FrameBuffer* m_OutputFrameBuffer;
 			UniformBuffers m_UniformBuffers;
@@ -184,7 +181,7 @@ namespace plumbus
 			VkImage m_DepthImage;
 			VkDeviceMemory m_DepthImageMemory;
 			VkImageView m_DepthImageView;
-			vk::Model m_Quad;
+			vk::Model m_ScreenQuad;
 			std::vector<VkShaderModule> m_ShaderModules;
 
 			plumbus::ImGUIImpl* m_ImGui = nullptr;

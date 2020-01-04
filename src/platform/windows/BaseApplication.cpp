@@ -37,7 +37,7 @@ namespace plumbus
 
 	void BaseApplication::Run()
 	{
-		assert(m_Scene != nullptr);
+		PLUMBUS_ASSERT(m_Scene != nullptr);
 
 		m_Renderer->Init();
 		InitScene();
@@ -52,7 +52,7 @@ namespace plumbus
 
 	void BaseApplication::SetScene(Scene* scene)
 	{
-		assert(!m_Scene || !m_Scene->IsInitialised());
+		PLUMBUS_ASSERT(!m_Scene || !m_Scene->IsInitialised());
 		m_Scene = scene;
 	}
 

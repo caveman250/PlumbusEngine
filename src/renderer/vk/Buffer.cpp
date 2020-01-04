@@ -31,7 +31,7 @@ namespace plumbus::vk
 
 	void Buffer::CopyTo(void* data, VkDeviceSize size)
 	{
-		assert(m_Mapped);
+		PLUMBUS_ASSERT(m_Mapped);
 		memcpy(m_Mapped, data, size);
 	}
 

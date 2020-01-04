@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 #include "components/ModelComponent.h"
 #include "renderer/base/Model.h"
+#include "renderer/vk/Material.h"
 
 namespace plumbus::vk
 {
@@ -20,6 +21,7 @@ namespace plumbus::vk
 		void Cleanup() override;
 
 		void Setup(base::Renderer* renderer) override;
+		void SetMaterial(MaterialRef material) override;
 
 		void CreateUniformBuffer(vk::VulkanDevice* vulkanDevice);
 		void CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
@@ -27,6 +29,12 @@ namespace plumbus::vk
 
 		void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo) override;
 
+		vk::Buffer& GetVertexBuffer();
+		vk::Buffer& GetIndexBuffer();
+
+		//todo there should really be a constructor for custom geometry, remove this once added.
+		void SetIndexSize(uint32_t indexSize); 
+private:
 		uint32_t m_IndexSize;
 
 		vk::Buffer m_VertexBuffer;
@@ -35,5 +43,7 @@ namespace plumbus::vk
 		VkDescriptorSet m_DescriptorSet;
 
 		vk::Buffer m_UniformBuffer;
+
+		VertexLayout m_VertexLayout;
 	};
 }

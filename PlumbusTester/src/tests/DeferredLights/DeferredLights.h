@@ -1,19 +1,34 @@
 #pragma once
 
 #include "tests/Test.h"
+#include "renderer/base/renderer_fwd.h"
 
-namespace plumbus::tester::tests
+namespace plumbus
 {
-	class DeferredLights : public Test 
+	namespace base
 	{
-	public:
-		DeferredLights();
-		void Init() override;
-		void Update() override;
-		void Shutdown() override;
-		void OnGui() override;
-	private:
-		double m_LightTime = 0;
-	};
+		class Material;
+	}
+
+	namespace tester::tests
+	{
+		class DeferredLights : public Test
+		{
+		public:
+			DeferredLights();
+			~DeferredLights();
+			void Init() override;
+			void Update() override;
+			void Shutdown() override;
+			void OnGui() override;
+		private:
+			double m_LightTime;
+			bool m_LightsPaused;
+			float m_LightSpeed;
+			float m_LightsDistanceFromCenter;
+
+			MaterialRef m_DeferredLightMaterial;
+		};
+	}
 }
 

@@ -18,10 +18,22 @@ namespace plumbus
 {
 	ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 		: GameComponent()
+		, m_ModelPath(modelPath)
+		, m_TexturePath(texturePath)
+		, m_NormalPath(normalPath)
+		, m_Material(nullptr)
 	{
-		m_ModelPath = modelPath;
-		m_TexturePath = texturePath;
-		m_NormalPath = normalPath;
+		
+	}
+
+	ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, base::Material* material)
+		: GameComponent()
+		, m_ModelPath(modelPath)
+		, m_TexturePath(texturePath)
+		, m_NormalPath(normalPath)
+		, m_Material(material)
+	{
+		
 	}
 
 	ModelComponent::~ModelComponent()
@@ -43,8 +55,25 @@ namespace plumbus
 #endif
 		m_Model->LoadModel(m_ModelPath);
 
-		m_Model->m_ColourMap->LoadTexture(m_TexturePath);
-		m_Model->m_NormalMap->LoadTexture(m_NormalPath);
+		m_Model->GetColourMap()->LoadTexture(m_TexturePath);
+		m_Model->GetNormalMap()->LoadTexture(m_NormalPath);
+
+		if (m_Material)
+		{
+			m_Model->SetMaterial(m_Material);
+		}
+	}
+
+	void ModelComponent::SetMaterial(MaterialRef material)
+	{
+		if (m_Material != material)
+		{
+			m_Material = material;
+			if (m_Model)
+			{
+				m_Model->SetMaterial(material);
+			}
+		}
 	}
 
 	void ModelComponent::OnUpdate(Scene* scene)
