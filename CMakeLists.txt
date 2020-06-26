@@ -7,6 +7,10 @@ cmake_policy(VERSION 2.8)
 # SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 # SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 macro(ADD_OSX_FRAMEWORK fwname target)
     find_library(FRAMEWORK_${fwname}
     NAMES ${fwname}
@@ -35,7 +39,7 @@ ENDIF()
 
 project(${NAME})
 
-add_subdirectory(third_party/glfw-3.2.1)
+add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/assimp)
 add_subdirectory(PlumbusTester)
 
@@ -43,14 +47,17 @@ include_directories(third_party)
 include_directories(third_party/glm)
 include_directories(third_party/gli)
 include_directories(third_party/assimp/include/)
-include_directories(third_party/glfw-3.2.1/include/)
+include_directories(${CMAKE_BINARY_DIR}/third_party/assimp/include/)
+include_directories(third_party/glfw/include/)
 include_directories(src)
 if(!APPLE)
-	include_directories(third_party/vulkan)
 	include_directories(src/vk)
 endif(!APPLE)
 
 include_directories(src/components)
+
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
