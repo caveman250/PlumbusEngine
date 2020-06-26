@@ -1,10 +1,9 @@
+#include "plumbus.h"
 #include "Device.h"
-#include <set>
 #include "Helpers.h"
 #include "Buffer.h"
-#include <cstring>
 
-namespace vk
+namespace plumbus::vk
 {
 	VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 	{
@@ -57,7 +56,7 @@ namespace vk
 
 			if (queueFamily.queueCount > 0 && presentSupport)
 			{
-				Log::Info("present family queue index: " , i);
+				Log::Info("present family queue index: %i" , i);
 				indices.m_PresentFamily = i;
 			}
 
@@ -66,7 +65,7 @@ namespace vk
 			//then select it as our queue family by storing the index
 			if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
-				Log::Info("graphics family queue index: " , i);
+				Log::Info("graphics family queue index: %i" , i);
 				indices.m_GraphicsFamily = i;
 			}
 

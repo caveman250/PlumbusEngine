@@ -1,7 +1,9 @@
+#include "plumbus.h"
+
 #include "renderer/vk/Window.h"
 #include "imgui_impl/Log.h"
 
-namespace vk
+namespace plumbus::vk
 {
 	void Window::Init(uint32_t width, uint32_t height)
 	{
@@ -53,6 +55,11 @@ namespace vk
 	bool Window::ShouldClose()
 	{
 		return glfwWindowShouldClose(m_Window);
+	}
+
+	bool Window::IsKeyDown(const int key)
+	{
+		return glfwGetKey(GetWindow(), key);
 	}
 
 }

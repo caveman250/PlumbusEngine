@@ -1,7 +1,7 @@
+#include "plumbus.h"
 #include "Buffer.h"
-#include <cstring>
 
-namespace vk
+namespace plumbus::vk
 {
 	VkResult Buffer::Map(VkDeviceSize size , VkDeviceSize offset)
 	{
@@ -31,7 +31,7 @@ namespace vk
 
 	void Buffer::CopyTo(void* data, VkDeviceSize size)
 	{
-		assert(m_Mapped);
+		PLUMBUS_ASSERT(m_Mapped);
 		memcpy(m_Mapped, data, size);
 	}
 

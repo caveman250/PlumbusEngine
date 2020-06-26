@@ -1,9 +1,9 @@
 #pragma once
+#include "plumbus.h"
 #include "vulkan/vulkan.h"
-#include <string>
 #include "renderer/base/Texture.h"
 
-namespace vk
+namespace plumbus::vk
 {
 	class Texture : public base::Texture
 	{

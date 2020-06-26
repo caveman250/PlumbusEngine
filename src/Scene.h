@@ -1,23 +1,35 @@
 #pragma once
-#include "Application.h"
+#include "plumbus.h"
 #include "Camera.h"
-#include "renderer/vk/Model.h"
 
-class GameObject;
-class Scene
+namespace plumbus
 {
-public:
-	Scene();
-	Camera* GetCamera() { return &m_Camera; }
+	class GameObject;
 
-	void Init();
-	void OnUpdate();
+	class Scene
+	{
+	public:
+		virtual void Init();
+		virtual void Shutdown();
+		virtual void OnUpdate();
 
-	void AddGameObject(GameObject* obj) { m_GameObjects.push_back(obj); }
-	std::vector<GameObject*> GetObjects() { return m_GameObjects; }
-	void LoadModels();
+		virtual bool IsInitialised();
 
-private:
-	Camera m_Camera;
-	std::vector<GameObject*> m_GameObjects;
-};
+		Camera* GetCamera() { return &m_Camera; }
+
+		void AddGameObject(GameObject* obj) { m_GameObjects.push_back(obj); }
+		std::vector<GameObject*>& GetObjects() { return m_GameObjects; }
+		void ClearObjects();
+
+		void LoadAssets();
+
+	protected:
+		Scene();
+
+	private:
+		Camera m_Camera;
+		std::vector<GameObject*> m_GameObjects;
+
+		bool m_Initialised;
+	};
+}

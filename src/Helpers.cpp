@@ -1,3 +1,4 @@
+#include "plumbus.h"
 #include "Helpers.h"
 
 std::string ErrorString(VkResult errorCode)
@@ -28,6 +29,7 @@ std::string ErrorString(VkResult errorCode)
 		STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
 		STR(ERROR_VALIDATION_FAILED_EXT);
 		STR(ERROR_INVALID_SHADER_NV);
+		STR(ERROR_OUT_OF_POOL_MEMORY);
 #undef STR
 	default:
 		return "UNKNOWN_ERROR";
@@ -40,7 +42,7 @@ std::vector<char> Helpers::ReadFile(const std::string& filename)
 
 	if (!file.is_open())
 	{
-		Log::Fatal("failed to open file!");
+		plumbus::Log::Error("Helpers::ReadFile: failed to open file %s!", filename.c_str());
 	}
 
 	size_t fileSize = (size_t)file.tellg();

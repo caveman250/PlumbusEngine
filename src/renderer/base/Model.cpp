@@ -1,3 +1,5 @@
+#include "plumbus.h"
+
 #include "renderer/base/Model.h"
 
 #include "assimp/Importer.hpp"
@@ -5,8 +7,16 @@
 #include "assimp/postprocess.h"
 #include "assimp/cimport.h"
 
-namespace base
+namespace plumbus::base
 {
+	Model::Model()
+		: m_ColourMap(nullptr)
+		, m_NormalMap(nullptr)
+		, m_Material(nullptr)
+	{
+
+	}
+
     void Model::LoadFromFile(const std::string& fileName,
                       std::vector<VertexLayoutComponent> vertLayoutComponents,
                       std::vector<float>& vertexBuffer,
@@ -20,7 +30,7 @@ namespace base
         scene = Importer.ReadFile(fileName.c_str(), flags);
         if (!scene)
         {
-            Log::Fatal(Importer.GetErrorString());
+            Log::Error(Importer.GetErrorString());
         }
         
         std::vector<ModelPart> parts;
@@ -138,7 +148,17 @@ namespace base
         }
         else
         {
-            Log::Fatal("Error loading model");
+            Log::Error("Error loading model");
         }
     }
+
+	Texture* Model::GetColourMap()
+	{
+		return m_ColourMap;
+	}
+
+	Texture* Model::GetNormalMap()
+	{
+		return m_NormalMap;
+	}
 }

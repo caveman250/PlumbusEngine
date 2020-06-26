@@ -1,7 +1,7 @@
 #pragma once
-#include <stdint.h>
+#include "plumbus.h"
 
-namespace base
+namespace plumbus::base
 {
     class Window;
 	class Renderer
@@ -14,6 +14,9 @@ namespace base
 		virtual bool WindowShouldClose() = 0;
 
 		virtual void AwaitIdle() = 0;
+
+		virtual void OnModelAddedToScene() = 0;
+		virtual void OnModelRemovedFromScene() = 0;
         
         Window* GetWindow() { return m_Window; };
         

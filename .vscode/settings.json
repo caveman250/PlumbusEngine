@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "chrono": "cpp",
+        "*.tcc": "cpp",
+        "memory_resource": "cpp"
+    }
+}

@@ -1,54 +1,10 @@
 #pragma once
-#include <string>
+#include "plumbus.h"
 #include "renderer/base/Renderer.h"
 #include "renderer/base/Texture.h"
+#include "renderer/base/Material.h"
 #include "components/ModelComponent.h"
-
-enum VertexLayoutComponent
-{
-    VERTEX_COMPONENT_POSITION = 0x0,
-    VERTEX_COMPONENT_NORMAL = 0x1,
-    VERTEX_COMPONENT_COLOR = 0x2,
-    VERTEX_COMPONENT_UV = 0x3,
-    VERTEX_COMPONENT_TANGENT = 0x4,
-    VERTEX_COMPONENT_BITANGENT = 0x5,
-    VERTEX_COMPONENT_DUMMY_FLOAT = 0x6,
-    VERTEX_COMPONENT_DUMMY_VEC4 = 0x7
-};
-struct VertexLayout
-{
-public:
-    std::vector<VertexLayoutComponent> components;
-    
-    VertexLayout(std::vector<VertexLayoutComponent> components)
-    {
-        this->components = std::move(components);
-    }
-    
-    uint32_t stride()
-    {
-        uint32_t res = 0;
-        for (auto& component : components)
-        {
-            switch (component)
-            {
-                case VERTEX_COMPONENT_UV:
-                    res += 2 * sizeof(float);
-                    break;
-                case VERTEX_COMPONENT_DUMMY_FLOAT:
-                    res += sizeof(float);
-                    break;
-                case VERTEX_COMPONENT_DUMMY_VEC4:
-                    res += 4 * sizeof(float);
-                    break;
-                default:
-                    // All components except the ones listed above are made up of 3 floats
-                    res += 3 * sizeof(float);
-            }
-        }
-        return res;
-    }
-};
+#include "renderer/base/renderer_fwd.h"
 
 struct ModelPart
 {
@@ -65,23 +21,28 @@ struct Dimension
     glm::vec3 size;
 };
 
-namespace base
+namespace plumbus::base
 {
 	class Model
 	{
 	public:
-		Model() {}
-		~Model() {}
+		Model();
+		virtual ~Model() {}
 
 		virtual void LoadModel(const std::string& fileName) = 0;
 		virtual void Cleanup() = 0;
 		virtual void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo) = 0;
 		virtual void Setup(Renderer* renderer) = 0;
-
-		base::Texture* m_ColourMap;
-		base::Texture* m_NormalMap;
+		virtual void SetMaterial(plumbus::MaterialRef material) { m_Material = material; }
         
+		Texture* GetColourMap();
+		Texture* GetNormalMap();
+
     protected:
+		Texture* m_ColourMap;
+		Texture* m_NormalMap;
+		plumbus::MaterialRef m_Material;
+
         void LoadFromFile(const std::string& fileName,
                           std::vector<VertexLayoutComponent> vertLayoutComponents,
                           std::vector<float>& vertexBuffer,

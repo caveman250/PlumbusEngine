@@ -1,8 +1,8 @@
 #pragma once
+#include "plumbus.h"
 #include "vulkan/vulkan.h"
-#include <vector>
 
-namespace vk
+namespace plumbus::vk
 {
 	class Buffer;
 	class VulkanDevice

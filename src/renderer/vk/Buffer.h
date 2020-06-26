@@ -1,9 +1,9 @@
 #pragma once
-#include <vector>
+#include "plumbus.h"
 #include "vulkan/vulkan.h"
 #include "Helpers.h"
 
-namespace vk
+namespace plumbus::vk
 {
 	class Buffer
 	{

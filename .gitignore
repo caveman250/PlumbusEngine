@@ -184,3 +184,7 @@ lib/libassimpd.a
 ._*
 AssimpLog.txt
 imgui.ini
+Release/*
+Debug/*
+gmon.out
+PlumbusTester/CMakeFiles/*

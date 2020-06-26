@@ -1,11 +1,24 @@
+#include "plumbus.h"
+
 #include "GameObject.h"
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 
-void GameObject::OnUpdate(Scene* scene)
+namespace plumbus
 {
-	for (auto kvp : m_Components)
+	GameObject::~GameObject()
 	{
-		kvp.second->OnUpdate(scene);
+		for (auto& [_, component] : m_Components)
+		{
+			delete component;
+		}
+	}
+
+	void GameObject::OnUpdate(Scene* scene)
+	{
+		for (auto kvp : m_Components)
+		{
+			kvp.second->OnUpdate(scene);
+		}
 	}
 }

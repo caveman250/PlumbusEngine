@@ -1,19 +1,7 @@
+#include "plumbus.h"
+
 #include "renderer/vk/VulkanRenderer.h"
-
-#include <iostream>
-#include <stdexcept>
-#include <functional>
-#include <cstdlib>
-#include <set>
-#include <algorithm>
 #include "Helpers.h"
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <chrono>
-#include <cstring>
-
 #include "renderer/vk/ImageHelpers.h"
 #include "GameObject.h"
 #include "components/GameComponent.h"
@@ -23,20 +11,10 @@
 #include "Camera.h"
 #include "components/PointLightComponent.h"
 #include "imgui_impl/ImGuiImpl.h"
-#include "imgui_impl/Log.h"
+#include "Scene.h"
 
 const int WIDTH = 1600;
 const int HEIGHT = 900;
-
-// Vertex layout for the models
-VertexLayout vertexLayout = VertexLayout(
-	{
-		VERTEX_COMPONENT_POSITION,
-		VERTEX_COMPONENT_UV,
-		VERTEX_COMPONENT_COLOR,
-		VERTEX_COMPONENT_NORMAL,
-		VERTEX_COMPONENT_TANGENT,
-	});
 
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -45,7 +23,7 @@ const std::vector<const char*> deviceExtensions = {
 const std::vector<const char*> validationLayers =
 {
     "VK_LAYER_LUNARG_standard_validation",
-    "VK_LAYER_RENDERDOC_Capture"
+    //"VK_LAYER_RENDERDOC_Capture"
 };
 
 //#ifdef NDEBUG
@@ -53,6 +31,7 @@ const std::vector<const char*> validationLayers =
 //#else
 //const bool enableValidationLayers = true;
 //#endif
+
 const bool enableValidationLayers = true;
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugReportFlagsEXT flags,
@@ -64,7 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const char* msg,
     void* userData)
 {
-    Log::Info("validation layer: %s", msg);
+    plumbus::Log::Error("validation layer: %s", msg);
 
     return VK_FALSE;
 }
@@ -91,7 +70,7 @@ void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT
     }
 }
 
-namespace vk
+namespace plumbus::vk
 {
     void VulkanRenderer::InitVulkan()
     {
@@ -115,67 +94,28 @@ namespace vk
         CreateFrameBuffers();
         CreateSemaphores();
 
-        GameObject* obj = new GameObject("Knight");
-        Application::Get().GetScene()->AddGameObject(obj->
-            AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
-            AddComponent<TranslationComponent>(new TranslationComponent())
-        );
-
-        GameObject* plane = new GameObject("Plane");
-        Application::Get().GetScene()->AddGameObject(plane->
-            AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
-            AddComponent<TranslationComponent>(new TranslationComponent())
-        );
-
-        plane->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, 2.3, 0));
-
-        //Lights
-        glm::vec3 colours[] =
-        {
-            glm::vec3(1.5f),
-            glm::vec3(1.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 0.0f, 2.5f),
-            glm::vec3(1.0f, 1.0f, 0.0f),
-            glm::vec3(0.0f, 1.0f, 0.2f),
-            glm::vec3(1.0f, 0.7f, 0.3f)
-        };
-    
-        for (int i = 0; i < 6; ++i)
-        {
-            GameObject* light = new GameObject("Light " + std::to_string(i));
-            Application::Get().GetScene()->AddGameObject(light->
-                AddComponent<TranslationComponent>(new TranslationComponent())->
-                AddComponent<PointLightComponent>(new PointLightComponent(colours[i], 25.0f)));
-        }
-    
-        Application::Get().GetScene()->LoadModels();
-
         GenerateQuads();
-        CreateVertexDescriptions();
         m_OffscreenFrameBuffer = new vk::FrameBuffer();
         m_OffscreenFrameBuffer->PrepareOffscreenFramebuffer();
         m_OutputFrameBuffer = new vk::FrameBuffer();
         m_OutputFrameBuffer->PrepareOutputFramebuffer();
-        InitLightsVBO();
-        CreateUniformBuffers();
 
+        CreateUniformBuffers();
         CreateDescriptorSetLayout();
-        CreatePipelines();
+		CreatePipelines();
         CreateDescriptorPool();
         CreateDescriptorSet();
-
-	    for (GameObject* obj : Application::Get().GetScene()->GetObjects())
-	    {
-		    if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-			    comp->GetModel()->Setup(this);
-	    }
 
         SetupImGui();
         m_OutputTexture.CreateTextureSampler();
         m_OutputTexture.m_ImageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
         //BuildCommandBuffers();
+
         BuildDefferedCommandBuffer();
         BuildOutputFrameBuffer();
+
+		//BaseApplication::Get().GetScene()->LoadAssets();
+
     }
 
     void VulkanRenderer::PickPhysicalDevice()
@@ -218,7 +158,7 @@ namespace vk
     {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
         {
             Log::Info("Device: %s Invalid! type is not a discrete gpu.", deviceProperties.deviceName);
             return false;
@@ -370,7 +310,7 @@ namespace vk
 
 		vkQueueWaitIdle(m_PresentQueue);
 
-        UpdateUniformBufferDeferredLights();
+        UpdateLightsUniformBuffer();
     }
 
     bool VulkanRenderer::WindowShouldClose()
@@ -414,14 +354,12 @@ namespace vk
         vkDestroyFramebuffer(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_FrameBuffer, nullptr);
 
         vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Deferred, nullptr);
-        vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Offscreen, nullptr);
 
         vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Deferred, nullptr);
-        vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
 
         vkDestroyDescriptorSetLayout(m_VulkanDevice->GetDevice(), m_DescriptorSetLayout, nullptr);
 
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (ModelComponent* modelComp = obj->GetComponent<ModelComponent>())
             {
@@ -429,7 +367,7 @@ namespace vk
             }
         }
 
-        m_Quad.Cleanup();
+        m_ScreenQuad.Cleanup();
 
         m_UniformBuffers.m_VertFullScreen.Cleanup();
         m_UniformBuffers.m_FragLights.Cleanup();
@@ -464,7 +402,7 @@ namespace vk
 
     void VulkanRenderer::OnWindowResized(GLFWwindow* window, int width, int height)
     {
-        Application* app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+        BaseApplication* app = reinterpret_cast<BaseApplication*>(glfwGetWindowUserPointer(window));
         static_cast<vk::VulkanRenderer*>(app->GetRenderer())->RecreateSwapChain();
     }
 
@@ -615,8 +553,6 @@ namespace vk
 
     void VulkanRenderer::GenerateQuads()
     {
-        // Setup vertices for multiple screen aligned quads
-        // Used for displaying final result and debug 
         struct Vert {
             float pos[3];
             float uv[2];
@@ -629,7 +565,7 @@ namespace vk
 
         float x = 0.0f;
         float y = 0.0f;
-        for (uint32_t i = 0; i < 3; i++)
+        for (uint32_t i = 0; i < 1; i++)
         {
             // Last component of normal is used for debug display sampler index
             vertexBuffer.push_back({ { x + 1.0f, y + 1.0f, 0.0f },{ 1.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, (float)i } });
@@ -647,14 +583,14 @@ namespace vk
         CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &m_Quad.m_VertexBuffer,
+            &m_ScreenQuad.GetVertexBuffer(),
             vertexBuffer.size() * sizeof(Vert),
             vertexBuffer.data()));
 
 
         // Setup indices
         std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
-        for (uint32_t i = 0; i < 3; ++i)
+        for (uint32_t i = 0; i < 1; ++i)
         {
             uint32_t indices[6] = { 0,1,2, 2,3,0 };
             for (auto index : indices)
@@ -663,83 +599,21 @@ namespace vk
             }
         }
 
-        m_Quad.m_IndexSize = (uint32_t)indexBuffer.size();
+        m_ScreenQuad.SetIndexSize((uint32_t)indexBuffer.size());
 
         CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &m_Quad.m_IndexBuffer,
+            &m_ScreenQuad.GetIndexBuffer(),
             indexBuffer.size() * sizeof(uint32_t),
             indexBuffer.data()));
     }
 
-    void VulkanRenderer::CreateVertexDescriptions()
-    {
-        // Binding description
-        VkVertexInputBindingDescription vInputBindDescription{};
-        vInputBindDescription.binding = 0;
-        vInputBindDescription.stride = vertexLayout.stride();
-        vInputBindDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        m_VertexDescriptions.m_BindingDescriptions.resize(1);
-        m_VertexDescriptions.m_BindingDescriptions[0] = vInputBindDescription;
-
-        // Attribute descriptions
-        m_VertexDescriptions.m_AttributeDescriptions.resize(5);
-
-        // Location 0: Position
-        VkVertexInputAttributeDescription posInput{};
-        posInput.location = 0;
-        posInput.binding = 0;
-        posInput.format = VK_FORMAT_R32G32B32_SFLOAT;
-        posInput.offset = 0;
-        m_VertexDescriptions.m_AttributeDescriptions[0] = posInput;
-
-        // Location 1: Texture coordinates
-        VkVertexInputAttributeDescription texCoordInput{};
-        texCoordInput.location = 1;
-        texCoordInput.binding = 0;
-        texCoordInput.format = VK_FORMAT_R32G32B32_SFLOAT;
-        texCoordInput.offset = sizeof(float) * 3;
-        m_VertexDescriptions.m_AttributeDescriptions[1] = texCoordInput;
-
-        // Location 2: Colour
-        VkVertexInputAttributeDescription colourInput{};
-        colourInput.location = 2;
-        colourInput.binding = 0;
-        colourInput.format = VK_FORMAT_R32G32B32_SFLOAT;
-        colourInput.offset = sizeof(float) * 5;
-        m_VertexDescriptions.m_AttributeDescriptions[2] = colourInput;
-
-        // Location 3: Normal
-        VkVertexInputAttributeDescription normalInput{};
-        normalInput.location = 3;
-        normalInput.binding = 0;
-        normalInput.format = VK_FORMAT_R32G32B32_SFLOAT;
-        normalInput.offset = sizeof(float) * 8;
-        m_VertexDescriptions.m_AttributeDescriptions[3] = normalInput;
-
-        // Location 4: Tangent
-        VkVertexInputAttributeDescription tangentInput{};
-        tangentInput.location = 4;
-        tangentInput.binding = 0;
-        tangentInput.format = VK_FORMAT_R32G32B32_SFLOAT;
-        tangentInput.offset = sizeof(float) * 11;
-        m_VertexDescriptions.m_AttributeDescriptions[4] = tangentInput;
-
-        VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
-        pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-        m_VertexDescriptions.m_InputState = pipelineVertexInputStateCreateInfo;
-        m_VertexDescriptions.m_InputState.vertexBindingDescriptionCount = static_cast<uint32_t>(m_VertexDescriptions.m_BindingDescriptions.size());
-        m_VertexDescriptions.m_InputState.pVertexBindingDescriptions = m_VertexDescriptions.m_BindingDescriptions.data();
-        m_VertexDescriptions.m_InputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(m_VertexDescriptions.m_AttributeDescriptions.size());
-        m_VertexDescriptions.m_InputState.pVertexAttributeDescriptions = m_VertexDescriptions.m_AttributeDescriptions.data();
-    }
+   
 
     void VulkanRenderer::InitLightsVBO()
     {
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             int index = 0;
             if (PointLightComponent* comp = obj->GetComponent<PointLightComponent>())
@@ -784,7 +658,7 @@ namespace vk
 
         // Update
         UpdateUniformBuffersScreen();
-        UpdateUniformBufferDeferredLights();
+        UpdateLightsUniformBuffer();
     }
 
     void VulkanRenderer::CreateDescriptorSetLayout()
@@ -853,134 +727,92 @@ namespace vk
 
     void VulkanRenderer::CreatePipelines()
     {
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
-        inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        inputAssemblyState.flags = 0;
-        inputAssemblyState.primitiveRestartEnable = VK_FALSE;
+		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
+		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssemblyState.flags = 0;
+		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
 
-        VkPipelineRasterizationStateCreateInfo rasterizationState{};
-        rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-        rasterizationState.flags = 0;
-        rasterizationState.depthClampEnable = VK_FALSE;
-        rasterizationState.lineWidth = 1.0f;
+		VkPipelineRasterizationStateCreateInfo rasterizationState{};
+		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizationState.flags = 0;
+		rasterizationState.depthClampEnable = VK_FALSE;
+		rasterizationState.lineWidth = 1.0f;
 
-        VkPipelineColorBlendAttachmentState blendAttachmentState{};
-        blendAttachmentState.colorWriteMask = 0xf;
-        blendAttachmentState.blendEnable = VK_FALSE;
+		VkPipelineColorBlendAttachmentState blendAttachmentState{};
+		blendAttachmentState.colorWriteMask = 0xf;
+		blendAttachmentState.blendEnable = VK_FALSE;
 
-        VkPipelineColorBlendStateCreateInfo colorBlendState{};
-        colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlendState.attachmentCount = 1;
-        colorBlendState.pAttachments = &blendAttachmentState;
+		VkPipelineColorBlendStateCreateInfo colorBlendState{};
+		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendState.attachmentCount = 1;
+		colorBlendState.pAttachments = &blendAttachmentState;
 
-        VkPipelineDepthStencilStateCreateInfo depthStencilState{};
-        depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencilState.depthTestEnable = VK_TRUE;
-        depthStencilState.depthWriteEnable = VK_TRUE;
-        depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-        depthStencilState.front = depthStencilState.back;
-        depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
+		VkPipelineDepthStencilStateCreateInfo depthStencilState{};
+		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilState.depthTestEnable = VK_TRUE;
+		depthStencilState.depthWriteEnable = VK_TRUE;
+		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		depthStencilState.front = depthStencilState.back;
+		depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
 
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.scissorCount = 1;
-        viewportState.flags = 0;
+		VkPipelineViewportStateCreateInfo viewportState{};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+		viewportState.scissorCount = 1;
+		viewportState.flags = 0;
 
-        VkPipelineMultisampleStateCreateInfo multisampleState{};
-        multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-        multisampleState.flags = 0;
+		VkPipelineMultisampleStateCreateInfo multisampleState{};
+		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampleState.flags = 0;
 
-        std::vector<VkDynamicState> dynamicStateEnables = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-        };
+		std::vector<VkDynamicState> dynamicStateEnables = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
 
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.pDynamicStates = dynamicStateEnables.data();
-        dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-        dynamicState.flags = 0;
+		VkPipelineDynamicStateCreateInfo dynamicState{};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicState.pDynamicStates = dynamicStateEnables.data();
+		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+		dynamicState.flags = 0;
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-        VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
-        pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
-        pipelineCreateInfo.renderPass = m_RenderPass;
-        pipelineCreateInfo.flags = 0;
-        pipelineCreateInfo.basePipelineIndex = -1;
-        pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-        pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-        pipelineCreateInfo.pRasterizationState = &rasterizationState;
-        pipelineCreateInfo.pColorBlendState = &colorBlendState;
-        pipelineCreateInfo.pMultisampleState = &multisampleState;
-        pipelineCreateInfo.pViewportState = &viewportState;
-        pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-        pipelineCreateInfo.pDynamicState = &dynamicState;
-        pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-        pipelineCreateInfo.pStages = shaderStages.data();
-
-        // Final fullscreen composition pass pipeline
-        shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-        // Empty vertex input state, quads are generated by the vertex shader
-        VkPipelineVertexInputStateCreateInfo emptyInputState{};
-        emptyInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        pipelineCreateInfo.pVertexInputState = &emptyInputState;
-        pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
-        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Deferred));
-
-        // Offscreen pipeline
-        pipelineCreateInfo.pVertexInputState = &m_VertexDescriptions.m_InputState;
-        shaderStages[0] = LoadShader("shaders/shader.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        shaderStages[1] = LoadShader("shaders/shader.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-        // Separate render pass
-        pipelineCreateInfo.renderPass = m_OffscreenFrameBuffer->m_RenderPass;
-
-        // Separate layout
-        pipelineCreateInfo.layout = m_PipelineLayouts.m_Offscreen;
-
-        // Blend attachment states required for all color attachments
-        // This is important, as color write mask will otherwise be 0x0 and you
-        // won't see anything rendered to the attachment
-        VkPipelineColorBlendAttachmentState blendAttachmentState1{};
-        blendAttachmentState1.colorWriteMask = 0xf;
-        blendAttachmentState1.blendEnable = VK_FALSE;
-        VkPipelineColorBlendAttachmentState blendAttachmentState2{};
-        blendAttachmentState2.colorWriteMask = 0xf;
-        blendAttachmentState2.blendEnable = VK_FALSE;
-        VkPipelineColorBlendAttachmentState blendAttachmentState3{};
-        blendAttachmentState3.colorWriteMask = 0xf;
-        blendAttachmentState3.blendEnable = VK_FALSE;
-
-        std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
-            blendAttachmentState1,
-            blendAttachmentState2,
-            blendAttachmentState3
-        };
-
-        colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
-        colorBlendState.pAttachments = blendAttachmentStates.data();
-
-        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Offscreen));
-
+		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
         // Output pipeline
-        shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+        shaderStages[0] = LoadShader("shaders/bin/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+        shaderStages[1] = LoadShader("shaders/bin/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        // Separate render pass
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
+		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCreateInfo.flags = 0;
+		pipelineCreateInfo.basePipelineIndex = -1;
+		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
+		pipelineCreateInfo.pRasterizationState = &rasterizationState;
+		pipelineCreateInfo.pColorBlendState = &colorBlendState;
+		pipelineCreateInfo.pMultisampleState = &multisampleState;
+		pipelineCreateInfo.pViewportState = &viewportState;
+		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
+		pipelineCreateInfo.pDynamicState = &dynamicState;
+		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+		pipelineCreateInfo.pStages = shaderStages.data();
         pipelineCreateInfo.renderPass = m_OutputFrameBuffer->m_RenderPass;
-
-        // Separate layout
         pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
+
+		//dummy vertex input state to keep validation happy. 
+		VkPipelineVertexInputStateCreateInfo inputState = {};
+		inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		inputState.vertexBindingDescriptionCount = 0;
+		inputState.pVertexBindingDescriptions = nullptr;
+		inputState.vertexAttributeDescriptionCount = 0;
+		inputState.pVertexAttributeDescriptions = nullptr;
+
+		pipelineCreateInfo.pVertexInputState = &inputState;
 
         // Blend attachment states required for all color attachments
         // This is important, as color write mask will otherwise be 0x0 and you
@@ -1219,14 +1051,14 @@ namespace vk
         scissor.offset.y = 0;
         vkCmdSetScissor(m_OffScreenCmdBuffer, 0, 1, &scissor);
 
-        vkCmdBindPipeline(m_OffScreenCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Offscreen);
-
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
-			    vk::Model* model = static_cast<vk::Model*>(comp->GetModel());
-			    model->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+				if (vk::Model* model = static_cast<vk::Model*>(comp->GetModel()))
+				{
+					model->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+				}
             }
         }
 
@@ -1290,8 +1122,8 @@ namespace vk
 
         // Final composition as full screen quad
         vkCmdBindPipeline(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Output);
-        vkCmdBindVertexBuffers(m_OutputCmdBuffer, 0, 1, &m_Quad.m_VertexBuffer.m_Buffer, offsets);
-        vkCmdBindIndexBuffer(m_OutputCmdBuffer, m_Quad.m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(m_OutputCmdBuffer, 0, 1, &m_ScreenQuad.GetVertexBuffer().m_Buffer, offsets);
+        vkCmdBindIndexBuffer(m_OutputCmdBuffer, m_ScreenQuad.GetIndexBuffer().m_Buffer, 0, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexed(m_OutputCmdBuffer, 6, 1, 0, 0, 1);
 
         vkCmdEndRenderPass(m_OutputCmdBuffer);
@@ -1371,7 +1203,7 @@ namespace vk
 
         CreateSwapChain();
 		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(m_SwapChainExtent.width, m_SwapChainExtent.height);
+		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChainExtent.width), static_cast<float>(m_SwapChainExtent.height));
         CreateImageViews();
         CreateRenderPass();
 		CreateDepthResources();
@@ -1473,50 +1305,30 @@ namespace vk
     void VulkanRenderer::UpdateUniformBuffersScreen()
     {
         m_VertUBO.m_Projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-
         m_VertUBO.m_Model = glm::mat4(1.0f);
 
         memcpy(m_UniformBuffers.m_VertFullScreen.m_Mapped, &m_VertUBO, sizeof(m_VertUBO));
     }
 
-    void VulkanRenderer::UpdateUniformBufferDeferredLights()
+    void VulkanRenderer::UpdateLightsUniformBuffer()
     {
-        //TEMP should be controlled by a scene
-        int index = 0;
-
-        glm::vec3 modelTranslation;
-        for (GameObject* obj : Application::Get().GetScene()->GetObjects())
-        {
-            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-            {
-                modelTranslation = obj->GetComponent<TranslationComponent>()->GetTranslation();
-                break;
-            }
-        }
-
-        float degrees = 0.f;
-        Application::Get().m_LightTime += Application::Get().GetDeltaTime();
-        for (GameObject * obj : Application::Get().GetScene()->GetObjects())
+		int lightIndex = 0;
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (PointLightComponent* lightComp = obj->GetComponent<PointLightComponent>())
             {
-                TranslationComponent* comp = obj->GetComponent<TranslationComponent>();
-                float radians = (glm::radians(degrees)) + (float)Application::Get().m_LightTime;
-                float x = 5 * cos(radians);
-                float z = 5 * sin(radians);
-
-                comp->SetTranslation(glm::vec3(x, 0.f, z));
-
-                m_LightsUBO.m_Lights[index].m_Position = glm::vec4(comp->GetTranslation(), 0.f);
-                m_LightsUBO.m_Lights[index].m_Colour = lightComp->GetColour();
-                m_LightsUBO.m_Lights[index].m_Radius = lightComp->GetRadius();
-                index++;
-                degrees += 60.f;
+				if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
+				{
+					m_LightsUBO.m_Lights[lightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
+					m_LightsUBO.m_Lights[lightIndex].m_Colour = lightComp->GetColour();
+					m_LightsUBO.m_Lights[lightIndex].m_Radius = lightComp->GetRadius();
+					lightIndex++;
+				}
             }
         }
 
         // Current view position
-        m_LightsUBO.m_ViewPos = glm::vec4(Application::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+        m_LightsUBO.m_ViewPos = glm::vec4(BaseApplication::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
         memcpy(m_UniformBuffers.m_FragLights.m_Mapped, &m_LightsUBO, sizeof(m_LightsUBO));
     }
@@ -1645,6 +1457,8 @@ namespace vk
 
     VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes)
     {
+        return VK_PRESENT_MODE_IMMEDIATE_KHR;
+
         //standard double buffering.
         VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -1683,7 +1497,7 @@ namespace vk
         shaderStage.stage = stage;
         shaderStage.module = CreateShaderModule(Helpers::ReadFile(fileName));
         shaderStage.pName = "main"; // todo : make param
-        assert(shaderStage.module != VK_NULL_HANDLE);
+		PLUMBUS_ASSERT(shaderStage.module != VK_NULL_HANDLE);
         m_ShaderModules.push_back(shaderStage.module);
         return shaderStage;
     }
@@ -1712,6 +1526,27 @@ namespace vk
             Log::Fatal("failed to create shader module!");
         }
 
-        return shaderModule;
-    }
+		return shaderModule;
+	}
+
+	void VulkanRenderer::OnModelAddedToScene()
+	{
+		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+		{
+			if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+				comp->GetModel()->Setup(this);
+		}
+		
+		InitLightsVBO();
+		BuildDefferedCommandBuffer();
+	}
+
+	void VulkanRenderer::OnModelRemovedFromScene()
+	{
+		//vkDestroyDescriptorPool(m_VulkanDevice->GetDevice(), m_DescriptorPool, nullptr);
+		CreateDescriptorPool();
+		InitLightsVBO();
+		BuildDefferedCommandBuffer();
+	}
+
 }
