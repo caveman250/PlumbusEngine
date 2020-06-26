@@ -1,0 +1,76 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Build Debug",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "-j8"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/Debug"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Build Release",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "-j8"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/Release"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Clean Debug",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "--target 'clean'"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/Debug"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Clean Release",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "--target",
+                "'clean'"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/Release"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+    ]
+}

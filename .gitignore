@@ -179,7 +179,6 @@ lib/libIrrXML.a
 lib/libIrrXMLd.a
 lib/libassimp.a
 lib/libassimpd.a
-.vscode/tasks.json
 ._.DS_Store
 ._*
 AssimpLog.txt
