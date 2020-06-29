@@ -16,9 +16,9 @@ namespace plumbus
 
 	void GameObject::OnUpdate(Scene* scene)
 	{
-		for (auto kvp : m_Components)
+		for (auto& [_, component]: m_Components)
 		{
-			kvp.second->OnUpdate(scene);
+			component->OnUpdate(scene);
 		}
 	}
 }

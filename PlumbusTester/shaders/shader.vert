@@ -32,7 +32,6 @@ void main()
 	vec4 tmpPos = inPos;
 
 	gl_Position = ubo.projection * ubo.view * ubo.model * tmpPos;
-	//gl_Position = ubo.projection * ubo.view * ubo.model * tmpPos;
 	
 	outUV = inUV;
 	outUV.t = 1.0 - outUV.t;

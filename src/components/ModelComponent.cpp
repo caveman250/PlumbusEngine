@@ -21,6 +21,7 @@ namespace plumbus
 		, m_ModelPath(modelPath)
 		, m_TexturePath(texturePath)
 		, m_NormalPath(normalPath)
+		, m_Model(nullptr)
 		, m_Material(nullptr)
 	{
 		
@@ -31,6 +32,7 @@ namespace plumbus
 		, m_ModelPath(modelPath)
 		, m_TexturePath(texturePath)
 		, m_NormalPath(normalPath)
+		, m_Model(nullptr)
 		, m_Material(material)
 	{
 		
@@ -99,13 +101,18 @@ namespace plumbus
 			m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
 
 			::plumbus::TranslationComponent* transComp = GetOwner()->GetComponent< ::plumbus::TranslationComponent>();
-			glm::mat4 model;
-			model = glm::translate(model, transComp->GetTranslation());
-			model = glm::rotate(model, transComp->GetRotation().x, glm::vec3(1.0f, 0.0f, 0.0f));
-			model = glm::rotate(model, transComp->GetRotation().y, glm::vec3(0.0f, 1.0f, 0.0f));
-			model = glm::rotate(model, transComp->GetRotation().z, glm::vec3(0.0f, 0.0f, 1.0f));
+			glm::mat4 model = glm::identity<glm::mat4>();
 
-			model = glm::scale(model, transComp->GetScale());
+			glm::vec3 translation = transComp->GetTranslation();
+			glm::vec3 rotation = transComp->GetRotation();
+			glm::vec3 scale = transComp->GetScale();
+
+			model = glm::translate(model, translation);
+			model = glm::rotate(model, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+			model = glm::rotate(model, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+			model = glm::rotate(model, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+
+			model = glm::scale(model, scale);
 
 			m_UniformBufferObject.m_Model = model;
 

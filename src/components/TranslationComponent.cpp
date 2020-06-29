@@ -5,10 +5,27 @@
 namespace plumbus
 {
 
-	TranslationComponent::TranslationComponent() :
-		GameComponent()
+	TranslationComponent::TranslationComponent() 
+		: GameComponent()
+		, m_Translation(0)
+		, m_Rotation(0)
+		, m_Scale(1)
 	{
 
+	}
+
+	glm::vec3 TranslationComponent::GetTranslation()
+	{
+		glm::vec3 trans = m_Translation;
+		return m_Translation;
+	}
+	glm::vec3 TranslationComponent::GetRotation()
+	{
+		return m_Rotation;
+	}
+	glm::vec3 TranslationComponent::GetScale()
+	{
+		return m_Scale;
 	}
 
 	void TranslationComponent::OnUpdate(Scene* scene)

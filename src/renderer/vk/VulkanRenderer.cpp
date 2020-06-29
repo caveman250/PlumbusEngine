@@ -22,7 +22,7 @@ const std::vector<const char*> deviceExtensions = {
 
 const std::vector<const char*> validationLayers =
 {
-    "VK_LAYER_LUNARG_standard_validation",
+    "VK_LAYER_KHRONOS_validation",
     //"VK_LAYER_RENDERDOC_Capture"
 };
 
@@ -518,6 +518,12 @@ namespace plumbus::vk
 
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        Log::Info("Available Validation Layers:");
+        for(VkLayerProperties& props : availableLayers)
+        {
+            Log::Info("\t%s", props.layerName);
+        }
 
         for (const char* layerName : validationLayers)
         {

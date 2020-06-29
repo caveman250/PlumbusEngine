@@ -11,9 +11,9 @@ namespace plumbus
 
 		void OnUpdate(Scene* scene) override;
 
-		glm::vec3 GetTranslation() { return m_Translation; }
-		glm::vec3 GetRotation() { return m_Rotation; }
-		glm::vec3 GetScale() { return m_Scale; }
+		glm::vec3 GetTranslation();
+		glm::vec3 GetRotation();
+		glm::vec3 GetScale();
 
 		void SetTranslation(glm::vec3 translation);
 		void SetRotation(glm::vec3 rotation);

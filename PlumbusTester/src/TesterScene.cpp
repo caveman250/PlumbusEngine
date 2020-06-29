@@ -25,7 +25,7 @@ namespace plumbus::tester
 
 	void TesterScene::OnUpdate()
 	{
-				static std::chrono::system_clock::time_point lastFrameTime;
+		static std::chrono::system_clock::time_point lastFrameTime;
 		static std::chrono::system_clock::time_point currentFrameTime;
 
 		lastFrameTime = currentFrameTime;

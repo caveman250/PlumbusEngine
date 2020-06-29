@@ -3,6 +3,7 @@
 #if VULKAN_RENDERER
 #include "vulkan/vulkan.h"
 #define GLFW_INCLUDE_VULKAN
+#include "renderer/vk/renderer_fwd_vk.h"
 #endif
 
 #include <vector>
@@ -30,7 +31,7 @@
 
 namespace plumbus
 {
-#define PLUMBUS_ASSERT(expr, ...)
+#define PLUMBUS_ASSERT(expr, ...) assert(expr)
 	// do { \
 	// 	if (!(expr))\
 	// 	{\
