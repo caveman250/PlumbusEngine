@@ -24,8 +24,9 @@ namespace plumbus
 
 	BaseApplication* BaseApplication::s_Instance = nullptr;
 
-	BaseApplication::BaseApplication() :
-		m_lastUpdateTime(glfwGetTime())
+	BaseApplication::BaseApplication() 
+		: m_Scene(nullptr)
+		, m_lastUpdateTime(glfwGetTime())
 	{
 #if VULKAN_RENDERER
 		m_Renderer = new vk::VulkanRenderer();

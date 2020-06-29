@@ -97,6 +97,12 @@ else(APPLE)
 	target_compile_definitions(${NAME} PUBLIC METAL_RENDERER=0 VULKAN_RENDERER=1)
 endif(APPLE)
 
+if (WIN32)
+	add_compile_definitions(PLUMBUS_PLATFORM_WINDOWS=1)
+else (WIN32)
+	add_compile_definitions(PLUMBUS_PLATFORM_LINUX=1)
+endif(WIN32)
+
 # if (WIN32)
 #     target_link_libraries(${NAME} glfw ${GLFW_LIBRARIES})
 #     target_link_libraries(${NAME} assimp ${ASSIMP_LIBRARIES})

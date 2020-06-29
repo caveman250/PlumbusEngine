@@ -43,7 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const char* msg,
     void* userData)
 {
-    plumbus::Log::Error("validation layer: %s", msg);
+   PLUMBUS_ASSERT(false, "validation layer: %s", msg);
 
     return VK_FALSE;
 }

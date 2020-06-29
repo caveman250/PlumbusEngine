@@ -35,6 +35,13 @@ include_directories(../src)
 include_directories(src)
 include_directories(../third_party/vulkan)
 
+
+if (WIN32)
+	add_compile_definitions(PLUMBUS_PLATFORM_WINDOWS=1)
+else (WIN32)
+	add_compile_definitions(PLUMBUS_PLATFORM_LINUX=1)
+endif(WIN32)
+
 file(GLOB_RECURSE SOURCE src/*.cpp src/*.h)
 source_group("src" FILES ${SOURCE})
 

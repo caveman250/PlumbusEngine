@@ -31,27 +31,35 @@
 
 namespace plumbus
 {
+#if PLUMBUS_PLATFORM_WINDOWS
+#define PLUMBUS_ASSERT(expr, ...) \
+	do { \
+			if (!(expr))\
+			{\
+				char msg_buf[1024]; \
+				PLUMBUS_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
+				char buf[1024]; \
+				snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf); \
+				bool assertResult = _CrtDbgReport(_CRT_ASSERT, __FILE__, __LINE__, "Plumbus Application", buf); \
+				if (assertResult == 0)\
+				{\
+					break; \
+				}\
+				else\
+				{\
+					printf("Assertion failed: %s - at %s:%i", (const char*)&buf, __FILE__, __LINE__); \
+				}\
+			}\
+	} while (0)
+#else
 #define PLUMBUS_ASSERT(expr, ...) assert(expr)
-	// do { \
-	// 	if (!(expr))\
-	// 	{\
-	// 		char msg_buf[1024];\
-	// 		PLUMBUS_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
-	// 		char buf[1024];\
-	// 		snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf);\
-	// 		bool assertResult = _CrtDbgReport(_CRT_ASSERT, __FILE__, __LINE__, "Plumbus Application", buf);\
-	// 		if (assertResult == 0)\
-	// 		{\
-	// 			break; \
-	// 		}\
-	// 		else\
-	// 		{\
-	// 			printf("Assertion failed: %s - at %s:%i", (const char*)&buf, __FILE__, __LINE__);\
-	// 		}\
-	// 	}\
-	// } while (0)
+#endif
 
-#define PLUMBUS_VERIFY(expr, ...) true//(!(expr) ? (::std::invoke([&](bool result) -> bool  { PLUMBUS_ASSERT(expr, __VA_ARGS__); return result; }, !!(expr))), false : true)
+#if PLUMBUS_PLATFORM_WINDOWS
+#define PLUMBUS_VERIFY(expr, ...) (!(expr) ? (::std::invoke([&](bool result) -> bool  { PLUMBUS_ASSERT(expr, __VA_ARGS__); return result; }, !!(expr))), false : true)
+#else
+#define PLUMBUS_VERIFY(expr, ...) (expr) ? true : false
+#endif
 
 #define PLUMBUS_CAT_III(_, expr) expr
 #define PLUMBUS_CAT_II(a, b) PLUMBUS_CAT_III(~, a ## b)

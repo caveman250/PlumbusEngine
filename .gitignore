@@ -187,3 +187,4 @@ Release/*
 Debug/*
 gmon.out
 PlumbusTester/CMakeFiles/*
+vs_project/*
