@@ -33,7 +33,7 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
 	
-	#define ambient 0.0
+	#define ambient 0.05
 	
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;

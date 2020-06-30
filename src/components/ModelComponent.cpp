@@ -5,13 +5,13 @@
 #include "TranslationComponent.h"
 #include "Helpers.h"
 #include "GameObject.h"
-#include "renderer/base/Model.h"
+#include "renderer/base/Mesh.h"
 #include "Scene.h"
 
 #if METAL_RENDERER
-#include "renderer/mtl/Model.h"
+#include "renderer/mtl/Mesh.h"
 #elif VULKAN_RENDERER
-#include "renderer/vk/Model.h"
+#include "renderer/vk/Mesh.h"
 #endif
 
 namespace plumbus
@@ -21,7 +21,7 @@ namespace plumbus
 		, m_ModelPath(modelPath)
 		, m_TexturePath(texturePath)
 		, m_NormalPath(normalPath)
-		, m_Model(nullptr)
+		, m_Models()
 		, m_Material(nullptr)
 	{
 		
@@ -32,7 +32,7 @@ namespace plumbus
 		, m_ModelPath(modelPath)
 		, m_TexturePath(texturePath)
 		, m_NormalPath(normalPath)
-		, m_Model(nullptr)
+		, m_Models()
 		, m_Material(material)
 	{
 		
@@ -43,26 +43,21 @@ namespace plumbus
 
 	}
 
-	base::Model* ModelComponent::GetModel()
+	std::vector<base::Mesh*> ModelComponent::GetModels()
 	{
-		return m_Model;
+		return m_Models;
 	}
 
 	void ModelComponent::LoadModel()
 	{
-#if VULKAN_RENDERER
-		m_Model = new vk::Model();
-#elif METAL_RENDERER
-		m_Model = new mtl::Model();
-#endif
-		m_Model->LoadModel(m_ModelPath);
-
-		m_Model->GetColourMap()->LoadTexture(m_TexturePath);
-		m_Model->GetNormalMap()->LoadTexture(m_NormalPath);
+		m_Models = base::Mesh::LoadModel(m_ModelPath, m_TexturePath, m_NormalPath);
 
 		if (m_Material)
 		{
-			m_Model->SetMaterial(m_Material);
+			for (base::Mesh* model : m_Models)
+			{
+				model->SetMaterial(m_Material);
+			}
 		}
 	}
 
@@ -71,9 +66,9 @@ namespace plumbus
 		if (m_Material != material)
 		{
 			m_Material = material;
-			if (m_Model)
+			for (base::Mesh* model : m_Models)
 			{
-				m_Model->SetMaterial(material);
+				model->SetMaterial(material);
 			}
 		}
 	}
@@ -85,38 +80,38 @@ namespace plumbus
 
 	void ModelComponent::Cleanup()
 	{
-		if (m_Model)
+		for (base::Mesh* model : m_Models)
 		{
-			m_Model->Cleanup();
-			delete m_Model;
-			m_Model = nullptr;
+			model->Cleanup();
+			delete model;
+			model = nullptr;
 		}
 	}
 
 	void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	{
-		if (m_Model)
+		for (base::Mesh* model : m_Models)
 		{
 			m_UniformBufferObject.m_Proj = scene->GetCamera()->GetProjectionMatrix();
 			m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
 
 			::plumbus::TranslationComponent* transComp = GetOwner()->GetComponent< ::plumbus::TranslationComponent>();
-			glm::mat4 model = glm::identity<glm::mat4>();
+			glm::mat4 modelMat = glm::identity<glm::mat4>();
 
 			glm::vec3 translation = transComp->GetTranslation();
 			glm::vec3 rotation = transComp->GetRotation();
 			glm::vec3 scale = transComp->GetScale();
 
-			model = glm::translate(model, translation);
-			model = glm::rotate(model, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-			model = glm::rotate(model, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-			model = glm::rotate(model, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+			modelMat = glm::translate(modelMat, translation);
+			modelMat = glm::rotate(modelMat, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+			modelMat = glm::rotate(modelMat, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+			modelMat = glm::rotate(modelMat, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
 
-			model = glm::scale(model, scale);
+			modelMat = glm::scale(modelMat, scale);
 
-			m_UniformBufferObject.m_Model = model;
+			m_UniformBufferObject.m_Model = modelMat;
 
-			m_Model->UpdateUniformBuffer(m_UniformBufferObject);
+			model->UpdateUniformBuffer(m_UniformBufferObject);
 		}
 	}
 }

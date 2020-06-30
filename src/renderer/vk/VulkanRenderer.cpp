@@ -6,7 +6,7 @@
 #include "GameObject.h"
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
-#include "renderer/vk/Model.h"
+#include "renderer/vk/Mesh.h"
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "components/PointLightComponent.h"
@@ -23,7 +23,7 @@ const std::vector<const char*> deviceExtensions = {
 const std::vector<const char*> validationLayers =
 {
     "VK_LAYER_KHRONOS_validation",
-    //"VK_LAYER_RENDERDOC_Capture"
+    "VK_LAYER_RENDERDOC_Capture"
 };
 
 //#ifdef NDEBUG
@@ -43,7 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const char* msg,
     void* userData)
 {
-   PLUMBUS_ASSERT(false, "validation layer: %s", msg);
+    PLUMBUS_ASSERT(false, "validation layer: %s", msg);
 
     return VK_FALSE;
 }
@@ -790,8 +790,8 @@ namespace plumbus::vk
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
         // Output pipeline
-        shaderStages[0] = LoadShader("shaders/bin/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        shaderStages[1] = LoadShader("shaders/bin/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+        shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+        shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -841,11 +841,11 @@ namespace plumbus::vk
     {
         VkDescriptorPoolSize uniformPoolSize{};
         uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uniformPoolSize.descriptorCount = 8;
+        uniformPoolSize.descriptorCount = 100; //TODO
 
         VkDescriptorPoolSize imageSamplerPoolSize{};
         imageSamplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        imageSamplerPoolSize.descriptorCount = 12;
+        imageSamplerPoolSize.descriptorCount = 100; //TODO
 
         std::vector<VkDescriptorPoolSize> poolSizes =
         {
@@ -857,7 +857,7 @@ namespace plumbus::vk
         descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         descriptorPoolInfo.pPoolSizes = poolSizes.data();
-        descriptorPoolInfo.maxSets = 4;
+        descriptorPoolInfo.maxSets = 100; //TODO
 
         CHECK_VK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
     }
@@ -1061,9 +1061,12 @@ namespace plumbus::vk
         {
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
-				if (vk::Model* model = static_cast<vk::Model*>(comp->GetModel()))
+				for (base::Mesh* model : comp->GetModels())
 				{
-					model->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+                    if (vk::Mesh* vkModel = static_cast<vk::Mesh*>(model))
+                    {
+                        vkModel->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+                    }
 				}
             }
         }
@@ -1539,8 +1542,13 @@ namespace plumbus::vk
 	{
 		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
 		{
-			if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-				comp->GetModel()->Setup(this);
+            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+            {
+                for (base::Mesh* model : comp->GetModels())
+                {
+                    model->Setup(this);
+                }
+            }
 		}
 		
 		InitLightsVBO();

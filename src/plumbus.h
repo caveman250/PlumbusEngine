@@ -32,6 +32,19 @@
 namespace plumbus
 {
 #if PLUMBUS_PLATFORM_WINDOWS
+#if NDEBUG
+#define PLUMBUS_ASSERT(expr, ...) \
+	do { \
+			if (!(expr))\
+			{\
+				char msg_buf[1024]; \
+				PLUMBUS_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
+				char buf[1024]; \
+				snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf); \
+				fprintf(stderr, "Assertion failed: %s - at %s:%i\n\n", (const char*)&buf, __FILE__, __LINE__);\
+			}\
+	} while (0)
+#else
 #define PLUMBUS_ASSERT(expr, ...) \
 	do { \
 			if (!(expr))\
@@ -48,9 +61,11 @@ namespace plumbus
 				else\
 				{\
 					printf("Assertion failed: %s - at %s:%i", (const char*)&buf, __FILE__, __LINE__); \
+					__debugbreak(); \
 				}\
 			}\
 	} while (0)
+#endif
 #else
 #define PLUMBUS_ASSERT(expr, ...) assert(expr)
 #endif

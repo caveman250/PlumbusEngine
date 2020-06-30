@@ -14,9 +14,9 @@ namespace plumbus
 
 	void Camera::Init()
 	{
-		m_Position = glm::vec3(0, 1, -8);
+		m_Position = glm::vec3(23, 14.5, 0);
 #if VULKAN_RENDERER
-		m_Rotation = glm::vec3(0, 0, 0);
+		m_Rotation = glm::vec3(-18, 90, 0);
 #elif METAL_RENDERER
 		m_Rotation = glm::vec3(0, 0, 180);
 #endif

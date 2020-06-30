@@ -2,8 +2,10 @@
 #include "imgui_impl/Log.h"
 #include "BaseApplication.h"
 
-// #undef APIENTRY
-// #include <windows.h>
+#if PLUMBUS_PLATFORM_WINDOWS
+#undef APIENTRY
+#include <windows.h>
+#endif
 
 #define INFO_COLOUR 15
 #define WARN_COLOUR 14
@@ -62,9 +64,11 @@ namespace plumbus
 
 	void Log::LogInternal(LogLevel level, const char* fmt, ...)
 	{
-		//HANDLE hConsole;
-		//hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-		//SetConsoleTextAttribute(hConsole, GetWin32TerminalColour(level));
+#if PLUMBUS_PLATFORM_WINDOWS
+		HANDLE hConsole;
+		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		SetConsoleTextAttribute(hConsole, GetWin32TerminalColour(level));
+#endif
 
 		char buffer[1024];
 		va_list args;

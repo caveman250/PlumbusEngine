@@ -2,7 +2,7 @@
 
 #include "vulkan/vulkan.h"
 #include "renderer/base/Renderer.h"
-#include "renderer/vk/Model.h"
+#include "renderer/vk/Mesh.h"
 #include "renderer/vk/Device.h"
 #include "renderer/vk/FrameBuffer.h"
 #include "renderer/vk/Window.h"
@@ -14,7 +14,7 @@ namespace plumbus
 	namespace vk
 	{
 
-		class Model;
+		class Mesh;
 
 		class VulkanRenderer : public base::Renderer
 		{
@@ -181,7 +181,7 @@ namespace plumbus
 			VkImage m_DepthImage;
 			VkDeviceMemory m_DepthImageMemory;
 			VkImageView m_DepthImageView;
-			vk::Model m_ScreenQuad;
+			vk::Mesh m_ScreenQuad;
 			std::vector<VkShaderModule> m_ShaderModules;
 
 			plumbus::ImGUIImpl* m_ImGui = nullptr;

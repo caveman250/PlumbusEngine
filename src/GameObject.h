@@ -5,7 +5,7 @@
 
 namespace plumbus::vk
 {
-	class Model;
+	class Mesh;
 }
 namespace plumbus
 {

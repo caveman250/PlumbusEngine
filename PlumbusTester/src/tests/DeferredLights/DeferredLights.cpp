@@ -23,9 +23,11 @@ namespace plumbus::tester::tests
 		, m_LightTime(0)
 		, m_LightsPaused(false)
 		, m_LightSpeed(1.0f)
-		, m_LightsDistanceFromCenter(5.f)
+		, m_LightHeight(6.f)
+		, m_LightRadius(40.f)
+		, m_LightsDistanceFromCenter(10.f)
 #if VULKAN_RENDERER //TODO there should probably me some kind of manager that just returns the correct type of material
-		, m_DeferredLightMaterial(new vk::Material("shaders/bin/shader.vert.spv", "shaders/bin/shader.frag.spv"))
+		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
 #endif
 	{
 
@@ -40,22 +42,23 @@ namespace plumbus::tester::tests
 	{
 		TesterScene* scene = static_cast<TesterScene*>(Application::Get().GetScene());
 
-		GameObject* obj = new GameObject("Knight");
-		scene->AddGameObject(obj->
-			AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "textures/color_bc3_unorm.ktx", "textures/normal_bc3_unorm.ktx"))->
+		GameObject* sponza = new GameObject("Sponza");
+		scene->AddGameObject(sponza->
+			AddComponent<ModelComponent>(new ModelComponent("models/sponza.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
-		obj->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+		sponza->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
-		GameObject* plane = new GameObject("Plane");
-		scene->AddGameObject(plane->
-			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "textures/stonefloor01_color_bc3_unorm.ktx", "textures/stonefloor01_normal_bc3_unorm.ktx"))->
+		GameObject* knight = new GameObject("Knight");
+		scene->AddGameObject(knight->
+			AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
-		plane->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, 2.3, 0));
-		plane->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, -2.1, 0));
+		knight->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0, -glm::half_pi<float>(), 0));
+		knight->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
 		//Lights
 		glm::vec3 colours[] =
@@ -73,7 +76,7 @@ namespace plumbus::tester::tests
 			GameObject* light = new GameObject("Light " + std::to_string(i));
 			scene->AddGameObject(light->
 				AddComponent<TranslationComponent>(new TranslationComponent())->
-				AddComponent<PointLightComponent>(new PointLightComponent(colours[i], 10.0f)));
+				AddComponent<PointLightComponent>(new PointLightComponent(colours[i], m_LightRadius)));
 		}
 
 		BaseApplication::Get().GetScene()->LoadAssets();
@@ -95,9 +98,11 @@ namespace plumbus::tester::tests
 					float x = m_LightsDistanceFromCenter * cos(radians);
 					float z = m_LightsDistanceFromCenter * sin(radians);
 
-					comp->SetTranslation(glm::vec3(x, 0.f, z));
+					comp->SetTranslation(glm::vec3(x, m_LightHeight, z));
 					index++;
 					degrees += 60.f;
+
+					lightComp->SetRadius(m_LightRadius);
 				}
 			}
 		}
@@ -122,6 +127,8 @@ namespace plumbus::tester::tests
 		ImGui::Text("Deferred Lights");
 		ImGui::Checkbox("Pause Lights", &m_LightsPaused);
 		ImGui::DragFloat("Light Speed", &m_LightSpeed, 0.01f, 0.f, 20.f);
+		ImGui::DragFloat("Light Height", &m_LightHeight, 0.01f, -10.f, 50.f);
+		ImGui::DragFloat("Light Radius", &m_LightRadius, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Distance From Center", &m_LightsDistanceFromCenter, 0.01f, 0.f, 20.f);
 	}
 

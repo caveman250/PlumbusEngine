@@ -25,6 +25,8 @@ namespace plumbus
 			double m_LightTime;
 			bool m_LightsPaused;
 			float m_LightSpeed;
+			float m_LightHeight;
+			float m_LightRadius;
 			float m_LightsDistanceFromCenter;
 
 			MaterialRef m_DeferredLightMaterial;

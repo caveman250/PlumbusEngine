@@ -5,7 +5,7 @@
 #include "GameObject.h"
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
-#include "renderer/vk/Model.h"
+#include "renderer/vk/Mesh.h"
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "Scene.h"

@@ -1,6 +1,6 @@
 #include "plumbus.h"
 #include "Scene.h"
-#include "renderer/base/Model.h"
+#include "renderer/base/Mesh.h"
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 #include "GameObject.h"

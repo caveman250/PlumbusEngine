@@ -7,7 +7,7 @@
 
 namespace plumbus::base
 {
-	class Model;
+	class Mesh;
 	class Material;
 	class MaterialRef;
 }
@@ -28,7 +28,7 @@ namespace plumbus
 		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath);
 		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, base::Material* material);
 		~ModelComponent();
-		base::Model* GetModel();
+		std::vector<base::Mesh*> GetModels();
 		void LoadModel();
 		void SetMaterial(MaterialRef material);
 
@@ -46,7 +46,7 @@ namespace plumbus
 
 		UniformBufferObject m_UniformBufferObject;
 
-		base::Model* m_Model;
+		std::vector<base::Mesh*> m_Models;
 		MaterialRef m_Material;
 
 		std::string m_ModelPath;
