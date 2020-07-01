@@ -106,7 +106,6 @@ namespace plumbus::vk
 		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
 
 		m_UniformBuffer.Cleanup();
-
 		m_VulkanVertexBuffer.Cleanup();
 		m_VulkanIndexBuffer.Cleanup();
 

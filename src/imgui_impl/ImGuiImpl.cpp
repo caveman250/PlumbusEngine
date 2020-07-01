@@ -469,9 +469,9 @@ namespace plumbus
 					{
 						if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_DefaultOpen))
 						{
-							ImGui::Text(comp->GetModelPath().c_str());
-							ImGui::Text(comp->GetTexturePath().c_str());
-							ImGui::Text(comp->GetNormalPath().c_str());
+							ImGui::Text("%s", comp->GetModelPath().c_str());
+							ImGui::Text("%s", comp->GetTexturePath().c_str());
+							ImGui::Text("%s", comp->GetNormalPath().c_str());
 							ImGui::TreePop();
 						}
 					}

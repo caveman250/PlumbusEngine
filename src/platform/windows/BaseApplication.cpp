@@ -38,11 +38,13 @@ namespace plumbus
 
 	void BaseApplication::Run()
 	{
+		m_Renderer->Init();
+
 		PLUMBUS_ASSERT(m_Scene != nullptr);
 
-		m_Renderer->Init();
 		InitScene();
 		MainLoop();
+		Cleanup();
 		m_Renderer->Cleanup();
 	}
 	void BaseApplication::InitScene()
@@ -72,6 +74,11 @@ namespace plumbus
 		}
 
 		m_Renderer->AwaitIdle();
+	}
+
+	void BaseApplication::Cleanup()
+	{
+		
 	}
 
 	void BaseApplication::OnGui()

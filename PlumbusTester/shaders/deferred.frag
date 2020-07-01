@@ -17,7 +17,7 @@ struct Light {
 	float radius;
 };
 
-const int MAX_LIGHTS = 50;
+const int MAX_LIGHTS = 6;
 
 layout (binding = 4) uniform UBO 
 {

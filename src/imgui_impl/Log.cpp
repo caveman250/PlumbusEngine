@@ -12,6 +12,16 @@
 #define ERROR_COLOUR 12
 #define FATAL_COLOUR 79
 
+
+#if PLUMBUS_PLATFORM_LINUX
+#define BEGIN_YELLOW "\033[0;33m"
+#define BEGIN_WHITE "\033[0;37m"
+#define BEGIN_RED "\033[0;31m"
+#define BEGIN_FATAL "\033[0;37;41m"
+
+#define END_COLOUR "\033[0m\n"
+#endif
+
 namespace plumbus
 {
 	bool Log::m_ScrollToBottom = false;
@@ -74,7 +84,7 @@ namespace plumbus
 		va_list args;
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
-		printf(buffer);
+		printf("%s", buffer);
 		s_Buffer[s_LogEntryIndex] = ImGuiLogEntry{ (const char*)&buffer, GetImGuiTerminalColour(level) };
 		s_LogEntryIndex = ++s_LogEntryIndex % s_NumLogMessagesToStore;
 
@@ -90,11 +100,11 @@ namespace plumbus
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
 
-		LogInternal(LogLevel::Info, "[Info] %s%s", &buffer, "\n");
+		LogInternal(LogLevel::Info, "%s[Info] %s%s", BEGIN_WHITE, (char*)&buffer, END_COLOUR);
 
 		va_end(args);
 
-	}
+	} 
 
 	void Log::Warn(const char* fmt, ...)
 	{
@@ -103,7 +113,7 @@ namespace plumbus
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
 
-		LogInternal(LogLevel::Warn, "[Warn] %s%s", &buffer, "\n");
+		LogInternal(LogLevel::Warn, "%s[Warn] %s%s", BEGIN_YELLOW, (char*)&buffer, END_COLOUR);
 
 		va_end(args);
 	}
@@ -115,7 +125,7 @@ namespace plumbus
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
 
-		LogInternal(LogLevel::Error, "[Error] %s%s", &buffer, "\n");
+		LogInternal(LogLevel::Error, "%s[Error] %s%s", BEGIN_RED, (char*)&buffer, END_COLOUR);
 
 		va_end(args);
 	}
@@ -127,11 +137,11 @@ namespace plumbus
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
 
-		LogInternal(LogLevel::Fatal, "[Fatal] %s%s", &buffer, "\n");
+		LogInternal(LogLevel::Fatal, "%s[Fatal] %s%s", BEGIN_FATAL, (char*)&buffer, END_COLOUR);
 
 		va_end(args);
 
-		PLUMBUS_ASSERT(false);
+		PLUMBUS_ASSERT(false, (char*)&buffer);
 	}
 
 	void Log::Draw(const char* title)
@@ -154,7 +164,7 @@ namespace plumbus
 			if (s_Buffer[index].message.length() > 0)
 			{
 				ImGui::PushStyleColor(ImGuiCol_Text, s_Buffer[index].textColour);
-				ImGui::TextWrapped(s_Buffer[index].message.c_str());
+				ImGui::TextWrapped("%s", s_Buffer[index].message.c_str());
 				ImGui::PopStyleColor();
 			}
 		}

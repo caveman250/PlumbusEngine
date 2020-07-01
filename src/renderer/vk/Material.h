@@ -6,7 +6,6 @@
 
 namespace plumbus::vk
 {
-
 	class Material : public base::Material
 	{
 	public:

@@ -64,13 +64,15 @@ namespace plumbus::base
 				aiString normalPath;
 				scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_NORMALS, 0, normalPath);
 
-				if (!PLUMBUS_VERIFY(diffusePath.length > 0))
+				if (diffusePath.length == 0)
 				{
+                    Log::Warn("No diffuse texture defined for submesh: %i, in file: %s", i, fileName.c_str());
 					diffusePath = defaultDiffuseTexture;
 				}
 
-				if (!PLUMBUS_VERIFY(normalPath.length > 0))
+				if (normalPath.length == 0)
 				{
+                    Log::Warn("No normal texture defined for submesh: %i, in file: %s", i, fileName.c_str());
                     normalPath = defaultNormalTexture;
 				}
 

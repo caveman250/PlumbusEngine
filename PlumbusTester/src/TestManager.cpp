@@ -21,9 +21,12 @@ namespace plumbus::tester
 
 	void TestManager::ShutdownActiveTest()
 	{
-		m_ActiveTest->Shutdown();
-		delete m_ActiveTest;
-		m_ActiveTest = nullptr;
+		if (m_ActiveTest)
+		{
+			m_ActiveTest->Shutdown();
+			delete m_ActiveTest;
+			m_ActiveTest = nullptr;
+		}
 	}
 
 	void TestManager::Update()

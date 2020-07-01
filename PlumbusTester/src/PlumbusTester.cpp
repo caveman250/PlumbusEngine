@@ -2,8 +2,13 @@
 #include "Application.h"
 #include "TesterScene.h"
 
-int main()
+int app_argc;
+char** app_argv;
+
+int main(int argc, char** argv)
 {
+	app_argc = argc;
+	app_argv = argv;
 	using namespace plumbus::tester;
 
 	Application::CreateInstance();

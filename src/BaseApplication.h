@@ -27,6 +27,7 @@ namespace plumbus
 		Scene* GetScene() { return m_Scene; }
 		base::Renderer* GetRenderer() { return m_Renderer; }
 		void MainLoop();
+		virtual void Cleanup();
 
 		virtual void OnGui();
 

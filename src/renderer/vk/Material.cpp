@@ -3,12 +3,15 @@
 #include "renderer/vk/Material.h"
 #include "renderer/vk/VulkanRenderer.h"
 #include "BaseApplication.h"
+
 namespace plumbus::vk
 {
 	Material::Material(const char* vertShader, const char* fragShader)
 		: base::Material(vertShader, fragShader)
 		, m_VertShaderName(vertShader)
 		, m_FragShaderName(fragShader)
+		, m_Pipeline(VK_NULL_HANDLE)
+		, m_PipelineLayout(VK_NULL_HANDLE)
 	{
 	}
 
@@ -16,14 +19,22 @@ namespace plumbus::vk
 	{
 		m_VertexLayout = *layout;
 		CreateVertexDescriptions();
-		CreatePipelineLayout();
-		CreatePipeline();
+		if(m_PipelineLayout == VK_NULL_HANDLE)
+		{
+			CreatePipelineLayout();
+		}
+
+		if(m_Pipeline == VK_NULL_HANDLE)
+		{
+			CreatePipeline();
+		}
 	}
 
 	void Material::Destroy()
 	{
 		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
 
+		vkDestroyDescriptorSetLayout(renderer->GetVulkanDevice()->GetDevice(), m_DescriptorSetLayout, nullptr);
 		vkDestroyPipeline(renderer->GetVulkanDevice()->GetDevice(), m_Pipeline, nullptr);
 		vkDestroyPipelineLayout(renderer->GetVulkanDevice()->GetDevice(), m_PipelineLayout, nullptr);
 	}

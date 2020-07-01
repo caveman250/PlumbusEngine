@@ -13,7 +13,6 @@ namespace plumbus
 
 	namespace vk
 	{
-
 		class Mesh;
 
 		class VulkanRenderer : public base::Renderer
@@ -115,7 +114,7 @@ namespace plumbus
 			void CreatePipelines();
 			void CreateDescriptorPool();
 			void CreateDescriptorSet();
-			void BuildCommandBuffers();
+			void BuildImguiCommandBuffer(int index);
 			void BuildDefferedCommandBuffer();
 			void BuildOutputFrameBuffer();
 			void CreateSwapChain();

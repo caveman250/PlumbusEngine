@@ -14,4 +14,10 @@ namespace plumbus::tester
 		TestManager::Get().OnGui();
 	}
 
+	void Application::Cleanup()
+	{
+		BaseApplication::Cleanup();
+		TestManager::Get().ShutdownActiveTest();
+	}
+
 }

@@ -11,6 +11,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if (UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result")
+endif (UNIX)
+
 macro(ADD_OSX_FRAMEWORK fwname target)
     find_library(FRAMEWORK_${fwname}
     NAMES ${fwname}
@@ -101,6 +105,9 @@ if (WIN32)
 	add_compile_definitions(PLUMBUS_PLATFORM_WINDOWS=1)
 else (WIN32)
 	add_compile_definitions(PLUMBUS_PLATFORM_LINUX=1)
+	FIND_PACKAGE(PkgConfig REQUIRED)
+	PKG_CHECK_MODULES(GTK3 REQUIRED gtk+-3.0)
+	INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
 endif(WIN32)
 
 # if (WIN32)

@@ -13,6 +13,10 @@
 #include "imgui_impl/ImGuiImpl.h"
 #include "Scene.h"
 
+#if PLUMBUS_PLATFORM_LINUX
+#include <gtk/gtk.h>
+#endif
+
 const int WIDTH = 1600;
 const int HEIGHT = 900;
 
@@ -69,6 +73,9 @@ void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT
         func(instance, callback, pAllocator);
     }
 }
+
+extern int app_argc;
+extern char** app_argv;
 
 namespace plumbus::vk
 {
@@ -254,7 +261,7 @@ namespace plumbus::vk
             Log::Fatal("failed to acquire swap chain image!");
         }
 
-        BuildCommandBuffers();
+        BuildImguiCommandBuffer(imageIndex);
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -327,6 +334,7 @@ namespace plumbus::vk
     {
 		m_Window = new vk::Window();
 		m_Window->Init(WIDTH, HEIGHT);
+        gtk_init(&::app_argc, &::app_argv);
         InitVulkan();
     }
 
@@ -349,13 +357,28 @@ namespace plumbus::vk
         vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
         vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
 
-        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_ColourSampler, nullptr);
+        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
+        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
+        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
 
+        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
+        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
+        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
+
+        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_ColourSampler, nullptr);
+        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OutputTexture.m_TextureSampler, nullptr);
+        Log::Info("Destroyed Sampler 0x%x", &m_OffscreenFrameBuffer->m_ColourSampler);
+        
         vkDestroyFramebuffer(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_FrameBuffer, nullptr);
+        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_ColourSampler, nullptr);
+        Log::Info("Destroyed Sampler 0x%x", &m_OutputFrameBuffer->m_ColourSampler);
+        vkDestroyFramebuffer(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_FrameBuffer, nullptr);
 
         vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Deferred, nullptr);
-
         vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Deferred, nullptr);
+        vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Offscreen, nullptr);
+        vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
+        vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Output, nullptr);
 
         vkDestroyDescriptorSetLayout(m_VulkanDevice->GetDevice(), m_DescriptorSetLayout, nullptr);
 
@@ -375,8 +398,10 @@ namespace plumbus::vk
         delete m_ImGui;
 
         vkFreeCommandBuffers(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), 1, &m_OffScreenCmdBuffer);
+        vkFreeCommandBuffers(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), 1, &m_OutputCmdBuffer);
 
         vkDestroyRenderPass(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_RenderPass, nullptr);
+        vkDestroyRenderPass(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_RenderPass, nullptr);
 
         CleanupSwapChain();
         vkDestroyDescriptorPool(m_VulkanDevice->GetDevice(), m_DescriptorPool, nullptr);
@@ -389,9 +414,10 @@ namespace plumbus::vk
         vkDestroyPipelineCache(m_VulkanDevice->GetDevice(), m_PipelineCache, nullptr);
         vkDestroyCommandPool(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), nullptr);
 
+        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_OutputSemaphore, nullptr);
+        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_OffscreenSemaphore, nullptr);
         vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_RenderFinishedSemaphore, nullptr);
         vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_ImageAvailableSemaphore, nullptr);
-        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_OffscreenSemaphore, nullptr);
 
         delete m_VulkanDevice;
 
@@ -969,7 +995,7 @@ namespace plumbus::vk
 
     }
 
-    void VulkanRenderer::BuildCommandBuffers()
+    void VulkanRenderer::BuildImguiCommandBuffer(int index)
     {
         VkCommandBufferBeginInfo cmdBufInfo{};
         cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -991,21 +1017,18 @@ namespace plumbus::vk
         m_ImGui->NewFrame();
         m_ImGui->UpdateBuffers();
 
-        for (int32_t i = 0; i < m_CommandBuffers.size(); ++i)
-        {
-            // Set target frame buffer
-            renderPassBeginInfo.framebuffer = m_Framebuffers[i];
+        // Set target frame buffer
+        renderPassBeginInfo.framebuffer = m_Framebuffers[index];
 
-            CHECK_VK_RESULT(vkBeginCommandBuffer(m_CommandBuffers[i], &cmdBufInfo));
+        CHECK_VK_RESULT(vkBeginCommandBuffer(m_CommandBuffers[index], &cmdBufInfo));
 
-            vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(m_CommandBuffers[index], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            m_ImGui->DrawFrame(m_CommandBuffers[i]);
+        m_ImGui->DrawFrame(m_CommandBuffers[index]);
 
-            vkCmdEndRenderPass(m_CommandBuffers[i]);
+        vkCmdEndRenderPass(m_CommandBuffers[index]);
 
-            CHECK_VK_RESULT(vkEndCommandBuffer(m_CommandBuffers[i]));
-        }
+        CHECK_VK_RESULT(vkEndCommandBuffer(m_CommandBuffers[index]));
     }
 
     void VulkanRenderer::BuildDefferedCommandBuffer()
@@ -1015,11 +1038,13 @@ namespace plumbus::vk
             m_OffScreenCmdBuffer = m_VulkanDevice->CreateCommandBuffer(false);
         }
 
-        // Create a semaphore used to synchronize offscreen rendering and usage
-        VkSemaphoreCreateInfo semaphoreCreateInfo{};
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        CHECK_VK_RESULT(vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreCreateInfo, nullptr, &m_OffscreenSemaphore));
-
+        if(m_OffscreenSemaphore == VK_NULL_HANDLE)
+        {
+            // Create a semaphore used to synchronize offscreen rendering and usage
+            VkSemaphoreCreateInfo semaphoreCreateInfo{};
+            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            CHECK_VK_RESULT(vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreCreateInfo, nullptr, &m_OffscreenSemaphore));
+        }
         VkCommandBufferBeginInfo cmdBufInfo{};
         cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -1557,8 +1582,6 @@ namespace plumbus::vk
 
 	void VulkanRenderer::OnModelRemovedFromScene()
 	{
-		//vkDestroyDescriptorPool(m_VulkanDevice->GetDevice(), m_DescriptorPool, nullptr);
-		CreateDescriptorPool();
 		InitLightsVBO();
 		BuildDefferedCommandBuffer();
 	}

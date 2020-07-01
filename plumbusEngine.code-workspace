@@ -70,6 +70,13 @@
 			"thread": "cpp",
 			"cinttypes": "cpp",
 			"typeinfo": "cpp"
+		},
+		"files.exclude": {
+			"third_party": true,
+			"third_party/*": true
+		},
+		"search.exclude": {
+			"third_party/*": true
 		}
 	}
 }
