@@ -2,49 +2,18 @@
 #include "imgui_impl/Log.h"
 #include "BaseApplication.h"
 
-#if PLUMBUS_PLATFORM_WINDOWS
-#undef APIENTRY
-#include <windows.h>
-#endif
+#define BEGIN_YELLOW printf("\033[0;33m");
+#define BEGIN_WHITE printf("\033[0;37m");
+#define BEGIN_RED printf("\033[0;31m");
+#define BEGIN_FATAL printf("\033[0;37;41m");
 
-#define INFO_COLOUR 15
-#define WARN_COLOUR 14
-#define ERROR_COLOUR 12
-#define FATAL_COLOUR 79
-
-
-#if PLUMBUS_PLATFORM_LINUX
-#define BEGIN_YELLOW "\033[0;33m"
-#define BEGIN_WHITE "\033[0;37m"
-#define BEGIN_RED "\033[0;31m"
-#define BEGIN_FATAL "\033[0;37;41m"
-
-#define END_COLOUR "\033[0m\n"
-#endif
+#define END_COLOUR printf("\033[0m\n");
 
 namespace plumbus
 {
 	bool Log::m_ScrollToBottom = false;
 	int Log::s_LogEntryIndex = 0;
 	Log::ImGuiLogEntry Log::s_Buffer[s_NumLogMessagesToStore] = { };
-
-	int GetWin32TerminalColour(LogLevel level)
-	{
-		switch (level)
-		{
-		case LogLevel::Info:
-			return INFO_COLOUR;
-		case LogLevel::Warn:
-			return WARN_COLOUR;
-		case LogLevel::Error:
-			return ERROR_COLOUR;
-		case LogLevel::Fatal:
-			return FATAL_COLOUR;
-		default:
-			PLUMBUS_ASSERT(false);
-			return -1;
-		}
-	}
 
 	ImVec4 GetImGuiTerminalColour(LogLevel level)
 	{
@@ -74,12 +43,6 @@ namespace plumbus
 
 	void Log::LogInternal(LogLevel level, const char* fmt, ...)
 	{
-#if PLUMBUS_PLATFORM_WINDOWS
-		HANDLE hConsole;
-		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-		SetConsoleTextAttribute(hConsole, GetWin32TerminalColour(level));
-#endif
-
 		char buffer[1024];
 		va_list args;
 		va_start(args, fmt);
@@ -99,8 +62,9 @@ namespace plumbus
 		va_list args;
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
-
-		LogInternal(LogLevel::Info, "%s[Info] %s%s", BEGIN_WHITE, (char*)&buffer, END_COLOUR);
+		BEGIN_WHITE
+		LogInternal(LogLevel::Info, "[Info] %s", (char*)&buffer);
+		END_COLOUR
 
 		va_end(args);
 
@@ -112,8 +76,9 @@ namespace plumbus
 		va_list args;
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
-
-		LogInternal(LogLevel::Warn, "%s[Warn] %s%s", BEGIN_YELLOW, (char*)&buffer, END_COLOUR);
+		BEGIN_YELLOW
+		LogInternal(LogLevel::Warn, "[Warn] %s",(char*)&buffer);
+		END_COLOUR
 
 		va_end(args);
 	}
@@ -125,7 +90,9 @@ namespace plumbus
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
 
-		LogInternal(LogLevel::Error, "%s[Error] %s%s", BEGIN_RED, (char*)&buffer, END_COLOUR);
+		BEGIN_RED
+		LogInternal(LogLevel::Error, "[Error] %s", (char*)&buffer);
+		END_COLOUR
 
 		va_end(args);
 	}
@@ -137,7 +104,9 @@ namespace plumbus
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
 
-		LogInternal(LogLevel::Fatal, "%s[Fatal] %s%s", BEGIN_FATAL, (char*)&buffer, END_COLOUR);
+		BEGIN_FATAL
+		LogInternal(LogLevel::Fatal, "[Fatal] %s", (char*)&buffer);
+		END_COLOUR
 
 		va_end(args);
 

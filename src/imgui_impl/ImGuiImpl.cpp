@@ -185,7 +185,7 @@ namespace plumbus
 
 		VkDescriptorPoolSize descriptorPoolSize{};
 		descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorPoolSize.descriptorCount = 2;
+		descriptorPoolSize.descriptorCount = 5;
 		// Descriptor pool
 		std::vector<VkDescriptorPoolSize> poolSizes =
 		{
@@ -196,7 +196,7 @@ namespace plumbus
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		descriptorPoolInfo.pPoolSizes = poolSizes.data();
-		descriptorPoolInfo.maxSets = 2;
+		descriptorPoolInfo.maxSets = 5;
 		CHECK_VK_RESULT(vkCreateDescriptorPool(m_Device->GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 
 		// Descriptor set layout

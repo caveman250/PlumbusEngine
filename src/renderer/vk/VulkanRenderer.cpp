@@ -334,7 +334,9 @@ namespace plumbus::vk
     {
 		m_Window = new vk::Window();
 		m_Window->Init(WIDTH, HEIGHT);
+#if PLUMBUS_PLATFORM_LINUX
         gtk_init(&::app_argc, &::app_argv);
+#endif
         InitVulkan();
     }
 

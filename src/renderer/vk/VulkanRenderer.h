@@ -98,6 +98,8 @@ namespace plumbus
 
 			VkFormat FindDepthFormat();
 
+			ImGUIImpl* GetImGui() { return m_ImGui; }
+
 		private:
 			void InitVulkan();
 			void CreateVulkanInstance();

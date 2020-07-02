@@ -13,7 +13,11 @@
 #include "renderer/base/Material.h"
 #if VULKAN_RENDERER// see TODO in constructor
 #include "renderer/vk/Material.h"
+#include "renderer/vk/VulkanRenderer.h"
+#include "imgui_impl/ImGuiImpl.h"
 #endif
+
+
 
 namespace plumbus::tester::tests 
 {
@@ -80,6 +84,13 @@ namespace plumbus::tester::tests
 		}
 
 		BaseApplication::Get().GetScene()->LoadAssets();
+
+#if VULKAN_RENDERER
+		vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
+		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->m_ColourSampler, vkRenderer->GetOffscreenFramebuffer()->m_Attachments["colour"].m_ImageView);
+		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->m_ColourSampler, vkRenderer->GetOffscreenFramebuffer()->m_Attachments["normal"].m_ImageView);
+		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->m_ColourSampler, vkRenderer->GetOffscreenFramebuffer()->m_Attachments["position"].m_ImageView);
+#endif
 	}
 
 	void DeferredLights::Update()
@@ -132,6 +143,11 @@ namespace plumbus::tester::tests
 		ImGui::DragFloat("Light Height", &m_LightHeight, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Radius", &m_LightRadius, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Distance From Center", &m_LightsDistanceFromCenter, 0.01f, 0.f, 20.f);
+#if VULKAN_RENDERER
+		ImGui::Image(m_AlbedoTextureDescSet, ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_NormalsTextureDescSet, ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_WorldPosTextureDescSet, ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+#endif
 	}
 
 }

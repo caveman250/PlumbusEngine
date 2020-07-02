@@ -30,6 +30,12 @@ namespace plumbus
 			float m_LightsDistanceFromCenter;
 
 			MaterialRef m_DeferredLightMaterial;
+
+#if VULKAN_RENDERER
+			VkDescriptorSet m_AlbedoTextureDescSet = VK_NULL_HANDLE;
+			VkDescriptorSet m_WorldPosTextureDescSet = VK_NULL_HANDLE;
+			VkDescriptorSet m_NormalsTextureDescSet = VK_NULL_HANDLE;
+#endif
 		};
 	}
 }
