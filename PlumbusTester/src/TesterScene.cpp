@@ -14,8 +14,6 @@ namespace plumbus::tester
 	void TesterScene::Init()
 	{
 		Scene::Init();
-
-		TestManager::Get().BeginTest<tests::DeferredLights>();
 	}
 
 	void TesterScene::Shutdown()

@@ -5,7 +5,7 @@
 #include "renderer/base/Renderer.h"
 #include "components/ModelComponent.h"
 #include "components/TranslationComponent.h"
-#include "components/PointLightComponent.h"
+#include "components/LightComponent.h"
 #include "GameObject.h"
 
 #include "Application.h"
@@ -27,9 +27,9 @@ namespace plumbus::tester::tests
 		, m_LightTime(0)
 		, m_LightsPaused(false)
 		, m_LightSpeed(1.0f)
-		, m_LightHeight(6.f)
-		, m_LightRadius(40.f)
-		, m_LightsDistanceFromCenter(10.f)
+		, m_LightHeight(3.f)
+		, m_LightRadius(20.f)
+		, m_LightsDistanceFromCenter(7.f)
 #if VULKAN_RENDERER //TODO there should probably me some kind of manager that just returns the correct type of material
 		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
 #endif
@@ -39,20 +39,25 @@ namespace plumbus::tester::tests
 
 	DeferredLights::~DeferredLights()
 	{
-		int lol = 1;
 	}
 
 	void DeferredLights::Init()
 	{
 		TesterScene* scene = static_cast<TesterScene*>(Application::Get().GetScene());
 
-		GameObject* sponza = new GameObject("Sponza");
-		scene->AddGameObject(sponza->
-			AddComponent<ModelComponent>(new ModelComponent("models/sponza.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
+		if (Camera* camera = scene->GetCamera())
+		{
+			camera->SetPosition(glm::vec3(10.f, 3.f, 0.f));
+			camera->SetRotation(glm::vec3(0.f, 90.f, 0.f));
+		}
+
+		GameObject* plane = new GameObject("plane");
+		scene->AddGameObject(plane->
+			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx"))->
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
-		sponza->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+		plane->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
@@ -80,7 +85,9 @@ namespace plumbus::tester::tests
 			GameObject* light = new GameObject("Light " + std::to_string(i));
 			scene->AddGameObject(light->
 				AddComponent<TranslationComponent>(new TranslationComponent())->
-				AddComponent<PointLightComponent>(new PointLightComponent(colours[i], m_LightRadius)));
+				AddComponent<LightComponent>(new LightComponent()));
+
+			light->GetComponent<LightComponent>()->AddPointLight(colours[i], m_LightRadius);
 		}
 
 		BaseApplication::Get().GetScene()->LoadAssets();
@@ -102,7 +109,7 @@ namespace plumbus::tester::tests
 			m_LightTime += Application::Get().GetDeltaTime() * m_LightSpeed;
 			for (GameObject* obj : Application::Get().GetScene()->GetObjects())
 			{
-				if (PointLightComponent* lightComp = obj->GetComponent<PointLightComponent>())
+				if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
 				{
 					TranslationComponent* comp = obj->GetComponent<TranslationComponent>();
 					float radians = (glm::radians(degrees)) + (float)m_LightTime;
@@ -113,7 +120,16 @@ namespace plumbus::tester::tests
 					index++;
 					degrees += 60.f;
 
-					lightComp->SetRadius(m_LightRadius);
+					for (Light* light : lightComp->GetLights())
+					{
+						if (light->GetType() == LightType::Point)
+						{
+							if (PointLight* pointLight = static_cast<PointLight*>(light))
+							{
+								pointLight->SetRadius(m_LightRadius);
+							}
+						}
+					}
 				}
 			}
 		}

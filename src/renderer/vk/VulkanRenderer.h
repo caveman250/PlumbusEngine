@@ -39,18 +39,26 @@ namespace plumbus
 				glm::vec4 m_InstancePos[3];
 			};
 
-			struct LightBufferInfo
+			struct PointLightBufferInfo
 			{
 				glm::vec4 m_Position;
 				glm::vec3 m_Colour;
 				float m_Radius;
 			};
 
-			static const size_t MAX_LIGHTS = 50;
+			struct DirectionalLightBufferInfo
+			{
+				glm::vec3 m_Colour;
+				glm::vec3 m_Direction;
+			};
+
+			static constexpr size_t MAX_POINT_LIGHTS = 6;
+			static constexpr size_t MAX_DIRECTIONAL_LIGHTS = 1;
 			struct UniformBufferLights
 			{
-				LightBufferInfo m_Lights[MAX_LIGHTS];
 				glm::vec4 m_ViewPos;
+				PointLightBufferInfo m_PointLights[MAX_POINT_LIGHTS];
+				DirectionalLightBufferInfo m_DirectionalLights[MAX_DIRECTIONAL_LIGHTS];
 			};
 
 			struct PipelineLayouts
@@ -176,6 +184,7 @@ namespace plumbus
 			UniformBuffers m_UniformBuffers;
 			UniformBufferVert m_VertUBO;
 			UniformBufferLights m_LightsUBO;
+
 			VkPipelineCache m_PipelineCache;
 			VkCommandBuffer m_OffScreenCmdBuffer = VK_NULL_HANDLE;
 			VkCommandBuffer m_OutputCmdBuffer = VK_NULL_HANDLE;

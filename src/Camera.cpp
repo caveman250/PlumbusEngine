@@ -54,19 +54,19 @@ namespace plumbus
 
 		if (glfwGetKey(renderer->GetWindow(), GLFW_KEY_W))
 		{
-			m_Position += forward * deltaTime * 5.f;
+			m_Position += forward * deltaTime * 20.f;
 		}
 		if (glfwGetKey(renderer->GetWindow(), GLFW_KEY_S))
 		{
-			m_Position -= forward * deltaTime * 5.f;
+			m_Position -= forward * deltaTime * 20.f;
 		}
 		if (glfwGetKey(renderer->GetWindow(), GLFW_KEY_A))
 		{
-			m_Position -= glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 5.f;
+			m_Position -= glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 20.f;
 		}
 		if (glfwGetKey(renderer->GetWindow(), GLFW_KEY_D))
 		{
-			m_Position += glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 5.f;
+			m_Position += glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 20.f;
 		}
 #endif
 

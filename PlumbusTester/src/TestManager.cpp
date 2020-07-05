@@ -3,6 +3,7 @@
 #include "TestManager.h"
 #include "tests/Test.h"
 #include "tests/DeferredLights/DeferredLights.h"
+#include "tests/SponzaScene/SponzaScene.h"
 
 namespace plumbus::tester
 {
@@ -46,6 +47,11 @@ namespace plumbus::tester
 				if (ImGui::Button("Deferred Lights"))
 				{
 					BeginTest<tests::DeferredLights>();
+				}
+
+				if (ImGui::Button("Sponza Scene"))
+				{
+					BeginTest<tests::SponzaScene>();
 				}
 			}
 			else

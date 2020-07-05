@@ -12,6 +12,12 @@ namespace plumbus
 		glm::mat4 GetViewMatrix() { return m_ViewMatrix; }
 		glm::mat4 GetProjectionMatrix() { return m_ProjectionMatrix; }
 		glm::vec3 GetPosition() { return m_Position; }
+		glm::vec3 GetRotation() { return m_Rotation; }
+
+		void SetViewMatrix(glm::mat4 viewMat) { m_ViewMatrix = viewMat; }
+		void SetProjectionMatrix(glm::mat4 projMat) { m_ProjectionMatrix = projMat; }
+		void SetPosition(glm::vec3 pos) { m_Position = pos; }
+		void SetRotation(glm::vec3 rot) { m_Rotation = rot; }
 
 	private:
 		glm::mat4	m_ViewMatrix;

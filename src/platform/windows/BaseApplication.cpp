@@ -9,7 +9,7 @@
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "Scene.h"
-#include "components/PointLightComponent.h"
+#include "components/LightComponent.h"
 
 #include "renderer/base/Renderer.h"
 

@@ -6,10 +6,7 @@
 #define CHECK_VK_RESULT(f)																											\
 {																																	\
 	VkResult res = (f);																												\
-	if (res != VK_SUCCESS)																											\
-	{																																\
-		Log::Fatal("VkResult is \"%s\" in %s at line %d", ErrorString(res).c_str(), __FILE__ , __LINE__ );							\
-	}																																\
+	PLUMBUS_ASSERT(res == VK_SUCCESS, "VkResult is \"%s\" in %s at line %d", ErrorString(res).c_str(), __FILE__ , __LINE__ );																													\
 }																																	
 #endif
 

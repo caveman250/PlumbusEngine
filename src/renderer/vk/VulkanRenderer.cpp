@@ -9,7 +9,7 @@
 #include "renderer/vk/Mesh.h"
 #include "components/TranslationComponent.h"
 #include "Camera.h"
-#include "components/PointLightComponent.h"
+#include "components/LightComponent.h"
 #include "imgui_impl/ImGuiImpl.h"
 #include "Scene.h"
 
@@ -649,22 +649,47 @@ namespace plumbus::vk
     {
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            int index = 0;
-            if (PointLightComponent* comp = obj->GetComponent<PointLightComponent>())
+            int pointLightIndex = 0;
+            int dirLightIndex = 0;
+            if (LightComponent* comp = obj->GetComponent<LightComponent>())
             {
-                if (index >= MAX_LIGHTS)
-                    Log::Fatal("Light count exceeds MAX_LIGHTS");
+                for (Light* light : comp->GetLights())
+                {
+                    if (light->GetType() == LightType::Point)
+                    {
+                        PLUMBUS_ASSERT(pointLightIndex < MAX_POINT_LIGHTS, "Point light count exceeds MAX_POINT_LIGHTS");
 
-                LightBufferInfo info = {};
-                info.m_Colour = comp->GetColour();
-                info.m_Radius = comp->GetRadius();
+                        PointLight* pointLight = static_cast<PointLight*>(light);
 
-                TranslationComponent* trans = obj->GetComponent<TranslationComponent>();
-                trans->SetTranslation(glm::vec3(5.f, 1.f, 0.f));
-                info.m_Position = glm::vec4(trans->GetTranslation(), 0.f);
+                        PointLightBufferInfo info = {};
+                        info.m_Colour = pointLight->GetColour();
+                        info.m_Radius = pointLight->GetRadius();
 
-                m_LightsUBO.m_Lights[index] = info;
-                ++index;
+                        TranslationComponent* trans = obj->GetComponent<TranslationComponent>();
+                        trans->SetTranslation(glm::vec3(5.f, 1.f, 0.f));
+                        info.m_Position = glm::vec4(trans->GetTranslation(), 0.f);
+
+                        m_LightsUBO.m_PointLights[pointLightIndex] = info;
+                        ++pointLightIndex;
+                    }
+                    else if (light->GetType() == LightType::Directional)
+                    {
+						PLUMBUS_ASSERT(dirLightIndex < MAX_DIRECTIONAL_LIGHTS, "Directional light count exceeds MAX_DIRECTIONAL_LIGHTS");
+
+						DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
+
+                        DirectionalLightBufferInfo info = {};
+                        info.m_Colour = directionalLight->GetColour();
+                        info.m_Direction = directionalLight->GetDirection();
+
+						m_LightsUBO.m_DirectionalLights[dirLightIndex] = info;
+						++dirLightIndex;
+                    }
+                    else
+                    {
+                        Log::Error("VulkanRenderer::InitLightsVBO() Invalid light type. GameObject: %s", obj->GetID());
+                    }
+                }
             }
         }
     }
@@ -1348,18 +1373,37 @@ namespace plumbus::vk
 
     void VulkanRenderer::UpdateLightsUniformBuffer()
     {
-		int lightIndex = 0;
+        //TODO surely there is a way of only copying the lights that have changed.
+
+        //clear the buffer, this should be smarter at some point.
+        memset(&m_LightsUBO, 0, sizeof(m_LightsUBO));
+
+		int pointLightIndex = 0;
+        int dirLightIndex = 0;
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (PointLightComponent* lightComp = obj->GetComponent<PointLightComponent>())
+            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
             {
-				if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
-				{
-					m_LightsUBO.m_Lights[lightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
-					m_LightsUBO.m_Lights[lightIndex].m_Colour = lightComp->GetColour();
-					m_LightsUBO.m_Lights[lightIndex].m_Radius = lightComp->GetRadius();
-					lightIndex++;
-				}
+                for (Light* light : lightComp->GetLights())
+                {
+                    if (light->GetType() == LightType::Point)
+                    {
+                        PointLight* pointLight = static_cast<PointLight*>(light);
+                        if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
+                        {
+                            m_LightsUBO.m_PointLights[pointLightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
+                            m_LightsUBO.m_PointLights[pointLightIndex].m_Colour = pointLight->GetColour();
+                            m_LightsUBO.m_PointLights[pointLightIndex].m_Radius = pointLight->GetRadius();
+                            pointLightIndex++;
+                        }
+                    }
+                    else if (light->GetType() == LightType::Directional)
+                    {
+                        DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
+                        m_LightsUBO.m_DirectionalLights[dirLightIndex].m_Direction = directionalLight->GetDirection();
+						m_LightsUBO.m_DirectionalLights[dirLightIndex].m_Colour = directionalLight->GetColour();
+                    }
+                }
             }
         }
 

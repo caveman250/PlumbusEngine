@@ -4,7 +4,7 @@
 #include "GameObject.h"
 #include "components/TranslationComponent.h"
 #include "components/ModelComponent.h"
-#include "components/PointLightComponent.h"
+#include "components/LightComponent.h"
 #include "imgui/imgui_internal.h"
 #include "Scene.h"
 
@@ -475,19 +475,46 @@ namespace plumbus
 							ImGui::TreePop();
 						}
 					}
-					if (PointLightComponent* comp = m_SelectedObject->GetComponent<PointLightComponent>())
+					if (LightComponent* comp = m_SelectedObject->GetComponent<LightComponent>())
 					{
-						if (ImGui::TreeNodeEx("Point Light", ImGuiTreeNodeFlags_DefaultOpen))
+						for (Light* light : comp->GetLights())
 						{
-							glm::vec3 colour = comp->GetColour();
-							ImGui::DragFloat3("Colour", (float*)&colour, 0.05f);
-							comp->SetColour(colour);
+							if (light->GetType() == LightType::Point)
+							{
+								if(PointLight* pointLight = static_cast<PointLight*>(light))
+								{
+									if (ImGui::TreeNodeEx("Point Light", ImGuiTreeNodeFlags_DefaultOpen))
+									{
+										glm::vec3 colour = pointLight->GetColour();
+										ImGui::DragFloat3("Colour", (float*)&colour, 0.05f);
+										pointLight->SetColour(colour);
 
-							float radius = comp->GetRadius();
-							ImGui::DragFloat("Radius", &radius, 0.05f);
-							comp->SetRadius(radius);
+										float radius = pointLight->GetRadius();
+										ImGui::DragFloat("Radius", &radius, 0.05f);
+										pointLight->SetRadius(radius);
 
-							ImGui::TreePop();
+										ImGui::TreePop();
+									}
+								}
+							}
+							else if (light->GetType() == LightType::Directional)
+							{
+								if(DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light))
+								{
+									if (ImGui::TreeNodeEx("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
+									{
+										glm::vec3 colour = directionalLight->GetColour();
+										ImGui::DragFloat3("Colour", (float*)&colour, 0.05f);
+										directionalLight->SetColour(colour);
+
+										glm::vec3 direction = directionalLight->GetDirection();
+										ImGui::DragFloat3("Direction", (float*)&direction, 0.005f, 0.f, 1.f);
+										directionalLight->SetDirection(direction);
+
+										ImGui::TreePop();
+									}
+								}
+							}
 						}
 					}
 				}
