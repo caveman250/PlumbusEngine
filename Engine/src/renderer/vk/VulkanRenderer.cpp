@@ -1256,6 +1256,8 @@ namespace plumbus::vk
         if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0) 
 			return;
 
+        Log::Info("Recreating Swapchain: %i x %i", m_Window->GetWidth(), m_Window->GetHeight());
+
 		vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
 
         CleanupSwapChain();

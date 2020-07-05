@@ -13,7 +13,39 @@
                 "-j8"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/Debug"
+                "cwd": "${workspaceFolder}/bin/Debug"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Clean Debug",
+            "command": "cd PlumbusTester && make clean && cd ../Engine && make clean",
+            "args": [
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/bin/Debug/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Uber Clean Debug",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "--target",
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/bin/Debug/"
             },
             "problemMatcher": [
                 "$gcc"
@@ -30,25 +62,7 @@
                 "-j8"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/Release"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "group": "build"
-        },
-        {
-            "type": "shell",
-            "label": "Clean Debug",
-            "command": "cmake",
-            "args": [
-                "--build",
-                ".",
-                "--target",
-                "'clean'"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}/Debug"
+                "cwd": "${workspaceFolder}/bin/Release"
             },
             "problemMatcher": [
                 "$gcc"
@@ -58,15 +72,11 @@
         {
             "type": "shell",
             "label": "Clean Release",
-            "command": "cmake",
+            "command": "cd PlumbusTester && make clean && cd ../Engine && make clean",
             "args": [
-                "--build",
-                ".",
-                "--target",
-                "'clean'"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/Release"
+                "cwd": "${workspaceFolder}/bin/Release"
             },
             "problemMatcher": [
                 "$gcc"

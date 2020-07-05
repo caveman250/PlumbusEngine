@@ -1,0 +1,48 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/third_party/glm",
+                "${workspaceFolder}/third_party/gli",
+                "${workspaceFolder}/third_party/assimp/include",
+                "${workspaceFolder}/third_party/glfw/include",
+                "${workspaceFolder}/third_party",
+                "${workspaceFolder}/Engine/src/**",
+                "${workspaceFolder}/PlumbusTester/src/**",
+                "/usr/include/gtk-3.0",
+                "/usr/include/at-spi2-atk/2.0",
+                "/usr/include/at-spi-2.0",
+                "/usr/include/dbus-1.0",
+                "/usr/lib/x86_64-linux-gnu/dbus-1.0/include",
+                "/usr/include/gio-unix-2.0",
+                "/usr/include/cairo",
+                "/usr/include/pango-1.0",
+                "/usr/include/fribidi",
+                "/usr/include/harfbuzz",
+                        "/usr/include/atk-1.0",
+                         "/usr/include/pixman-1",
+                          "/usr/include/uuid",
+                           "/usr/include/freetype2",
+                            "/usr/include/libpng16",
+                            "/usr/include/gdk-pixbuf-2.0",
+                             "/usr/include/libmount",
+                              "/usr/include/blkid",
+                               "/usr/include/glib-2.0",
+                                "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+            ],
+            "defines": [
+                "VULKAN_RENDERER=1",
+                "PLUMBUS_PLATFORM_LINUX=1"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "path": []
+            }
+        }
+    ],
+    "version": 4
+}
