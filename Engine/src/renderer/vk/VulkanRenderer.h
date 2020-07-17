@@ -14,6 +14,7 @@ namespace plumbus
 	namespace vk
 	{
 		class Mesh;
+		class Instance;
 
 		class VulkanRenderer : public base::Renderer
 		{
@@ -110,7 +111,6 @@ namespace plumbus
 
 		private:
 			void InitVulkan();
-			void CreateVulkanInstance();
 			void SetupDebugCallback();
 			void PickPhysicalDevice();
 			bool IsDeviceSuitable(VkPhysicalDevice device);
@@ -142,8 +142,8 @@ namespace plumbus
 
 			static void OnWindowResized(GLFWwindow* window, int width, int height);
 
-			std::vector<const char*> GetRequiredExtensions();
-			bool CheckValidationLayerSupport();
+			std::vector<const char*> GetRequiredDeviceExtensions();
+			std::vector<const char*> GetRequiredInstanceExtensions();
 
 			VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
@@ -154,7 +154,7 @@ namespace plumbus
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-			VkInstance m_VulkanInstance;
+			std::shared_ptr<vk::Instance> m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
 			vk::VulkanDevice* m_VulkanDevice;
 			VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;

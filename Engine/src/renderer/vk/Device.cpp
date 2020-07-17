@@ -133,10 +133,7 @@ namespace plumbus::vk
 			createInfo.enabledLayerCount = 0;
 		}
 
-		if (vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS)
-		{
-			Log::Fatal("failed to create logical device!");
-		}
+		CHECK_VK_RESULT(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device));
 
 		m_CommandPool = CreateCommandPool();
 

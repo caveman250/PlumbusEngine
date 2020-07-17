@@ -12,6 +12,7 @@
 #include "components/LightComponent.h"
 #include "imgui_impl/ImGuiImpl.h"
 #include "Scene.h"
+#include "Instance.h"
 
 #if PLUMBUS_PLATFORM_LINUX
 #include <gtk/gtk.h>
@@ -20,23 +21,6 @@
 const int WIDTH = 1600;
 const int HEIGHT = 900;
 
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-const std::vector<const char*> validationLayers =
-{
-    "VK_LAYER_KHRONOS_validation",
-    "VK_LAYER_RENDERDOC_Capture"
-};
-
-//#ifdef NDEBUG
-//const bool enableValidationLayers = false;
-//#else
-//const bool enableValidationLayers = true;
-//#endif
-
-const bool enableValidationLayers = true;
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugReportFlagsEXT flags,
     VkDebugReportObjectTypeEXT objType,
@@ -81,13 +65,19 @@ namespace plumbus::vk
 {
     void VulkanRenderer::InitVulkan()
     {
-        CreateVulkanInstance();
+		const std::vector<const char*> validationLayers =
+		{
+			"VK_LAYER_KHRONOS_validation",
+			"VK_LAYER_RENDERDOC_Capture"
+		};
+
+        m_Instance = Instance::CreateInstance("PlumbusEngine", 1, validationLayers, GetRequiredInstanceExtensions());
         SetupDebugCallback();
-		static_cast<vk::Window*>(m_Window)->CreateSurface(m_VulkanInstance, &m_Surface);
+		static_cast<vk::Window*>(m_Window)->CreateSurface(m_Instance->GetInstance(), &m_Surface);
         PickPhysicalDevice();
         //Create the vulkan "side" of the device, what we use to speak to it and control it.
         m_VulkanDevice = new vk::VulkanDevice(m_PhysicalDevice, m_Surface);
-        m_VulkanDevice->CreateLogicalDevice(deviceExtensions, validationLayers, true);
+        m_VulkanDevice->CreateLogicalDevice(GetRequiredDeviceExtensions(), validationLayers, true);
 
         vkGetDeviceQueue(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);
         vkGetDeviceQueue(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetQueueFamilyIndices().m_PresentFamily, 0, &m_PresentQueue);
@@ -128,7 +118,7 @@ namespace plumbus::vk
     void VulkanRenderer::PickPhysicalDevice()
     {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(m_VulkanInstance, &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(m_Instance->GetInstance(), &deviceCount, nullptr);
 
         if (deviceCount == 0)
         {
@@ -136,7 +126,7 @@ namespace plumbus::vk
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(m_VulkanInstance, &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(m_Instance->GetInstance(), &deviceCount, devices.data());
 
         Log::Info("Found %i device(s)", devices.size());
         for (const auto& device : devices)
@@ -220,8 +210,8 @@ namespace plumbus::vk
             Log::Info("\t %s", prop.extensionName);
         }
 
-        std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-
+        std::vector<const char*> reqDeviceExtensions = GetRequiredDeviceExtensions();
+        std::set<std::string> requiredExtensions(reqDeviceExtensions.begin(), reqDeviceExtensions.end());
         for (const auto& extension : availableExtensions)
         {
             requiredExtensions.erase(extension.extensionName);
@@ -232,18 +222,12 @@ namespace plumbus::vk
 
     void VulkanRenderer::SetupDebugCallback()
     {
-        if (!enableValidationLayers)
-            return;
-
         VkDebugReportCallbackCreateInfoEXT createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
         createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
         createInfo.pfnCallback = debugCallback;
 
-        if (CreateDebugReportCallbackEXT(m_VulkanInstance, &createInfo, nullptr, &m_Callback) != VK_SUCCESS)
-        {
-            Log::Fatal("failed to set up debug callback!");
-        }
+        CHECK_VK_RESULT(CreateDebugReportCallbackEXT(m_Instance->GetInstance(), &createInfo, nullptr, &m_Callback));
     }
 
     void VulkanRenderer::DrawFrame()
@@ -423,9 +407,10 @@ namespace plumbus::vk
 
         delete m_VulkanDevice;
 
-        DestroyDebugReportCallbackEXT(m_VulkanInstance, m_Callback, nullptr);
-        vkDestroySurfaceKHR(m_VulkanInstance, m_Surface, nullptr);
-        vkDestroyInstance(m_VulkanInstance, nullptr);
+        DestroyDebugReportCallbackEXT(m_Instance->GetInstance(), m_Callback, nullptr);
+        vkDestroySurfaceKHR(m_Instance->GetInstance(), m_Surface, nullptr);
+        
+        m_Instance->Destroy();
     }
 
     void VulkanRenderer::OnWindowResized(GLFWwindow* window, int width, int height)
@@ -463,67 +448,7 @@ namespace plumbus::vk
         return VK_FORMAT_MAX_ENUM;
     }
 
-    void VulkanRenderer::CreateVulkanInstance()
-    {
-        if (enableValidationLayers && !CheckValidationLayerSupport())
-        {
-            Log::Fatal("validation layers requested, but not available!");
-        }
-
-        //App Info
-        VkApplicationInfo appInfo = {};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Hello Triangle";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "SUPER AWESOME MEGA ENGINE YAY";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_1;
-
-        //Create Info
-        VkInstanceCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
-
-        auto reqExtensions = GetRequiredExtensions();
-
-        Log::Info("required extensions:");
-
-        for (const auto& extension : reqExtensions)
-        {
-            Log::Info("\t %s", extension);
-        }
-
-        createInfo.enabledExtensionCount = static_cast<uint32_t>(reqExtensions.size());
-        createInfo.ppEnabledExtensionNames = reqExtensions.data();
-        if (enableValidationLayers)
-        {
-            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-            createInfo.ppEnabledLayerNames = validationLayers.data();
-        }
-        else
-        {
-            createInfo.enabledLayerCount = 0;
-        }
-
-        if (vkCreateInstance(&createInfo, nullptr, &m_VulkanInstance) != VK_SUCCESS)
-        {
-            Log::Fatal("failed to create instance!");
-        }
-
-        uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        std::vector<VkExtensionProperties> extensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-        Log::Info("available extensions:");
-
-        for (const auto& extension : extensions)
-        {
-            Log::Info("\t %s", extension.extensionName);
-        }
-    }
-
-    std::vector<const char*> VulkanRenderer::GetRequiredExtensions()
+    std::vector<const char*> VulkanRenderer::GetRequiredInstanceExtensions()
     {
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
@@ -531,51 +456,9 @@ namespace plumbus::vk
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-        if (enableValidationLayers)
-        {
-            extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-        }
+        extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
         return extensions;
-    }
-
-    bool VulkanRenderer::CheckValidationLayerSupport()
-    {
-        uint32_t layerCount;
-        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-        std::vector<VkLayerProperties> availableLayers(layerCount);
-        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-        Log::Info("Available Validation Layers:");
-        for(VkLayerProperties& props : availableLayers)
-        {
-            Log::Info("\t%s", props.layerName);
-        }
-
-        for (const char* layerName : validationLayers)
-        {
-            Log::Info("Looking for validation layer: %s", layerName);
-            bool layerFound = false;
-
-            for (const auto& layerProperties : availableLayers)
-            {
-                if (strcmp(layerName, layerProperties.layerName) == 0)
-                {
-                    Log::Info("Found.");
-                    layerFound = true;
-                    break;
-                }
-            }
-
-            if (!layerFound)
-            {
-                Log::Info("%s not found.", layerName);
-                return false;
-            }
-        }
-
-        return true;
     }
 
     void VulkanRenderer::CreatePipelineCache()
@@ -1632,6 +1515,11 @@ namespace plumbus::vk
 	{
 		InitLightsVBO();
 		BuildDefferedCommandBuffer();
+	}
+
+	std::vector<const char*> VulkanRenderer::GetRequiredDeviceExtensions()
+	{
+        return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	}
 
 }
