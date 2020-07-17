@@ -19,7 +19,7 @@ namespace plumbus
 
 		PushConstBlock m_PushConstBlock;
 
-		ImGUIImpl(vk::Device* device);
+		ImGUIImpl();
 
 		~ImGUIImpl();
 
@@ -50,7 +50,6 @@ namespace plumbus
 		VkDescriptorPool m_DescriptorPool;
 		VkDescriptorSetLayout m_DescriptorSetLayout;
 		VkDescriptorSet m_DescriptorSet;
-		vk::Device* m_Device;
 
 		VkDescriptorSet m_GameViewTextureDescSet = VK_NULL_HANDLE;
 

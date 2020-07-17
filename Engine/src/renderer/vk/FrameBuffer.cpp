@@ -43,7 +43,7 @@ namespace plumbus::vk
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		vk::Device* device = VulkanRenderer::Get()->GetDevice();
+		std::shared_ptr<vk::Device> device = VulkanRenderer::Get()->GetDevice();
 
 		VkMemoryAllocateInfo memAlloc{};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -74,10 +74,10 @@ namespace plumbus::vk
 	{
         vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
-		vk::Device* device = renderer->GetDevice();
+		std::shared_ptr<vk::Device> device = renderer->GetDevice();
 
-		m_Width = renderer->GetSwapChainExtent().width;
-		m_Height = renderer->GetSwapChainExtent().height;
+		m_Width = renderer->GetSwapChain()->GetSwapChainExtent().width;
+		m_Height = renderer->GetSwapChain()->GetSwapChainExtent().height;
 
 		// Color attachments
 
@@ -209,10 +209,10 @@ namespace plumbus::vk
 	void FrameBuffer::PrepareOutputFramebuffer()
 	{
         vk::VulkanRenderer* renderer = VulkanRenderer::Get();
-		vk::Device* device = renderer->GetDevice();
+		std::shared_ptr<vk::Device> device = renderer->GetDevice();
 
-		m_Width = renderer->GetSwapChainExtent().width;
-		m_Height = renderer->GetSwapChainExtent().height;
+		m_Width = renderer->GetSwapChain()->GetSwapChainExtent().width;
+		m_Height = renderer->GetSwapChain()->GetSwapChainExtent().height;
 
 		// Albedo (color)
 		CreateAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "colour");

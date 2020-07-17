@@ -13,6 +13,7 @@ namespace plumbus::vk
 		void Destroy();
 
 	private:
+
 		static bool CheckLayerSupport(const std::vector<const char*>& enabledLayers);
 
 		VkInstance m_VulkanInstance;

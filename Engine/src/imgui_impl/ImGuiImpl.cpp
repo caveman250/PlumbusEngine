@@ -10,26 +10,26 @@
 
 namespace plumbus
 {
-	ImGUIImpl::ImGUIImpl(vk::Device* device)
+	ImGUIImpl::ImGUIImpl()
 	{
-		//ImGui::CreateContext();
-		m_Device = device;
 	}
 
 	ImGUIImpl::~ImGUIImpl()
 	{
+		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
+
 		// Release all Vulkan resources required for rendering imGui
 		m_VertexBuffer.Cleanup();
 		m_IndexBuffer.Cleanup();
-		vkDestroyImage(m_Device->GetVulkanDevice(), m_FontImage, nullptr);
-		vkDestroyImageView(m_Device->GetVulkanDevice(), m_FontView, nullptr);
-		vkFreeMemory(m_Device->GetVulkanDevice(), m_FontMemory, nullptr);
-		vkDestroySampler(m_Device->GetVulkanDevice(), m_Sampler, nullptr);
-		vkDestroyPipelineCache(m_Device->GetVulkanDevice(), m_PipelineCache, nullptr);
-		vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipeline, nullptr);
-		vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayout, nullptr);
-		vkDestroyDescriptorPool(m_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(m_Device->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
+		vkDestroyImage(device->GetVulkanDevice(), m_FontImage, nullptr);
+		vkDestroyImageView(device->GetVulkanDevice(), m_FontView, nullptr);
+		vkFreeMemory(device->GetVulkanDevice(), m_FontMemory, nullptr);
+		vkDestroySampler(device->GetVulkanDevice(), m_Sampler, nullptr);
+		vkDestroyPipelineCache(device->GetVulkanDevice(), m_PipelineCache, nullptr);
+		vkDestroyPipeline(device->GetVulkanDevice(), m_Pipeline, nullptr);
+		vkDestroyPipelineLayout(device->GetVulkanDevice(), m_PipelineLayout, nullptr);
+		vkDestroyDescriptorPool(device->GetVulkanDevice(), m_DescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(device->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
 	}
 
 	void ImGUIImpl::Init(float width, float height)
@@ -69,6 +69,8 @@ namespace plumbus
 
 	void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
 	{
+		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
+
 		ImGuiIO& io = ImGui::GetIO();
 
 		// Create font texture
@@ -92,15 +94,15 @@ namespace plumbus
 		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		CHECK_VK_RESULT(vkCreateImage(m_Device->GetVulkanDevice(), &imageInfo, nullptr, &m_FontImage));
+		CHECK_VK_RESULT(vkCreateImage(device->GetVulkanDevice(), &imageInfo, nullptr, &m_FontImage));
 		VkMemoryRequirements memReqs;
-		vkGetImageMemoryRequirements(m_Device->GetVulkanDevice(), m_FontImage, &memReqs);
+		vkGetImageMemoryRequirements(device->GetVulkanDevice(), m_FontImage, &memReqs);
 		VkMemoryAllocateInfo memAllocInfo{};
 		memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memAllocInfo.allocationSize = memReqs.size;
-		memAllocInfo.memoryTypeIndex = m_Device->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		CHECK_VK_RESULT(vkAllocateMemory(m_Device->GetVulkanDevice(), &memAllocInfo, nullptr, &m_FontMemory));
-		CHECK_VK_RESULT(vkBindImageMemory(m_Device->GetVulkanDevice(), m_FontImage, m_FontMemory, 0));
+		memAllocInfo.memoryTypeIndex = device->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		CHECK_VK_RESULT(vkAllocateMemory(device->GetVulkanDevice(), &memAllocInfo, nullptr, &m_FontMemory));
+		CHECK_VK_RESULT(vkBindImageMemory(device->GetVulkanDevice(), m_FontImage, m_FontMemory, 0));
 
 		// Image view
 		VkImageViewCreateInfo viewInfo{};
@@ -111,12 +113,12 @@ namespace plumbus
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
-		CHECK_VK_RESULT(vkCreateImageView(m_Device->GetVulkanDevice(), &viewInfo, nullptr, &m_FontView));
+		CHECK_VK_RESULT(vkCreateImageView(device->GetVulkanDevice(), &viewInfo, nullptr, &m_FontView));
 
 		// Staging buffers for font data upload
 		vk::Buffer stagingBuffer;
 
-		CHECK_VK_RESULT(m_Device->CreateBuffer(
+		CHECK_VK_RESULT(device->CreateBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&stagingBuffer,
@@ -127,7 +129,7 @@ namespace plumbus
 		stagingBuffer.Unmap();
 
 		// Copy buffer data to font image
-		VkCommandBuffer copyCmd = m_Device->CreateCommandBuffer(true);
+		VkCommandBuffer copyCmd = device->CreateCommandBuffer(true);
 
 		// Prepare for transfer
 		ImageHelpers::SetImageLayout(
@@ -166,7 +168,7 @@ namespace plumbus
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-		m_Device->FlushCommandBuffer(copyCmd, copyQueue);
+		device->FlushCommandBuffer(copyCmd, copyQueue);
 
 		stagingBuffer.Cleanup();
 
@@ -181,7 +183,7 @@ namespace plumbus
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(m_Device->GetVulkanDevice(), &samplerInfo, nullptr, &m_Sampler));
+		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &samplerInfo, nullptr, &m_Sampler));
 
 		VkDescriptorPoolSize descriptorPoolSize{};
 		descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -197,7 +199,7 @@ namespace plumbus
 		descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		descriptorPoolInfo.pPoolSizes = poolSizes.data();
 		descriptorPoolInfo.maxSets = 5;
-		CHECK_VK_RESULT(vkCreateDescriptorPool(m_Device->GetVulkanDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
+		CHECK_VK_RESULT(vkCreateDescriptorPool(device->GetVulkanDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 
 		// Descriptor set layout
 		VkDescriptorSetLayoutBinding setLayoutBinding{};
@@ -215,7 +217,7 @@ namespace plumbus
 		descriptorSetLayoutCreateInfo.pBindings = setLayoutBindings.data();
 		descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 
-		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_Device->GetVulkanDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_DescriptorSetLayout));
+		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(device->GetVulkanDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_DescriptorSetLayout));
 
 		// Descriptor set
 		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
@@ -224,7 +226,7 @@ namespace plumbus
 		descriptorSetAllocateInfo.pSetLayouts = &m_DescriptorSetLayout;
 		descriptorSetAllocateInfo.descriptorSetCount = 1;
 
-		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetVulkanDevice(), &descriptorSetAllocateInfo, &m_DescriptorSet));
+		CHECK_VK_RESULT(vkAllocateDescriptorSets(device->GetVulkanDevice(), &descriptorSetAllocateInfo, &m_DescriptorSet));
 
 		VkDescriptorImageInfo descriptorImageInfo{};
 		descriptorImageInfo.sampler = m_Sampler;
@@ -243,12 +245,12 @@ namespace plumbus
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			writeDescriptorSet
 		};
-		vkUpdateDescriptorSets(m_Device->GetVulkanDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(device->GetVulkanDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		CHECK_VK_RESULT(vkCreatePipelineCache(m_Device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+		CHECK_VK_RESULT(vkCreatePipelineCache(device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
 		// Pipeline layout
 		// Push constants for UI rendering parameters
@@ -263,7 +265,7 @@ namespace plumbus
 		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
 		// Setup graphics pipeline for UI rendering
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
@@ -399,7 +401,7 @@ namespace plumbus
 
 		io.Fonts->TexID = (void*)m_DescriptorSet;
 
-		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
+		CHECK_VK_RESULT(vkCreateGraphicsPipelines(device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
 	}
 
 	void ImGUIImpl::NewFrame()
@@ -542,6 +544,8 @@ namespace plumbus
 
 	void ImGUIImpl::UpdateBuffers()
 	{
+		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
+
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 
 		// Note: Alignment is done inside buffer creation
@@ -554,7 +558,7 @@ namespace plumbus
 		if ((m_VertexBuffer.m_Buffer == VK_NULL_HANDLE) || (m_VertexCount != imDrawData->TotalVtxCount)) {
 			m_VertexBuffer.Unmap();
 			m_VertexBuffer.Cleanup();
-			CHECK_VK_RESULT(m_Device->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_VertexBuffer, vertexBufferSize));
+			CHECK_VK_RESULT(device->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_VertexBuffer, vertexBufferSize));
 			m_VertexCount = imDrawData->TotalVtxCount;
 			m_VertexBuffer.Unmap();
 			m_VertexBuffer.Map();
@@ -565,7 +569,7 @@ namespace plumbus
 		if ((m_IndexBuffer.m_Buffer == VK_NULL_HANDLE) || (m_IndexCount < imDrawData->TotalIdxCount)) {
 			m_IndexBuffer.Unmap();
 			m_IndexBuffer.Cleanup();
-			CHECK_VK_RESULT(m_Device->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_IndexBuffer, indexBufferSize));
+			CHECK_VK_RESULT(device->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_IndexBuffer, indexBufferSize));
 			m_IndexCount = imDrawData->TotalIdxCount;
 			m_IndexBuffer.Map();
 		}
@@ -640,6 +644,8 @@ namespace plumbus
 
 	VkDescriptorSet ImGUIImpl::AddTexture(VkSampler sampler, VkImageView image_view)
 	{
+		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
+
 		VkDescriptorSet descriptor_set;
 		// Create Descriptor Set:
 		{
@@ -648,7 +654,7 @@ namespace plumbus
 			alloc_info.descriptorPool = m_DescriptorPool;
 			alloc_info.descriptorSetCount = 1;
 			alloc_info.pSetLayouts = &m_DescriptorSetLayout;
-			CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetVulkanDevice(), &alloc_info, &descriptor_set));
+			CHECK_VK_RESULT(vkAllocateDescriptorSets(device->GetVulkanDevice(), &alloc_info, &descriptor_set));
 		}
 
 		// Update the Descriptor Set:s
@@ -663,7 +669,7 @@ namespace plumbus
 			write_desc[0].descriptorCount = 1;
 			write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			write_desc[0].pImageInfo = desc_image;
-			vkUpdateDescriptorSets(m_Device->GetVulkanDevice(), 1, write_desc, 0, NULL);
+			vkUpdateDescriptorSets(device->GetVulkanDevice(), 1, write_desc, 0, NULL);
 		}
 
 		return descriptor_set;

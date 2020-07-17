@@ -65,24 +65,11 @@ namespace plumbus::vk
 {
     void VulkanRenderer::InitVulkan()
     {
-		const std::vector<const char*> validationLayers =
-		{
-			"VK_LAYER_KHRONOS_validation",
-			"VK_LAYER_RENDERDOC_Capture"
-		};
-
-        m_Instance = Instance::CreateInstance("PlumbusEngine", 1, validationLayers, GetRequiredInstanceExtensions());
+        m_Instance = Instance::CreateInstance("PlumbusEngine", 1, GetRequiredValidationLayers(), GetRequiredInstanceExtensions());
         SetupDebugCallback();
 		GetVulkanWindow()->CreateSurface();
-
-        m_Device = new vk::Device();
-        m_Device->CreateLogicalDevice(GetRequiredDeviceExtensions(), validationLayers, true);
-
-        vkGetDeviceQueue(m_Device->GetVulkanDevice(), m_Device->GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);
-        vkGetDeviceQueue(m_Device->GetVulkanDevice(), m_Device->GetQueueFamilyIndices().m_PresentFamily, 0, &m_PresentQueue);
-
-        CreateSwapChain();
-        CreateImageViews();
+        m_Device = Device::CreateDevice();
+        m_SwapChain = SwapChain::CreateSwapChain();
         CreateCommandBuffers();
         CreateRenderPass();
         CreatePipelineCache();
@@ -125,7 +112,7 @@ namespace plumbus::vk
     void VulkanRenderer::DrawFrame()
     {
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -155,32 +142,32 @@ namespace plumbus::vk
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        CHECK_VK_RESULT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+        CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
         submitInfo.pWaitSemaphores = &m_OffscreenSemaphore;
         submitInfo.pSignalSemaphores = &m_OutputSemaphore;
 
         submitInfo.pCommandBuffers = &m_OutputCmdBuffer;
-        CHECK_VK_RESULT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+        CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
         submitInfo.pWaitSemaphores = &m_OutputSemaphore;
         submitInfo.pSignalSemaphores = &m_RenderFinishedSemaphore;
 
         submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
-        CHECK_VK_RESULT(vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+        CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
         VkPresentInfoKHR presentInfo = {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = &m_RenderFinishedSemaphore;
 
-        VkSwapchainKHR swapChains[] = { m_SwapChain };
+        VkSwapchainKHR swapChains[] = { m_SwapChain->GetVulkanSwapChain() };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr; // Optional
 
-        result = vkQueuePresentKHR(m_PresentQueue, &presentInfo);
+        result = vkQueuePresentKHR(GetDevice()->GetPresentQueue(), &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         {
@@ -191,7 +178,7 @@ namespace plumbus::vk
             Log::Fatal("failed to present swap chain image!");
         }
 
-		vkQueueWaitIdle(m_PresentQueue);
+		vkQueueWaitIdle(GetDevice()->GetPresentQueue());
 
         UpdateLightsUniformBuffer();
     }
@@ -281,7 +268,20 @@ namespace plumbus::vk
         vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_RenderPass, nullptr);
         vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_RenderPass, nullptr);
 
-        CleanupSwapChain();
+        m_SwapChain->CleanupSwapChain();
+
+		vkDestroyImageView(m_Device->GetVulkanDevice(), m_DepthImageView, nullptr);
+		vkDestroyImage(m_Device->GetVulkanDevice(), m_DepthImage, nullptr);
+		vkFreeMemory(m_Device->GetVulkanDevice(), m_DepthImageMemory, nullptr);
+
+		for (size_t i = 0; i < m_Framebuffers.size(); i++)
+		{
+			vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_Framebuffers[i], nullptr);
+		}
+
+		vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+		vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_RenderPass, nullptr);
+
         vkDestroyDescriptorPool(m_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
 
         for (auto& shaderModule : m_ShaderModules)
@@ -297,7 +297,7 @@ namespace plumbus::vk
         vkDestroySemaphore(m_Device->GetVulkanDevice(), m_RenderFinishedSemaphore, nullptr);
         vkDestroySemaphore(m_Device->GetVulkanDevice(), m_ImageAvailableSemaphore, nullptr);
 
-        delete m_Device;
+        m_Device.reset();
 
         DestroyDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), m_Callback, nullptr);
         vkDestroySurfaceKHR(m_Instance->GetVulkanInstance(), GetVulkanWindow()->GetSurface(), nullptr);
@@ -811,8 +811,8 @@ namespace plumbus::vk
         renderPassBeginInfo.renderPass = m_RenderPass;
         renderPassBeginInfo.renderArea.offset.x = 0;
         renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = m_SwapChainExtent.width;
-        renderPassBeginInfo.renderArea.extent.height = m_SwapChainExtent.height;
+        renderPassBeginInfo.renderArea.extent.width = m_SwapChain->GetSwapChainExtent().width;
+        renderPassBeginInfo.renderArea.extent.height = m_SwapChain->GetSwapChainExtent().height;
         renderPassBeginInfo.clearValueCount = 2;
         renderPassBeginInfo.pClearValues = clearValues;
 
@@ -939,16 +939,16 @@ namespace plumbus::vk
         vkCmdBindPipeline(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Output);
 
         VkViewport viewport{};
-        viewport.width = (float)m_SwapChainExtent.width;
-        viewport.height = (float)m_SwapChainExtent.height;
+        viewport.width = (float)m_SwapChain->GetSwapChainExtent().width;
+        viewport.height = (float)m_SwapChain->GetSwapChainExtent().height;
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
         vkCmdSetViewport(m_OutputCmdBuffer, 0, 1, &viewport);
 
         VkRect2D scissor{};
-        scissor.extent.width = m_SwapChainExtent.width;
-        scissor.extent.height = m_SwapChainExtent.height;
+        scissor.extent.width = m_SwapChain->GetSwapChainExtent().width;
+        scissor.extent.height = m_SwapChain->GetSwapChainExtent().height;
         scissor.offset.x = 0;
         scissor.offset.y = 0;
         vkCmdSetScissor(m_OutputCmdBuffer, 0, 1, &scissor);
@@ -967,123 +967,10 @@ namespace plumbus::vk
         CHECK_VK_RESULT(vkEndCommandBuffer(m_OutputCmdBuffer));
     }
 
-    void VulkanRenderer::CreateSwapChain()
-    {
-        Device::SwapChainSupportDetails swapChainSupport = m_Device->QuerySwapChainSupport(m_Device->GetPhysicalDevice());
-
-        VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.m_Formats);
-        VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.m_PresentModes);
-        VkExtent2D extent = ChooseSwapExtent(swapChainSupport.m_Capabilities);
-
-        uint32_t imageCount = swapChainSupport.m_Capabilities.minImageCount + 1;
-        if (swapChainSupport.m_Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.m_Capabilities.maxImageCount)
-        {
-            imageCount = swapChainSupport.m_Capabilities.maxImageCount;
-            Log::Info("Max image count: ", imageCount);
-        }
-
-        VkSwapchainCreateInfoKHR createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = GetVulkanWindow()->GetSurface();
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-        vk::Device::QueueFamilyIndices indices = m_Device->GetQueueFamilyIndices();
-        uint32_t queueFamilyIndices[] = { (uint32_t)indices.m_GraphicsFamily, (uint32_t)indices.m_PresentFamily };
-
-        if (indices.m_GraphicsFamily != indices.m_PresentFamily)
-        {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices;
-        }
-        else
-        {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0; // Optional
-            createInfo.pQueueFamilyIndices = nullptr; // Optional
-        }
-
-        createInfo.preTransform = swapChainSupport.m_Capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-        if (vkCreateSwapchainKHR(m_Device->GetVulkanDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
-        {
-            Log::Fatal("failed to create swap chain!");
-        }
-
-        vkGetSwapchainImagesKHR(m_Device->GetVulkanDevice(), m_SwapChain, &imageCount, nullptr);
-        m_SwapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_Device->GetVulkanDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
-        m_SwapChainImageFormat = surfaceFormat.format;
-        m_SwapChainExtent = extent;
-    }
-
-    void VulkanRenderer::RecreateSwapChain()
-    {
-        if (m_Window->GetWidth() == 0 || m_Window->GetHeight() == 0) 
-			return;
-
-        Log::Info("Recreating Swapchain: %i x %i", m_Window->GetWidth(), m_Window->GetHeight());
-
-		vkDeviceWaitIdle(m_Device->GetVulkanDevice());
-
-        CleanupSwapChain();
-
-		vkDeviceWaitIdle(m_Device->GetVulkanDevice());
-
-        CreateSwapChain();
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChainExtent.width), static_cast<float>(m_SwapChainExtent.height));
-        CreateImageViews();
-        CreateRenderPass();
-		CreateDepthResources();
-		CreateFrameBuffers();
-		CreateCommandBuffers();
-    }
-
-    void VulkanRenderer::CleanupSwapChain()
-    {
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_DepthImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_DepthImage, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_DepthImageMemory, nullptr);
-
-        for (size_t i = 0; i < m_Framebuffers.size(); i++)
-        {
-            vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_Framebuffers[i], nullptr);
-        }
-
-        vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
-        vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_RenderPass, nullptr);
-
-        for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
-        {
-            vkDestroyImageView(m_Device->GetVulkanDevice(), m_SwapChainImageViews[i], nullptr);
-        }
-
-        vkDestroySwapchainKHR(m_Device->GetVulkanDevice(), m_SwapChain, nullptr);
-    }
-
-    void VulkanRenderer::CreateImageViews()
-    {
-        m_SwapChainImageViews.resize(m_SwapChainImages.size());
-        for (size_t i = 0; i < m_SwapChainImages.size(); i++)
-        {
-            m_SwapChainImageViews[i] = ImageHelpers::CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-        }
-    }
-
     void VulkanRenderer::CreateRenderPass()
     {
         VkAttachmentDescription colorAttachment = {};
-        colorAttachment.format = m_SwapChainImageFormat;
+        colorAttachment.format = m_SwapChain->GetSwapChainImageFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1102,7 +989,6 @@ namespace plumbus::vk
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -1203,29 +1089,29 @@ namespace plumbus::vk
         frameBufferCreateInfo.renderPass = m_RenderPass;
         frameBufferCreateInfo.attachmentCount = 2;
         frameBufferCreateInfo.pAttachments = attachments;
-        frameBufferCreateInfo.width = m_SwapChainExtent.width;
-        frameBufferCreateInfo.height = m_SwapChainExtent.height;
+        frameBufferCreateInfo.width = m_SwapChain->GetSwapChainExtent().width;
+        frameBufferCreateInfo.height = m_SwapChain->GetSwapChainExtent().height;
         frameBufferCreateInfo.layers = 1;
 
         // Create frame buffers for every swap chain image
-        m_Framebuffers.resize(m_SwapChainImages.size());
+        m_Framebuffers.resize(m_SwapChain->GetImageViews().size());
         for (uint32_t i = 0; i < m_Framebuffers.size(); i++)
         {
-            attachments[0] = m_SwapChainImageViews[i];
+            attachments[0] = m_SwapChain->GetImageViews()[i];
             CHECK_VK_RESULT(vkCreateFramebuffer(m_Device->GetVulkanDevice(), &frameBufferCreateInfo, nullptr, &m_Framebuffers[i]));
         }
     }
 
     void VulkanRenderer::CreateCommandBuffers()
     {
-        m_CommandBuffers.resize(m_SwapChainImageViews.size());
+        m_CommandBuffers.resize(m_SwapChain->GetImageViews().size());
 
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         commandBufferAllocateInfo.commandPool = m_Device->GetCommandPool();
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        commandBufferAllocateInfo.commandBufferCount = (uint32_t)m_SwapChainImageViews.size();
+        commandBufferAllocateInfo.commandBufferCount = (uint32_t)m_SwapChain->GetImageViews().size();
 
         CHECK_VK_RESULT(vkAllocateCommandBuffers(m_Device->GetVulkanDevice(), &commandBufferAllocateInfo, m_CommandBuffers.data()));
     }
@@ -1246,16 +1132,16 @@ namespace plumbus::vk
 
     void VulkanRenderer::SetupImGui()
     {
-        m_ImGui = new ImGUIImpl(m_Device);
+        m_ImGui = new ImGUIImpl();
         m_ImGui->Init((float)WIDTH, (float)HEIGHT);
-        m_ImGui->InitResources(m_RenderPass, m_GraphicsQueue);
+        m_ImGui->InitResources(m_RenderPass, GetDevice()->GetGraphicsQueue());
     }
 
     void VulkanRenderer::CreateDepthResources()
     {
         VkFormat depthFormat = FindDepthFormat();
-        ImageHelpers::CreateImage(m_SwapChainExtent.width,
-            m_SwapChainExtent.height,
+        ImageHelpers::CreateImage(m_SwapChain->GetSwapChainExtent().width,
+            m_SwapChain->GetSwapChainExtent().height,
             depthFormat,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -1265,60 +1151,7 @@ namespace plumbus::vk
 
         m_DepthImageView = ImageHelpers::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        ImageHelpers::TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_GraphicsQueue);
-    }
-
-    VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-    {
-        if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
-        {
-            return { VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-        }
-
-        for (const auto& availableFormat : availableFormats)
-        {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            {
-                return availableFormat;
-            }
-        }
-
-        return availableFormats[0];
-    }
-
-    VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes)
-    {
-        return VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-        //standard double buffering.
-        VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
-
-        for (const auto& availablePresentMode : availablePresentModes)
-        {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-            {
-                //double buffering but the queue doesnt get blocked if we fill it up to fast unlike VK_PRESENT_MODE_FIFO_KHR
-                return availablePresentMode;
-            }
-            else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
-            {
-                //everything gets sent to screen straight away, not ideal but most widely supported, 
-                //this should be settings driven at some point.
-                bestMode = availablePresentMode;
-            }
-        }
-
-        return bestMode;
-    }
-
-    VkExtent2D VulkanRenderer::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
-    {
-		VkExtent2D actualExtent = { m_Window->GetWidth(), m_Window->GetHeight() };
-
-		actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-		actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
-
-		return actualExtent;
+        ImageHelpers::TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GetDevice()->GetGraphicsQueue());
     }
 
     VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage)
@@ -1391,6 +1224,28 @@ namespace plumbus::vk
 	plumbus::vk::VulkanRenderer* VulkanRenderer::Get()
 	{
         return static_cast<VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+	}
+
+	std::vector<const char*> VulkanRenderer::GetRequiredValidationLayers()
+	{
+		return 		
+		{
+			"VK_LAYER_KHRONOS_validation",
+			"VK_LAYER_RENDERDOC_Capture"
+		};
+	}
+
+	void VulkanRenderer::RecreateSwapChain()
+	{
+        m_SwapChain->RecreateSwapChain();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChain->GetSwapChainExtent().width), static_cast<float>(m_SwapChain->GetSwapChainExtent().height));
+
+		CreateRenderPass();
+		CreateDepthResources();
+		CreateFrameBuffers();
+		CreateCommandBuffers();
 	}
 
 }

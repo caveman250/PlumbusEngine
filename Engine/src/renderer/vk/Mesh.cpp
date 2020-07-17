@@ -91,7 +91,7 @@ namespace plumbus::vk
 		copyRegion.size = m_VulkanIndexBuffer.m_Size;
 		vkCmdCopyBuffer(copyCmd, indexStaging.m_Buffer, m_VulkanIndexBuffer.m_Buffer, 1, &copyRegion);
 
-		renderer->GetDevice()->FlushCommandBuffer(copyCmd, renderer->GetGraphicsQueue());
+		renderer->GetDevice()->FlushCommandBuffer(copyCmd, renderer->GetDevice()->GetGraphicsQueue());
 
 		// Destroy staging resources
 		vkDestroyBuffer(renderer->GetDevice()->GetVulkanDevice(), vertexStaging.m_Buffer, nullptr);
@@ -119,7 +119,7 @@ namespace plumbus::vk
 		{
 			vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
 			m_Material->Setup(&m_VertexLayout);
-			CreateUniformBuffer(vkRenderer->GetDevice());
+			CreateUniformBuffer(vkRenderer->GetDevice().get());
 			CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
 		}
 	}

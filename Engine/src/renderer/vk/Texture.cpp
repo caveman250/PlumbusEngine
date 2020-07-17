@@ -52,13 +52,13 @@ namespace plumbus::vk
 		VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
 		VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		VkQueue queue = VulkanRenderer::Get()->GetGraphicsQueue();
+		VkQueue queue = VulkanRenderer::Get()->GetDevice()->GetGraphicsQueue();
 
 		gli::texture2d tex2D(gli::load(filename.c_str()));
 
 		PLUMBUS_ASSERT(!tex2D.empty());
 
-		vk::Device* device = VulkanRenderer::Get()->GetDevice();
+		std::shared_ptr<vk::Device> device = VulkanRenderer::Get()->GetDevice();
 
 		uint32_t width = static_cast<uint32_t>(tex2D[0].extent().x);
 		uint32_t height = static_cast<uint32_t>(tex2D[0].extent().y);

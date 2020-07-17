@@ -6,6 +6,7 @@
 #include "renderer/vk/Device.h"
 #include "renderer/vk/FrameBuffer.h"
 #include "renderer/vk/Window.h"
+#include "renderer/vk/SwapChain.h"
 
 namespace plumbus
 {
@@ -84,19 +85,19 @@ namespace plumbus
 			virtual void OnModelRemovedFromScene() override;
 
 			std::shared_ptr<vk::Instance> GetInstance() { return m_Instance; }
-			vk::Device* GetDevice() { return m_Device; }
+			std::shared_ptr<vk::Device> GetDevice() { return m_Device; }
+			std::shared_ptr<SwapChain> GetSwapChain() { return m_SwapChain; }
 
 			vk::Window* GetVulkanWindow() { return static_cast<vk::Window*>(m_Window); }
 
 			VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
-			VkExtent2D& GetSwapChainExtent() { return m_SwapChainExtent; }
 			VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
 			GLFWwindow* GetWindow() { return static_cast<vk::Window*>(m_Window)->GetWindow(); }
 			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
-			VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
 
 			std::vector<const char*> GetRequiredDeviceExtensions();
 			std::vector<const char*> GetRequiredInstanceExtensions();
+			std::vector<const char*> GetRequiredValidationLayers();
 
 			VkDescriptorSetAllocateInfo GetDescriptorSetAllocateInfo();
 
@@ -113,9 +114,6 @@ namespace plumbus
 		private:
 			void InitVulkan();
 			void SetupDebugCallback();
-			void PickPhysicalDevice();
-			bool IsDeviceSuitable(VkPhysicalDevice device);
-			bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 			void CreatePipelineCache();
 			void GenerateQuads();
 			
@@ -128,10 +126,7 @@ namespace plumbus
 			void BuildImguiCommandBuffer(int index);
 			void BuildDefferedCommandBuffer();
 			void BuildOutputFrameBuffer();
-			void CreateSwapChain();
 			void RecreateSwapChain();
-			void CleanupSwapChain();
-			void CreateImageViews();
 			void CreateRenderPass();
 			void UpdateUniformBuffersScreen();
 			void UpdateLightsUniformBuffer();
@@ -144,22 +139,14 @@ namespace plumbus
 			static void OnWindowResized(GLFWwindow* window, int width, int height);
 
 			VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-			VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-			VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
-			VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-			std::shared_ptr<vk::Instance> m_Instance;
+			std::shared_ptr<Instance> m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
-			vk::Device* m_Device;
-			VkQueue m_GraphicsQueue;
-			VkQueue m_PresentQueue;
-			VkSwapchainKHR m_SwapChain;
-			std::vector<VkImage> m_SwapChainImages;
-			VkFormat m_SwapChainImageFormat;
-			VkExtent2D m_SwapChainExtent;
-			std::vector<VkImageView> m_SwapChainImageViews;
+			std::shared_ptr<Device> m_Device;
+			std::shared_ptr<SwapChain> m_SwapChain;
+			
 			VkRenderPass m_RenderPass;
 			VkDescriptorPool m_DescriptorPool;
 			VkDescriptorSetLayout m_DescriptorSetLayout;

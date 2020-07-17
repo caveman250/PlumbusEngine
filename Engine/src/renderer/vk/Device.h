@@ -26,6 +26,7 @@ namespace plumbus::vk
 			std::vector<VkPresentModeKHR> m_PresentModes;
 		};
 
+		static std::shared_ptr<Device> CreateDevice();
 		Device();
 		~Device();
 
@@ -33,6 +34,8 @@ namespace plumbus::vk
 		VkDevice GetVulkanDevice() { return m_Device; }
 		VkPhysicalDevice GetPhysicalDevice() { return m_PhysicalDevice; }
 		VkCommandPool GetCommandPool() { return m_CommandPool; }
+		VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
+		VkQueue GetPresentQueue() { return m_PresentQueue; }
 
 		void CreateLogicalDevice(std::vector<const char*> deviceExtensions, const std::vector<const char*> validationLayers, bool enableValidationLayers);
 		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
@@ -45,6 +48,7 @@ namespace plumbus::vk
 		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
 	private:
+
 		void PickPhysicalDevice();
 		bool IsDeviceSuitable(VkPhysicalDevice device);
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
@@ -54,5 +58,7 @@ namespace plumbus::vk
 		QueueFamilyIndices m_Indices;
 		VkSurfaceKHR m_Surface;
 		VkCommandPool m_CommandPool;
+		VkQueue m_GraphicsQueue;
+		VkQueue m_PresentQueue;
 	};
 }

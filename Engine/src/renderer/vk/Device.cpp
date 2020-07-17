@@ -7,10 +7,19 @@
 
 namespace plumbus::vk
 {
+	std::shared_ptr<plumbus::vk::Device> Device::CreateDevice()
+	{
+		return std::make_shared<Device>();
+	}
+
+
 	Device::Device()
 	{
 		m_Surface = VulkanRenderer::Get()->GetVulkanWindow()->GetSurface();
 		PickPhysicalDevice();
+		CreateLogicalDevice(VulkanRenderer::Get()->GetRequiredDeviceExtensions(), VulkanRenderer::Get()->GetRequiredValidationLayers(), true);
+		vkGetDeviceQueue(m_Device, GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);
+		vkGetDeviceQueue(m_Device, GetQueueFamilyIndices().m_PresentFamily, 0, &m_PresentQueue);
 	}
 
 	Device::~Device()
@@ -428,5 +437,4 @@ namespace plumbus::vk
 
 		return details;
 	}
-
 }
