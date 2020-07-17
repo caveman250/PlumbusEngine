@@ -74,9 +74,8 @@ namespace plumbus::vk
         m_Instance = Instance::CreateInstance("PlumbusEngine", 1, validationLayers, GetRequiredInstanceExtensions());
         SetupDebugCallback();
 		GetVulkanWindow()->CreateSurface();
-        PickPhysicalDevice();
 
-        m_Device = new vk::Device(m_PhysicalDevice, GetVulkanWindow()->GetSurface());
+        m_Device = new vk::Device();
         m_Device->CreateLogicalDevice(GetRequiredDeviceExtensions(), validationLayers, true);
 
         vkGetDeviceQueue(m_Device->GetVulkanDevice(), m_Device->GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);
@@ -111,110 +110,7 @@ namespace plumbus::vk
         BuildOutputFrameBuffer();
     }
 
-    void VulkanRenderer::PickPhysicalDevice()
-    {
-        uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(m_Instance->GetVulkanInstance(), &deviceCount, nullptr);
-
-        if (deviceCount == 0)
-        {
-            Log::Fatal("failed to find GPUs with Vulkan support!");
-        }
-
-        std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(m_Instance->GetVulkanInstance(), &deviceCount, devices.data());
-
-        Log::Info("Found %i device(s)", devices.size());
-        for (const auto& device : devices)
-        {
-            VkPhysicalDeviceProperties deviceProperties;
-            vkGetPhysicalDeviceProperties(device, &deviceProperties);
-            Log::Info(deviceProperties.deviceName);
-        }
-
-        for (const auto& device : devices)
-        {
-            if (IsDeviceSuitable(device))
-            {
-                m_PhysicalDevice = device;
-                break;
-            }
-        }
-
-        if (m_PhysicalDevice == VK_NULL_HANDLE)
-        {
-            Log::Fatal("failed to find a suitable GPU!");
-        }
-    }
-
-    bool VulkanRenderer::IsDeviceSuitable(VkPhysicalDevice device)
-    {
-        VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-        {
-            Log::Info("Device: %s Invalid! type is not a discrete gpu.", deviceProperties.deviceName);
-            return false;
-        }
-
-        VkPhysicalDeviceFeatures deviceFeatures;
-        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-        if (!deviceFeatures.geometryShader)
-        {
-            Log::Info("Device: %s Invalid! no geometry shader support.", deviceProperties.deviceName);
-            return false;
-        }
-
-        if (!CheckDeviceExtensionSupport(device))
-        {
-            Log::Info("Device: %s Invalid! missing required extension support", deviceProperties.deviceName);
-            return false;
-        }
-
-        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
-        if (swapChainSupport.m_Formats.empty() || swapChainSupport.m_PresentModes.empty())
-        {
-            Log::Info("Device: %s Invalid! missing swap chain support.", deviceProperties.deviceName);
-            return false;
-        }
-
-        VkPhysicalDeviceFeatures supportedFeatures;
-        vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-        if (!supportedFeatures.samplerAnisotropy)
-        {
-            Log::Info("Device: %s Invalid! missing missing Anisotropy sampler support.", deviceProperties.deviceName);
-            return false;
-        }
-
-        return true;
-    }
-
-    bool VulkanRenderer::CheckDeviceExtensionSupport(VkPhysicalDevice device)
-    {
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-
-        VkPhysicalDeviceProperties deviceProperties;
-        vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        Log::Info("Device: %s: Available extensions:", deviceProperties.deviceName);
-        for (VkExtensionProperties prop : availableExtensions)
-        {
-            Log::Info("\t %s", prop.extensionName);
-        }
-
-        std::vector<const char*> reqDeviceExtensions = GetRequiredDeviceExtensions();
-        std::set<std::string> requiredExtensions(reqDeviceExtensions.begin(), reqDeviceExtensions.end());
-        for (const auto& extension : availableExtensions)
-        {
-            requiredExtensions.erase(extension.extensionName);
-        }
-
-        return requiredExtensions.empty();
-    }
+   
 
     void VulkanRenderer::SetupDebugCallback()
     {
@@ -428,7 +324,7 @@ namespace plumbus::vk
         for (VkFormat format : candidates)
         {
             VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &props);
+            vkGetPhysicalDeviceFormatProperties(m_Device->GetPhysicalDevice(), format, &props);
 
             if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
             {
@@ -1073,7 +969,7 @@ namespace plumbus::vk
 
     void VulkanRenderer::CreateSwapChain()
     {
-        SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_PhysicalDevice);
+        Device::SwapChainSupportDetails swapChainSupport = m_Device->QuerySwapChainSupport(m_Device->GetPhysicalDevice());
 
         VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.m_Formats);
         VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.m_PresentModes);
@@ -1370,32 +1266,6 @@ namespace plumbus::vk
         m_DepthImageView = ImageHelpers::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
         ImageHelpers::TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, m_GraphicsQueue);
-    }
-
-    VulkanRenderer::SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device)
-    {
-        SwapChainSupportDetails details;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, GetVulkanWindow()->GetSurface(), &details.m_Capabilities);
-
-        uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, GetVulkanWindow()->GetSurface(), &formatCount, nullptr);
-
-        if (formatCount != 0)
-        {
-            details.m_Formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, GetVulkanWindow()->GetSurface(), &formatCount, details.m_Formats.data());
-        }
-
-        uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, GetVulkanWindow()->GetSurface(), &presentModeCount, nullptr);
-
-        if (presentModeCount != 0)
-        {
-            details.m_PresentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, GetVulkanWindow()->GetSurface(), &presentModeCount, details.m_PresentModes.data());
-        }
-
-        return details;
     }
 
     VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

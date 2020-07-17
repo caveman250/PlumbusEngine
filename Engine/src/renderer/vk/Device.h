@@ -19,7 +19,14 @@ namespace plumbus::vk
 			}
 		};
 
-		Device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+		struct SwapChainSupportDetails
+		{
+			VkSurfaceCapabilitiesKHR m_Capabilities;
+			std::vector<VkSurfaceFormatKHR> m_Formats;
+			std::vector<VkPresentModeKHR> m_PresentModes;
+		};
+
+		Device();
 		~Device();
 
 		QueueFamilyIndices GetQueueFamilyIndices() { return m_Indices; }
@@ -35,8 +42,13 @@ namespace plumbus::vk
 		VkCommandBuffer CreateCommandBuffer(bool begin = true);
 		void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue);
 		VkCommandPool CreateCommandPool();
+		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
 	private:
+		void PickPhysicalDevice();
+		bool IsDeviceSuitable(VkPhysicalDevice device);
+		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+
 		VkPhysicalDevice m_PhysicalDevice;
 		VkDevice m_Device;
 		QueueFamilyIndices m_Indices;

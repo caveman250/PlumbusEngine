@@ -19,13 +19,6 @@ namespace plumbus
 		class VulkanRenderer : public base::Renderer
 		{
 		private:
-			struct SwapChainSupportDetails
-			{
-				VkSurfaceCapabilitiesKHR m_Capabilities;
-				std::vector<VkSurfaceFormatKHR> m_Formats;
-				std::vector<VkPresentModeKHR> m_PresentModes;
-			};
-
 			struct UniformBuffers
 			{
 				vk::Buffer m_VertFullScreen;
@@ -102,6 +95,9 @@ namespace plumbus
 			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
 			VkQueue GetGraphicsQueue() { return m_GraphicsQueue; }
 
+			std::vector<const char*> GetRequiredDeviceExtensions();
+			std::vector<const char*> GetRequiredInstanceExtensions();
+
 			VkDescriptorSetAllocateInfo GetDescriptorSetAllocateInfo();
 
 			vk::FrameBuffer* GetOffscreenFramebuffer() { return m_OffscreenFrameBuffer; }
@@ -147,12 +143,7 @@ namespace plumbus
 
 			static void OnWindowResized(GLFWwindow* window, int width, int height);
 
-			std::vector<const char*> GetRequiredDeviceExtensions();
-			std::vector<const char*> GetRequiredInstanceExtensions();
-
 			VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-
-			SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 			VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 			VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
 			VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -162,7 +153,6 @@ namespace plumbus
 			std::shared_ptr<vk::Instance> m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
 			vk::Device* m_Device;
-			VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 			VkQueue m_GraphicsQueue;
 			VkQueue m_PresentQueue;
 			VkSwapchainKHR m_SwapChain;

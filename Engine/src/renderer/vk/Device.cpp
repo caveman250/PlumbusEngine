@@ -2,13 +2,15 @@
 #include "Device.h"
 #include "Helpers.h"
 #include "Buffer.h"
+#include "VulkanRenderer.h"
+#include "Instance.h"
 
 namespace plumbus::vk
 {
-	Device::Device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+	Device::Device()
 	{
-		m_PhysicalDevice = physicalDevice;
-		m_Surface = surface;
+		m_Surface = VulkanRenderer::Get()->GetVulkanWindow()->GetSurface();
+		PickPhysicalDevice();
 	}
 
 	Device::~Device()
@@ -289,6 +291,142 @@ namespace plumbus::vk
 		vkQueueWaitIdle(queue);
 
 		vkFreeCommandBuffers(m_Device, m_CommandPool, 1, &commandBuffer);
+	}
+
+	void Device::PickPhysicalDevice()
+	{
+		VulkanRenderer* renderer = VulkanRenderer::Get();
+		std::shared_ptr<Instance> instance = renderer->GetInstance();
+
+		uint32_t deviceCount = 0;
+		vkEnumeratePhysicalDevices(instance->GetVulkanInstance(), &deviceCount, nullptr);
+
+		if (deviceCount == 0)
+		{
+			Log::Fatal("failed to find GPUs with Vulkan support!");
+		}
+
+		std::vector<VkPhysicalDevice> devices(deviceCount);
+		vkEnumeratePhysicalDevices(instance->GetVulkanInstance(), &deviceCount, devices.data());
+
+		Log::Info("Found %i device(s)", devices.size());
+		for (const auto& device : devices)
+		{
+			VkPhysicalDeviceProperties deviceProperties;
+			vkGetPhysicalDeviceProperties(device, &deviceProperties);
+			Log::Info(deviceProperties.deviceName);
+		}
+
+		for (const auto& device : devices)
+		{
+			if (IsDeviceSuitable(device))
+			{
+				m_PhysicalDevice = device;
+				break;
+			}
+		}
+
+		if (m_PhysicalDevice == VK_NULL_HANDLE)
+		{
+			Log::Fatal("failed to find a suitable GPU!");
+		}
+	}
+
+	bool Device::IsDeviceSuitable(VkPhysicalDevice device)
+	{
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+		if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+		{
+			Log::Info("Device: %s Invalid! type is not a discrete gpu.", deviceProperties.deviceName);
+			return false;
+		}
+
+		VkPhysicalDeviceFeatures deviceFeatures;
+		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+		if (!deviceFeatures.geometryShader)
+		{
+			Log::Info("Device: %s Invalid! no geometry shader support.", deviceProperties.deviceName);
+			return false;
+		}
+
+		if (!CheckDeviceExtensionSupport(device))
+		{
+			Log::Info("Device: %s Invalid! missing required extension support", deviceProperties.deviceName);
+			return false;
+		}
+
+		SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
+		if (swapChainSupport.m_Formats.empty() || swapChainSupport.m_PresentModes.empty())
+		{
+			Log::Info("Device: %s Invalid! missing swap chain support.", deviceProperties.deviceName);
+			return false;
+		}
+
+		VkPhysicalDeviceFeatures supportedFeatures;
+		vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+		if (!supportedFeatures.samplerAnisotropy)
+		{
+			Log::Info("Device: %s Invalid! missing missing Anisotropy sampler support.", deviceProperties.deviceName);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device)
+	{
+		uint32_t extensionCount;
+		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+		Log::Info("Device: %s: Available extensions:", deviceProperties.deviceName);
+		for (VkExtensionProperties prop : availableExtensions)
+		{
+			Log::Info("\t %s", prop.extensionName);
+		}
+
+		std::vector<const char*> reqDeviceExtensions = VulkanRenderer::Get()->GetRequiredDeviceExtensions();
+		std::set<std::string> requiredExtensions(reqDeviceExtensions.begin(), reqDeviceExtensions.end());
+		for (const auto& extension : availableExtensions)
+		{
+			requiredExtensions.erase(extension.extensionName);
+		}
+
+		return requiredExtensions.empty();
+	}
+
+	Device::SwapChainSupportDetails Device::QuerySwapChainSupport(VkPhysicalDevice device)
+	{
+		VulkanRenderer* renderer = VulkanRenderer::Get();
+
+		SwapChainSupportDetails details;
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.m_Capabilities);
+
+		uint32_t formatCount;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, nullptr);
+
+		if (formatCount != 0)
+		{
+			details.m_Formats.resize(formatCount);
+			vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, details.m_Formats.data());
+		}
+
+		uint32_t presentModeCount;
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, nullptr);
+
+		if (presentModeCount != 0)
+		{
+			details.m_PresentModes.resize(presentModeCount);
+			vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, details.m_PresentModes.data());
+		}
+
+		return details;
 	}
 
 }
