@@ -10,7 +10,7 @@
 namespace plumbus::vk
 {
 	class Scene;
-	class VulkanDevice;
+	class Device;
 	class Mesh : public base::Mesh
 	{
 	public:
@@ -23,7 +23,7 @@ namespace plumbus::vk
 		void Setup(base::Renderer* renderer) override;
 		void SetMaterial(MaterialRef material) override;
 
-		void CreateUniformBuffer(vk::VulkanDevice* vulkanDevice);
+		void CreateUniformBuffer(vk::Device* vulkanDevice);
 		void CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
 		void SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout);
 

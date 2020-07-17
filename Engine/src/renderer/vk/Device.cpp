@@ -5,13 +5,13 @@
 
 namespace plumbus::vk
 {
-	VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+	Device::Device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 	{
 		m_PhysicalDevice = physicalDevice;
 		m_Surface = surface;
 	}
 
-	VulkanDevice::~VulkanDevice()
+	Device::~Device()
 	{
 		if (m_Device)
 		{
@@ -19,7 +19,7 @@ namespace plumbus::vk
 		}
 	}
 
-	uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+	uint32_t Device::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 	{
 		VkPhysicalDeviceMemoryProperties memProperties;
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memProperties);
@@ -36,7 +36,7 @@ namespace plumbus::vk
 		return -1;
 	}
 
-	VulkanDevice::QueueFamilyIndices VulkanDevice::FindQueueFamilies(VkPhysicalDevice device)
+	Device::QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice device)
 	{
 		QueueFamilyIndices indices;
 
@@ -83,7 +83,7 @@ namespace plumbus::vk
 		return indices;
 	}
 
-	void VulkanDevice::CreateLogicalDevice(std::vector<const char*> deviceExtensions, const std::vector<const char*> validationLayers, bool enableValidationLayers)
+	void Device::CreateLogicalDevice(std::vector<const char*> deviceExtensions, const std::vector<const char*> validationLayers, bool enableValidationLayers)
 	{
 		Log::Info("Create logical device.");
 		//find a valid queue family(s?)
@@ -140,7 +140,7 @@ namespace plumbus::vk
 		//i now have a logical device and a graphics queue  with vulkan wrappers (m_Device) (m_GraphicsQueue) that let me control them
 	}
 
-	VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data /*= nullptr*/)
+	VkResult Device::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vk::Buffer *buffer, VkDeviceSize size, void *data /*= nullptr*/)
 	{
 		buffer->m_Device = m_Device;
 
@@ -185,7 +185,7 @@ namespace plumbus::vk
 		return buffer->Bind();
 	}
 
-	VkResult VulkanDevice::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data /*= nullptr*/)
+	VkResult Device::CreateBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data /*= nullptr*/)
 	{
 		// Create the buffer handle
 		VkBufferCreateInfo bufferCreateInfo{};
@@ -234,7 +234,7 @@ namespace plumbus::vk
 		return VK_SUCCESS;
 	}
 
-	VkCommandPool VulkanDevice::CreateCommandPool()
+	VkCommandPool Device::CreateCommandPool()
 	{
 		QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);
 
@@ -253,7 +253,7 @@ namespace plumbus::vk
 		return commandPool;
 	}
 
-	VkCommandBuffer VulkanDevice::CreateCommandBuffer(bool begin)
+	VkCommandBuffer Device::CreateCommandBuffer(bool begin)
 	{
 		VkCommandBufferAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -276,7 +276,7 @@ namespace plumbus::vk
 		return commandBuffer;
 	}
 
-	void VulkanDevice::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue)
+	void Device::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue)
 	{
 		vkEndCommandBuffer(commandBuffer);
 

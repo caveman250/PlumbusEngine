@@ -2,6 +2,8 @@
 
 #include "renderer/vk/Window.h"
 #include "imgui_impl/Log.h"
+#include "VulkanRenderer.h"
+#include "Instance.h"
 
 namespace plumbus::vk
 {
@@ -16,9 +18,9 @@ namespace plumbus::vk
 		glfwSetWindowUserPointer(m_Window, this);
 	}
 
-	void Window::CreateSurface(VkInstance instance, VkSurfaceKHR* surface)
+	void Window::CreateSurface()
 	{
-		if (glfwCreateWindowSurface(instance, m_Window, nullptr, surface) != VK_SUCCESS)
+		if (glfwCreateWindowSurface(VulkanRenderer::Get()->GetInstance()->GetVulkanInstance(), m_Window, nullptr, &m_Surface) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to create window surface!");
 		}

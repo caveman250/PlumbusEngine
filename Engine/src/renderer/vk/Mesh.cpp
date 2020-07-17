@@ -36,8 +36,8 @@ namespace plumbus::vk
 
 	void Mesh::PostLoad()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
-		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
+		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
+		VkDevice device = renderer->GetDevice()->GetVulkanDevice();
 
 		uint32_t vBufferSize = static_cast<uint32_t>(m_VertexBuffer.size()) * sizeof(float);
 		uint32_t iBufferSize = static_cast<uint32_t>(m_IndexBuffer.size()) * sizeof(uint32_t);
@@ -47,7 +47,7 @@ namespace plumbus::vk
 		Buffer vertexStaging, indexStaging;
 
 		// Vertex buffer staging
-		if (renderer->GetVulkanDevice()->CreateBuffer(
+		if (renderer->GetDevice()->CreateBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&vertexStaging,
@@ -56,7 +56,7 @@ namespace plumbus::vk
 			Log::Fatal("failed to create vertex staging buffer");
 
 		// Index buffer staging
-		if (renderer->GetVulkanDevice()->CreateBuffer(
+		if (renderer->GetDevice()->CreateBuffer(
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&indexStaging,
@@ -65,7 +65,7 @@ namespace plumbus::vk
 			Log::Fatal("failed to create index staging buffer");
 		// Create device local target buffers
 		// Vertex buffer
-		if (renderer->GetVulkanDevice()->CreateBuffer(
+		if (renderer->GetDevice()->CreateBuffer(
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			&m_VulkanVertexBuffer,
@@ -73,7 +73,7 @@ namespace plumbus::vk
 			Log::Fatal("failed to create vertex buffer");
 
 		// Index buffer
-		if (renderer->GetVulkanDevice()->CreateBuffer(
+		if (renderer->GetDevice()->CreateBuffer(
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			&m_VulkanIndexBuffer,
@@ -81,7 +81,7 @@ namespace plumbus::vk
 			Log::Fatal("failed to create index buffer");
 
 		// Copy from staging buffers
-		VkCommandBuffer copyCmd = renderer->GetVulkanDevice()->CreateCommandBuffer();
+		VkCommandBuffer copyCmd = renderer->GetDevice()->CreateCommandBuffer();
 
 		VkBufferCopy copyRegion{};
 
@@ -91,19 +91,19 @@ namespace plumbus::vk
 		copyRegion.size = m_VulkanIndexBuffer.m_Size;
 		vkCmdCopyBuffer(copyCmd, indexStaging.m_Buffer, m_VulkanIndexBuffer.m_Buffer, 1, &copyRegion);
 
-		renderer->GetVulkanDevice()->FlushCommandBuffer(copyCmd, renderer->GetGraphicsQueue());
+		renderer->GetDevice()->FlushCommandBuffer(copyCmd, renderer->GetGraphicsQueue());
 
 		// Destroy staging resources
-		vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), vertexStaging.m_Buffer, nullptr);
-		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), vertexStaging.m_Memory, nullptr);
-		vkDestroyBuffer(renderer->GetVulkanDevice()->GetDevice(), indexStaging.m_Buffer, nullptr);
-		vkFreeMemory(renderer->GetVulkanDevice()->GetDevice(), indexStaging.m_Memory, nullptr);
+		vkDestroyBuffer(renderer->GetDevice()->GetVulkanDevice(), vertexStaging.m_Buffer, nullptr);
+		vkFreeMemory(renderer->GetDevice()->GetVulkanDevice(), vertexStaging.m_Memory, nullptr);
+		vkDestroyBuffer(renderer->GetDevice()->GetVulkanDevice(), indexStaging.m_Buffer, nullptr);
+		vkFreeMemory(renderer->GetDevice()->GetVulkanDevice(), indexStaging.m_Memory, nullptr);
 	}
 
 	void Mesh::Cleanup()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
-		VkDevice device = renderer->GetVulkanDevice()->GetDevice();
+		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
+		VkDevice device = renderer->GetDevice()->GetVulkanDevice();
 
 		m_UniformBuffer.Cleanup();
 		m_VulkanVertexBuffer.Cleanup();
@@ -119,7 +119,7 @@ namespace plumbus::vk
 		{
 			vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
 			m_Material->Setup(&m_VertexLayout);
-			CreateUniformBuffer(vkRenderer->GetVulkanDevice());
+			CreateUniformBuffer(vkRenderer->GetDevice());
 			CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
 		}
 	}
@@ -129,7 +129,7 @@ namespace plumbus::vk
 		memcpy(m_UniformBuffer.m_Mapped, &ubo, sizeof(ubo));
 	}
 
-	void Mesh::CreateUniformBuffer(VulkanDevice* vulkanDevice)
+	void Mesh::CreateUniformBuffer(Device* vulkanDevice)
 	{
 		CHECK_VK_RESULT(vulkanDevice->CreateBuffer(
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -142,7 +142,7 @@ namespace plumbus::vk
 
 	void Mesh::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
 	{
-		VkDevice device = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
 
 		CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_DescriptorSet));
 

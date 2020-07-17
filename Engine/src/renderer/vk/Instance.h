@@ -9,7 +9,7 @@ namespace plumbus::vk
 	public:
 		static std::shared_ptr<Instance> CreateInstance(const std::string& appName, uint32_t appVersion, const std::vector<const char*> enabledLayers, const std::vector<const char*> enabledExtensions);
 
-		VkInstance GetInstance() { return m_VulkanInstance; }
+		VkInstance GetVulkanInstance() { return m_VulkanInstance; }
 		void Destroy();
 
 	private:

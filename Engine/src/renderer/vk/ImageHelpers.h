@@ -10,7 +10,7 @@ namespace plumbus
 	public:
 		static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 		{
-			vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+			vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
 			VkImageCreateInfo imageInfo = {};
 			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -27,25 +27,25 @@ namespace plumbus
 			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-			if (vkCreateImage(renderer->GetVulkanDevice()->GetDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
+			if (vkCreateImage(renderer->GetDevice()->GetVulkanDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
 			{
 				Log::Fatal("failed to create image!");
 			}
 
 			VkMemoryRequirements memRequirements;
-			vkGetImageMemoryRequirements(renderer->GetVulkanDevice()->GetDevice(), image, &memRequirements);
+			vkGetImageMemoryRequirements(renderer->GetDevice()->GetVulkanDevice(), image, &memRequirements);
 
 			VkMemoryAllocateInfo allocInfo = {};
 			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocInfo.allocationSize = memRequirements.size;
-			allocInfo.memoryTypeIndex = renderer->GetVulkanDevice()->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			allocInfo.memoryTypeIndex = renderer->GetDevice()->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-			if (vkAllocateMemory(renderer->GetVulkanDevice()->GetDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+			if (vkAllocateMemory(renderer->GetDevice()->GetVulkanDevice(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
 			{
 				Log::Fatal("failed to allocate image memory!");
 			}
 
-			vkBindImageMemory(renderer->GetVulkanDevice()->GetDevice(), image, imageMemory, 0);
+			vkBindImageMemory(renderer->GetDevice()->GetVulkanDevice(), image, imageMemory, 0);
 		}
 
 		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
@@ -68,7 +68,7 @@ namespace plumbus
 			createInfo.subresourceRange.layerCount = 1;
 
 			VkImageView imageView;
-			if (vkCreateImageView(static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
+			if (vkCreateImageView(vk::VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
 			{
 				Log::Fatal("failed to create image views!");
 			}
@@ -225,9 +225,9 @@ namespace plumbus
 
 		static void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkQueue queue)
 		{
-			vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+			vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
-			VkCommandBuffer commandBuffer = renderer->GetVulkanDevice()->CreateCommandBuffer();
+			VkCommandBuffer commandBuffer = renderer->GetDevice()->CreateCommandBuffer();
 
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -298,13 +298,13 @@ namespace plumbus
 				1, &barrier
 			);
 
-			renderer->GetVulkanDevice()->FlushCommandBuffer(commandBuffer, queue);
+			renderer->GetDevice()->FlushCommandBuffer(commandBuffer, queue);
 		}
 
 		static void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkQueue queue)
 		{
-			vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
-			VkCommandBuffer commandBuffer = renderer->GetVulkanDevice()->CreateCommandBuffer();
+			vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
+			VkCommandBuffer commandBuffer = renderer->GetDevice()->CreateCommandBuffer();
 
 			VkBufferImageCopy region = {};
 			region.bufferOffset = 0;
@@ -332,7 +332,7 @@ namespace plumbus
 				&region
 			);
 
-			renderer->GetVulkanDevice()->FlushCommandBuffer(commandBuffer, queue);
+			renderer->GetDevice()->FlushCommandBuffer(commandBuffer, queue);
 		}
 	};
 }

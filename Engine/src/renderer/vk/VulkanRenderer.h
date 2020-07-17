@@ -77,6 +77,7 @@ namespace plumbus
 			};
 
 		public:
+			static VulkanRenderer* Get();
 
 			virtual void Init() override;
 			virtual void Cleanup() override;
@@ -89,7 +90,11 @@ namespace plumbus
 			virtual void OnModelAddedToScene() override;
 			virtual void OnModelRemovedFromScene() override;
 
-			vk::VulkanDevice* GetVulkanDevice() { return m_VulkanDevice; }
+			std::shared_ptr<vk::Instance> GetInstance() { return m_Instance; }
+			vk::Device* GetDevice() { return m_Device; }
+
+			vk::Window* GetVulkanWindow() { return static_cast<vk::Window*>(m_Window); }
+
 			VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
 			VkExtent2D& GetSwapChainExtent() { return m_SwapChainExtent; }
 			VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
@@ -156,10 +161,9 @@ namespace plumbus
 
 			std::shared_ptr<vk::Instance> m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
-			vk::VulkanDevice* m_VulkanDevice;
+			vk::Device* m_Device;
 			VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 			VkQueue m_GraphicsQueue;
-			VkSurfaceKHR m_Surface;
 			VkQueue m_PresentQueue;
 			VkSwapchainKHR m_SwapChain;
 			std::vector<VkImage> m_SwapChainImages;

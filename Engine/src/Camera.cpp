@@ -33,7 +33,7 @@ namespace plumbus
 		float deltaTime = (float)BaseApplication::Get().GetDeltaTime();
 
 #if VULKAN_RENDERER //TODO
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 		bool focused = BaseApplication::Get().m_GameWindowFocused;
 		bool mouseDown = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_1);
 		if (focused && mouseDown)

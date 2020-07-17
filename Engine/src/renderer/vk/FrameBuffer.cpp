@@ -43,18 +43,18 @@ namespace plumbus::vk
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		vk::VulkanDevice* device = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice();
+		vk::Device* device = VulkanRenderer::Get()->GetDevice();
 
 		VkMemoryAllocateInfo memAlloc{};
 		memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		VkMemoryRequirements memReqs;
 
-		CHECK_VK_RESULT(vkCreateImage(device->GetDevice(), &image, nullptr, &attachment.m_Image));
-		vkGetImageMemoryRequirements(device->GetDevice(), attachment.m_Image, &memReqs);
+		CHECK_VK_RESULT(vkCreateImage(device->GetVulkanDevice(), &image, nullptr, &attachment.m_Image));
+		vkGetImageMemoryRequirements(device->GetVulkanDevice(), attachment.m_Image, &memReqs);
 		memAlloc.allocationSize = memReqs.size;
 		memAlloc.memoryTypeIndex = device->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		CHECK_VK_RESULT(vkAllocateMemory(device->GetDevice(), &memAlloc, nullptr, &attachment.m_Memory));
-		CHECK_VK_RESULT(vkBindImageMemory(device->GetDevice(), attachment.m_Image, attachment.m_Memory, 0));
+		CHECK_VK_RESULT(vkAllocateMemory(device->GetVulkanDevice(), &memAlloc, nullptr, &attachment.m_Memory));
+		CHECK_VK_RESULT(vkBindImageMemory(device->GetVulkanDevice(), attachment.m_Image, attachment.m_Memory, 0));
 
 		VkImageViewCreateInfo imageView{};
 		imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -67,14 +67,14 @@ namespace plumbus::vk
 		imageView.subresourceRange.baseArrayLayer = 0;
 		imageView.subresourceRange.layerCount = 1;
 		imageView.image = attachment.m_Image;
-		CHECK_VK_RESULT(vkCreateImageView(device->GetDevice(), &imageView, nullptr, &attachment.m_ImageView));
+		CHECK_VK_RESULT(vkCreateImageView(device->GetVulkanDevice(), &imageView, nullptr, &attachment.m_ImageView));
 	}
 
 	void FrameBuffer::PrepareOffscreenFramebuffer()
 	{
-        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+        vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
-		vk::VulkanDevice* device = renderer->GetVulkanDevice();
+		vk::Device* device = renderer->GetDevice();
 
 		m_Width = renderer->GetSwapChainExtent().width;
 		m_Height = renderer->GetSwapChainExtent().height;
@@ -169,7 +169,7 @@ namespace plumbus::vk
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
 
-		CHECK_VK_RESULT(vkCreateRenderPass(device->GetDevice(), &renderPassInfo, nullptr, &m_RenderPass));
+		CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass));
 
 		std::array<VkImageView, 4> attachments;
 		attachments[0] = m_Attachments["position"].m_ImageView;
@@ -186,7 +186,7 @@ namespace plumbus::vk
 		fbufCreateInfo.width = m_Width;
 		fbufCreateInfo.height = m_Height;
 		fbufCreateInfo.layers = 1;
-		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetDevice(), &fbufCreateInfo, nullptr, &m_FrameBuffer));
+		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetVulkanDevice(), &fbufCreateInfo, nullptr, &m_FrameBuffer));
 
 		// Create sampler to sample from the color attachments
 		VkSamplerCreateInfo sampler{};
@@ -203,13 +203,13 @@ namespace plumbus::vk
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(device->GetDevice(), &sampler, nullptr, &m_ColourSampler));
+		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &sampler, nullptr, &m_ColourSampler));
 	}
 
 	void FrameBuffer::PrepareOutputFramebuffer()
 	{
-        vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
-		vk::VulkanDevice* device = renderer->GetVulkanDevice();
+        vk::VulkanRenderer* renderer = VulkanRenderer::Get();
+		vk::Device* device = renderer->GetDevice();
 
 		m_Width = renderer->GetSwapChainExtent().width;
 		m_Height = renderer->GetSwapChainExtent().height;
@@ -292,7 +292,7 @@ namespace plumbus::vk
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
 
-		CHECK_VK_RESULT(vkCreateRenderPass(device->GetDevice(), &renderPassInfo, nullptr, &m_RenderPass));
+		CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass));
 
 		std::array<VkImageView, 2> attachments;
 		attachments[0] = m_Attachments["colour"].m_ImageView;
@@ -307,7 +307,7 @@ namespace plumbus::vk
 		fbufCreateInfo.width = m_Width;
 		fbufCreateInfo.height = m_Height;
 		fbufCreateInfo.layers = 1;
-		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetDevice(), &fbufCreateInfo, nullptr, &m_FrameBuffer));
+		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetVulkanDevice(), &fbufCreateInfo, nullptr, &m_FrameBuffer));
 
 		// Create sampler to sample from the color attachments
 		VkSamplerCreateInfo sampler{};
@@ -324,7 +324,7 @@ namespace plumbus::vk
 		sampler.minLod = 0.0f;
 		sampler.maxLod = 1.0f;
 		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(device->GetDevice(), &sampler, nullptr, &m_ColourSampler));
+		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &sampler, nullptr, &m_ColourSampler));
 	}
 
 }

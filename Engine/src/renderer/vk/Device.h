@@ -5,7 +5,7 @@
 namespace plumbus::vk
 {
 	class Buffer;
-	class VulkanDevice
+	class Device
 	{
 	public:
 		struct QueueFamilyIndices
@@ -19,11 +19,11 @@ namespace plumbus::vk
 			}
 		};
 
-		VulkanDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-		~VulkanDevice();
+		Device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+		~Device();
 
 		QueueFamilyIndices GetQueueFamilyIndices() { return m_Indices; }
-		VkDevice GetDevice() { return m_Device; }
+		VkDevice GetVulkanDevice() { return m_Device; }
 		VkPhysicalDevice GetPhysicalDevice() { return m_PhysicalDevice; }
 		VkCommandPool GetCommandPool() { return m_CommandPool; }
 

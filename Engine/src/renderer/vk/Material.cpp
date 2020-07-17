@@ -32,11 +32,11 @@ namespace plumbus::vk
 
 	void Material::Destroy()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
-		vkDestroyDescriptorSetLayout(renderer->GetVulkanDevice()->GetDevice(), m_DescriptorSetLayout, nullptr);
-		vkDestroyPipeline(renderer->GetVulkanDevice()->GetDevice(), m_Pipeline, nullptr);
-		vkDestroyPipelineLayout(renderer->GetVulkanDevice()->GetDevice(), m_PipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(renderer->GetDevice()->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
+		vkDestroyPipeline(renderer->GetDevice()->GetVulkanDevice(), m_Pipeline, nullptr);
+		vkDestroyPipelineLayout(renderer->GetDevice()->GetVulkanDevice(), m_PipelineLayout, nullptr);
 	}
 
 	void Material::CreatePipelineLayout()
@@ -92,21 +92,21 @@ namespace plumbus::vk
 		descriptorLayout.pBindings = bindings.data();
 		descriptorLayout.bindingCount = static_cast<uint32_t>(bindings.size());
 
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
-		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(renderer->GetVulkanDevice()->GetDevice(), &descriptorLayout, nullptr, &m_DescriptorSetLayout));
+		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(renderer->GetDevice()->GetVulkanDevice(), &descriptorLayout, nullptr, &m_DescriptorSetLayout));
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
 		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
 
-		CHECK_VK_RESULT(vkCreatePipelineLayout(renderer->GetVulkanDevice()->GetDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(renderer->GetDevice()->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 	}
 
 	void Material::CreatePipeline()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
 		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -208,7 +208,7 @@ namespace plumbus::vk
 		colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
 		colorBlendState.pAttachments = blendAttachmentStates.data();
 
-		CHECK_VK_RESULT(vkCreateGraphicsPipelines(renderer->GetVulkanDevice()->GetDevice(), renderer->GetPipelineCache(), 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
+		CHECK_VK_RESULT(vkCreateGraphicsPipelines(renderer->GetDevice()->GetVulkanDevice(), renderer->GetPipelineCache(), 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
 	}
 
 	void Material::CreateVertexDescriptions()

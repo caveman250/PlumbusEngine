@@ -40,7 +40,7 @@ namespace plumbus::vk
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice()->GetDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
+		if (vkCreateSampler(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &samplerInfo, nullptr, &m_TextureSampler) != VK_SUCCESS)
 		{
 			Log::Error("failed to create texture sampler!");
 		}
@@ -52,13 +52,13 @@ namespace plumbus::vk
 		VkImageUsageFlags imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT;
 		VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		VkQueue queue = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetGraphicsQueue();
+		VkQueue queue = VulkanRenderer::Get()->GetGraphicsQueue();
 
 		gli::texture2d tex2D(gli::load(filename.c_str()));
 
 		PLUMBUS_ASSERT(!tex2D.empty());
 
-		vk::VulkanDevice* device = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice();
+		vk::Device* device = VulkanRenderer::Get()->GetDevice();
 
 		uint32_t width = static_cast<uint32_t>(tex2D[0].extent().x);
 		uint32_t height = static_cast<uint32_t>(tex2D[0].extent().y);
@@ -80,19 +80,19 @@ namespace plumbus::vk
 		bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		CHECK_VK_RESULT(vkCreateBuffer(device->GetDevice(), &bufferCreateInfo, nullptr, &stagingBuffer));
-		vkGetBufferMemoryRequirements(device->GetDevice(), stagingBuffer, &memReqs);
+		CHECK_VK_RESULT(vkCreateBuffer(device->GetVulkanDevice(), &bufferCreateInfo, nullptr, &stagingBuffer));
+		vkGetBufferMemoryRequirements(device->GetVulkanDevice(), stagingBuffer, &memReqs);
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex = device->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		CHECK_VK_RESULT(vkAllocateMemory(device->GetDevice(), &memAllocInfo, nullptr, &stagingMemory));
-		CHECK_VK_RESULT(vkBindBufferMemory(device->GetDevice(), stagingBuffer, stagingMemory, 0));
+		CHECK_VK_RESULT(vkAllocateMemory(device->GetVulkanDevice(), &memAllocInfo, nullptr, &stagingMemory));
+		CHECK_VK_RESULT(vkBindBufferMemory(device->GetVulkanDevice(), stagingBuffer, stagingMemory, 0));
 
 		// Copy texture data into staging buffer
 		uint8_t *data;
-		CHECK_VK_RESULT(vkMapMemory(device->GetDevice(), stagingMemory, 0, memReqs.size, 0, (void **)&data));
+		CHECK_VK_RESULT(vkMapMemory(device->GetVulkanDevice(), stagingMemory, 0, memReqs.size, 0, (void **)&data));
 		memcpy(data, tex2D.data(), tex2D.size());
-		vkUnmapMemory(device->GetDevice(), stagingMemory);
+		vkUnmapMemory(device->GetVulkanDevice(), stagingMemory);
 
 		// Setup copy regions for mip levels
 		std::vector<VkBufferImageCopy> bufferCopyRegions;
@@ -133,15 +133,15 @@ namespace plumbus::vk
 		{
 			imageCreateInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
-		CHECK_VK_RESULT(vkCreateImage(device->GetDevice(), &imageCreateInfo, nullptr, &m_Image));
+		CHECK_VK_RESULT(vkCreateImage(device->GetVulkanDevice(), &imageCreateInfo, nullptr, &m_Image));
 
-		vkGetImageMemoryRequirements(device->GetDevice(), m_Image, &memReqs);
+		vkGetImageMemoryRequirements(device->GetVulkanDevice(), m_Image, &memReqs);
 
 		memAllocInfo.allocationSize = memReqs.size;
 
 		memAllocInfo.memoryTypeIndex = device->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		CHECK_VK_RESULT(vkAllocateMemory(device->GetDevice(), &memAllocInfo, nullptr, &m_ImageMemory));
-		CHECK_VK_RESULT(vkBindImageMemory(device->GetDevice(), m_Image, m_ImageMemory, 0));
+		CHECK_VK_RESULT(vkAllocateMemory(device->GetVulkanDevice(), &memAllocInfo, nullptr, &m_ImageMemory));
+		CHECK_VK_RESULT(vkBindImageMemory(device->GetVulkanDevice(), m_Image, m_ImageMemory, 0));
 
 		VkImageSubresourceRange subresourceRange = {};
 		subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -163,8 +163,8 @@ namespace plumbus::vk
 		ImageHelpers::SetImageLayout(copyCmd, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, imageLayout, subresourceRange);
 
 		device->FlushCommandBuffer(copyCmd, queue);
-		vkFreeMemory(device->GetDevice(), stagingMemory, nullptr);
-		vkDestroyBuffer(device->GetDevice(), stagingBuffer, nullptr);
+		vkFreeMemory(device->GetVulkanDevice(), stagingMemory, nullptr);
+		vkDestroyBuffer(device->GetVulkanDevice(), stagingBuffer, nullptr);
 
 		m_ImageView = ImageHelpers::CreateImageView(m_Image, format, VK_IMAGE_ASPECT_COLOR_BIT);
 		CreateTextureSampler();
@@ -173,7 +173,7 @@ namespace plumbus::vk
 
 	void Texture::Cleanup()
 	{
-		VkDevice device = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->GetVulkanDevice()->GetDevice();
+		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
 
 		if(m_ImageView)
 			vkDestroyImageView(device, m_ImageView, nullptr);

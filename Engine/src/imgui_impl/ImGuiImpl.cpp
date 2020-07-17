@@ -10,7 +10,7 @@
 
 namespace plumbus
 {
-	ImGUIImpl::ImGUIImpl(vk::VulkanDevice* device)
+	ImGUIImpl::ImGUIImpl(vk::Device* device)
 	{
 		//ImGui::CreateContext();
 		m_Device = device;
@@ -21,15 +21,15 @@ namespace plumbus
 		// Release all Vulkan resources required for rendering imGui
 		m_VertexBuffer.Cleanup();
 		m_IndexBuffer.Cleanup();
-		vkDestroyImage(m_Device->GetDevice(), m_FontImage, nullptr);
-		vkDestroyImageView(m_Device->GetDevice(), m_FontView, nullptr);
-		vkFreeMemory(m_Device->GetDevice(), m_FontMemory, nullptr);
-		vkDestroySampler(m_Device->GetDevice(), m_Sampler, nullptr);
-		vkDestroyPipelineCache(m_Device->GetDevice(), m_PipelineCache, nullptr);
-		vkDestroyPipeline(m_Device->GetDevice(), m_Pipeline, nullptr);
-		vkDestroyPipelineLayout(m_Device->GetDevice(), m_PipelineLayout, nullptr);
-		vkDestroyDescriptorPool(m_Device->GetDevice(), m_DescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(m_Device->GetDevice(), m_DescriptorSetLayout, nullptr);
+		vkDestroyImage(m_Device->GetVulkanDevice(), m_FontImage, nullptr);
+		vkDestroyImageView(m_Device->GetVulkanDevice(), m_FontView, nullptr);
+		vkFreeMemory(m_Device->GetVulkanDevice(), m_FontMemory, nullptr);
+		vkDestroySampler(m_Device->GetVulkanDevice(), m_Sampler, nullptr);
+		vkDestroyPipelineCache(m_Device->GetVulkanDevice(), m_PipelineCache, nullptr);
+		vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipeline, nullptr);
+		vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayout, nullptr);
+		vkDestroyDescriptorPool(m_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(m_Device->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
 	}
 
 	void ImGUIImpl::Init(float width, float height)
@@ -60,7 +60,7 @@ namespace plumbus
 		io.KeyMap[ImGuiKey_Delete] = GLFW_KEY_DELETE;
 		io.KeyMap[ImGuiKey_Backspace] = GLFW_KEY_BACKSPACE;
 
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
 		glfwSetScrollCallback(renderer->GetWindow(), OnMouseScolled);
 		glfwSetKeyCallback(renderer->GetWindow(), OnKeyDown);
@@ -92,15 +92,15 @@ namespace plumbus
 		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		CHECK_VK_RESULT(vkCreateImage(m_Device->GetDevice(), &imageInfo, nullptr, &m_FontImage));
+		CHECK_VK_RESULT(vkCreateImage(m_Device->GetVulkanDevice(), &imageInfo, nullptr, &m_FontImage));
 		VkMemoryRequirements memReqs;
-		vkGetImageMemoryRequirements(m_Device->GetDevice(), m_FontImage, &memReqs);
+		vkGetImageMemoryRequirements(m_Device->GetVulkanDevice(), m_FontImage, &memReqs);
 		VkMemoryAllocateInfo memAllocInfo{};
 		memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex = m_Device->FindMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		CHECK_VK_RESULT(vkAllocateMemory(m_Device->GetDevice(), &memAllocInfo, nullptr, &m_FontMemory));
-		CHECK_VK_RESULT(vkBindImageMemory(m_Device->GetDevice(), m_FontImage, m_FontMemory, 0));
+		CHECK_VK_RESULT(vkAllocateMemory(m_Device->GetVulkanDevice(), &memAllocInfo, nullptr, &m_FontMemory));
+		CHECK_VK_RESULT(vkBindImageMemory(m_Device->GetVulkanDevice(), m_FontImage, m_FontMemory, 0));
 
 		// Image view
 		VkImageViewCreateInfo viewInfo{};
@@ -111,7 +111,7 @@ namespace plumbus
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.layerCount = 1;
-		CHECK_VK_RESULT(vkCreateImageView(m_Device->GetDevice(), &viewInfo, nullptr, &m_FontView));
+		CHECK_VK_RESULT(vkCreateImageView(m_Device->GetVulkanDevice(), &viewInfo, nullptr, &m_FontView));
 
 		// Staging buffers for font data upload
 		vk::Buffer stagingBuffer;
@@ -181,7 +181,7 @@ namespace plumbus
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(m_Device->GetDevice(), &samplerInfo, nullptr, &m_Sampler));
+		CHECK_VK_RESULT(vkCreateSampler(m_Device->GetVulkanDevice(), &samplerInfo, nullptr, &m_Sampler));
 
 		VkDescriptorPoolSize descriptorPoolSize{};
 		descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -197,7 +197,7 @@ namespace plumbus
 		descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		descriptorPoolInfo.pPoolSizes = poolSizes.data();
 		descriptorPoolInfo.maxSets = 5;
-		CHECK_VK_RESULT(vkCreateDescriptorPool(m_Device->GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
+		CHECK_VK_RESULT(vkCreateDescriptorPool(m_Device->GetVulkanDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 
 		// Descriptor set layout
 		VkDescriptorSetLayoutBinding setLayoutBinding{};
@@ -215,7 +215,7 @@ namespace plumbus
 		descriptorSetLayoutCreateInfo.pBindings = setLayoutBindings.data();
 		descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 
-		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_Device->GetDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_DescriptorSetLayout));
+		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_Device->GetVulkanDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_DescriptorSetLayout));
 
 		// Descriptor set
 		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
@@ -224,7 +224,7 @@ namespace plumbus
 		descriptorSetAllocateInfo.pSetLayouts = &m_DescriptorSetLayout;
 		descriptorSetAllocateInfo.descriptorSetCount = 1;
 
-		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetDevice(), &descriptorSetAllocateInfo, &m_DescriptorSet));
+		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetVulkanDevice(), &descriptorSetAllocateInfo, &m_DescriptorSet));
 
 		VkDescriptorImageInfo descriptorImageInfo{};
 		descriptorImageInfo.sampler = m_Sampler;
@@ -243,12 +243,12 @@ namespace plumbus
 		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 			writeDescriptorSet
 		};
-		vkUpdateDescriptorSets(m_Device->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		vkUpdateDescriptorSets(m_Device->GetVulkanDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		CHECK_VK_RESULT(vkCreatePipelineCache(m_Device->GetDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+		CHECK_VK_RESULT(vkCreatePipelineCache(m_Device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 
 		// Pipeline layout
 		// Push constants for UI rendering parameters
@@ -263,7 +263,7 @@ namespace plumbus
 		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 
 		// Setup graphics pipeline for UI rendering
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
@@ -394,17 +394,17 @@ namespace plumbus
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer())->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		shaderStages[0] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[1] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		io.Fonts->TexID = (void*)m_DescriptorSet;
 
-		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
+		CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
 	}
 
 	void ImGUIImpl::NewFrame()
 	{
-		vk::VulkanRenderer* renderer = static_cast<vk::VulkanRenderer*>(BaseApplication::Get().GetRenderer());
+		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
 		if (m_GameViewTextureDescSet == VK_NULL_HANDLE)
 			m_GameViewTextureDescSet = AddTexture(renderer->m_OutputTexture.m_TextureSampler, renderer->m_OutputTexture.m_ImageView);
@@ -648,7 +648,7 @@ namespace plumbus
 			alloc_info.descriptorPool = m_DescriptorPool;
 			alloc_info.descriptorSetCount = 1;
 			alloc_info.pSetLayouts = &m_DescriptorSetLayout;
-			CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetDevice(), &alloc_info, &descriptor_set));
+			CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetVulkanDevice(), &alloc_info, &descriptor_set));
 		}
 
 		// Update the Descriptor Set:s
@@ -663,7 +663,7 @@ namespace plumbus
 			write_desc[0].descriptorCount = 1;
 			write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			write_desc[0].pImageInfo = desc_image;
-			vkUpdateDescriptorSets(m_Device->GetDevice(), 1, write_desc, 0, NULL);
+			vkUpdateDescriptorSets(m_Device->GetVulkanDevice(), 1, write_desc, 0, NULL);
 		}
 
 		return descriptor_set;

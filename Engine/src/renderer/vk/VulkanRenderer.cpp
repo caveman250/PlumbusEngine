@@ -73,14 +73,14 @@ namespace plumbus::vk
 
         m_Instance = Instance::CreateInstance("PlumbusEngine", 1, validationLayers, GetRequiredInstanceExtensions());
         SetupDebugCallback();
-		static_cast<vk::Window*>(m_Window)->CreateSurface(m_Instance->GetInstance(), &m_Surface);
+		GetVulkanWindow()->CreateSurface();
         PickPhysicalDevice();
-        //Create the vulkan "side" of the device, what we use to speak to it and control it.
-        m_VulkanDevice = new vk::VulkanDevice(m_PhysicalDevice, m_Surface);
-        m_VulkanDevice->CreateLogicalDevice(GetRequiredDeviceExtensions(), validationLayers, true);
 
-        vkGetDeviceQueue(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);
-        vkGetDeviceQueue(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetQueueFamilyIndices().m_PresentFamily, 0, &m_PresentQueue);
+        m_Device = new vk::Device(m_PhysicalDevice, GetVulkanWindow()->GetSurface());
+        m_Device->CreateLogicalDevice(GetRequiredDeviceExtensions(), validationLayers, true);
+
+        vkGetDeviceQueue(m_Device->GetVulkanDevice(), m_Device->GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);
+        vkGetDeviceQueue(m_Device->GetVulkanDevice(), m_Device->GetQueueFamilyIndices().m_PresentFamily, 0, &m_PresentQueue);
 
         CreateSwapChain();
         CreateImageViews();
@@ -106,19 +106,15 @@ namespace plumbus::vk
         SetupImGui();
         m_OutputTexture.CreateTextureSampler();
         m_OutputTexture.m_ImageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
-        //BuildCommandBuffers();
 
         BuildDefferedCommandBuffer();
         BuildOutputFrameBuffer();
-
-		//BaseApplication::Get().GetScene()->LoadAssets();
-
     }
 
     void VulkanRenderer::PickPhysicalDevice()
     {
         uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(m_Instance->GetInstance(), &deviceCount, nullptr);
+        vkEnumeratePhysicalDevices(m_Instance->GetVulkanInstance(), &deviceCount, nullptr);
 
         if (deviceCount == 0)
         {
@@ -126,7 +122,7 @@ namespace plumbus::vk
         }
 
         std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(m_Instance->GetInstance(), &deviceCount, devices.data());
+        vkEnumeratePhysicalDevices(m_Instance->GetVulkanInstance(), &deviceCount, devices.data());
 
         Log::Info("Found %i device(s)", devices.size());
         for (const auto& device : devices)
@@ -227,13 +223,13 @@ namespace plumbus::vk
         createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
         createInfo.pfnCallback = debugCallback;
 
-        CHECK_VK_RESULT(CreateDebugReportCallbackEXT(m_Instance->GetInstance(), &createInfo, nullptr, &m_Callback));
+        CHECK_VK_RESULT(CreateDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), &createInfo, nullptr, &m_Callback));
     }
 
     void VulkanRenderer::DrawFrame()
     {
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_VulkanDevice->GetDevice(), m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -311,7 +307,7 @@ namespace plumbus::vk
 
     void VulkanRenderer::AwaitIdle()
     {
-        vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
+        vkDeviceWaitIdle(m_Device->GetVulkanDevice());
     }
 
     void VulkanRenderer::Init()
@@ -327,46 +323,46 @@ namespace plumbus::vk
     void VulkanRenderer::Cleanup()
     {
         // Color attachments
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_ImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Image, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Memory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_ImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Image, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Memory, nullptr);
 
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_ImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Image, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Memory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_ImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Image, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Memory, nullptr);
 
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
 
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
 
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
 
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
 
-        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_ColourSampler, nullptr);
-        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OutputTexture.m_TextureSampler, nullptr);
+        vkDestroySampler(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_ColourSampler, nullptr);
+        vkDestroySampler(m_Device->GetVulkanDevice(), m_OutputTexture.m_TextureSampler, nullptr);
         Log::Info("Destroyed Sampler 0x%x", &m_OffscreenFrameBuffer->m_ColourSampler);
         
-        vkDestroyFramebuffer(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_FrameBuffer, nullptr);
-        vkDestroySampler(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_ColourSampler, nullptr);
+        vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_FrameBuffer, nullptr);
+        vkDestroySampler(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_ColourSampler, nullptr);
         Log::Info("Destroyed Sampler 0x%x", &m_OutputFrameBuffer->m_ColourSampler);
-        vkDestroyFramebuffer(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_FrameBuffer, nullptr);
+        vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_FrameBuffer, nullptr);
 
-        vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Deferred, nullptr);
-        vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Deferred, nullptr);
-        vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Offscreen, nullptr);
-        vkDestroyPipelineLayout(m_VulkanDevice->GetDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
-        vkDestroyPipeline(m_VulkanDevice->GetDevice(), m_Pipelines.m_Output, nullptr);
+        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Deferred, nullptr);
+        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Deferred, nullptr);
+        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Offscreen, nullptr);
+        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
+        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Output, nullptr);
 
-        vkDestroyDescriptorSetLayout(m_VulkanDevice->GetDevice(), m_DescriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(m_Device->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -383,32 +379,32 @@ namespace plumbus::vk
 
         delete m_ImGui;
 
-        vkFreeCommandBuffers(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), 1, &m_OffScreenCmdBuffer);
-        vkFreeCommandBuffers(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), 1, &m_OutputCmdBuffer);
+        vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), 1, &m_OffScreenCmdBuffer);
+        vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), 1, &m_OutputCmdBuffer);
 
-        vkDestroyRenderPass(m_VulkanDevice->GetDevice(), m_OffscreenFrameBuffer->m_RenderPass, nullptr);
-        vkDestroyRenderPass(m_VulkanDevice->GetDevice(), m_OutputFrameBuffer->m_RenderPass, nullptr);
+        vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_RenderPass, nullptr);
+        vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_RenderPass, nullptr);
 
         CleanupSwapChain();
-        vkDestroyDescriptorPool(m_VulkanDevice->GetDevice(), m_DescriptorPool, nullptr);
+        vkDestroyDescriptorPool(m_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
 
         for (auto& shaderModule : m_ShaderModules)
         {
-            vkDestroyShaderModule(m_VulkanDevice->GetDevice(), shaderModule, nullptr);
+            vkDestroyShaderModule(m_Device->GetVulkanDevice(), shaderModule, nullptr);
         }
 
-        vkDestroyPipelineCache(m_VulkanDevice->GetDevice(), m_PipelineCache, nullptr);
-        vkDestroyCommandPool(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), nullptr);
+        vkDestroyPipelineCache(m_Device->GetVulkanDevice(), m_PipelineCache, nullptr);
+        vkDestroyCommandPool(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), nullptr);
 
-        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_OutputSemaphore, nullptr);
-        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_OffscreenSemaphore, nullptr);
-        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_RenderFinishedSemaphore, nullptr);
-        vkDestroySemaphore(m_VulkanDevice->GetDevice(), m_ImageAvailableSemaphore, nullptr);
+        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_OutputSemaphore, nullptr);
+        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_OffscreenSemaphore, nullptr);
+        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_RenderFinishedSemaphore, nullptr);
+        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_ImageAvailableSemaphore, nullptr);
 
-        delete m_VulkanDevice;
+        delete m_Device;
 
-        DestroyDebugReportCallbackEXT(m_Instance->GetInstance(), m_Callback, nullptr);
-        vkDestroySurfaceKHR(m_Instance->GetInstance(), m_Surface, nullptr);
+        DestroyDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), m_Callback, nullptr);
+        vkDestroySurfaceKHR(m_Instance->GetVulkanInstance(), GetVulkanWindow()->GetSurface(), nullptr);
         
         m_Instance->Destroy();
     }
@@ -416,7 +412,7 @@ namespace plumbus::vk
     void VulkanRenderer::OnWindowResized(GLFWwindow* window, int width, int height)
     {
         BaseApplication* app = reinterpret_cast<BaseApplication*>(glfwGetWindowUserPointer(window));
-        static_cast<vk::VulkanRenderer*>(app->GetRenderer())->RecreateSwapChain();
+        VulkanRenderer::Get()->RecreateSwapChain();
     }
 
     VkFormat VulkanRenderer::FindDepthFormat()
@@ -465,7 +461,7 @@ namespace plumbus::vk
     {
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        CHECK_VK_RESULT(vkCreatePipelineCache(m_VulkanDevice->GetDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+        CHECK_VK_RESULT(vkCreatePipelineCache(m_Device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
     }
 
     void VulkanRenderer::GenerateQuads()
@@ -497,7 +493,7 @@ namespace plumbus::vk
             }
         }
 
-        CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
+        CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &m_ScreenQuad.GetVertexBuffer(),
@@ -518,7 +514,7 @@ namespace plumbus::vk
 
         m_ScreenQuad.SetIndexSize((uint32_t)indexBuffer.size());
 
-        CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
+        CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &m_ScreenQuad.GetIndexBuffer(),
@@ -580,14 +576,14 @@ namespace plumbus::vk
     void VulkanRenderer::CreateUniformBuffers()
     {
         // Fullscreen vertex shader
-        CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
+        CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &m_UniformBuffers.m_VertFullScreen,
             sizeof(m_VertUBO)));
 
         // Deferred fragment shader
-        CHECK_VK_RESULT(m_VulkanDevice->CreateBuffer(
+        CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &m_UniformBuffers.m_FragLights,
@@ -654,17 +650,17 @@ namespace plumbus::vk
         descriptorLayout.pBindings = setLayoutBindings.data();
         descriptorLayout.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 
-        CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_VulkanDevice->GetDevice(), &descriptorLayout, nullptr, &m_DescriptorSetLayout));
+        CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_Device->GetVulkanDevice(), &descriptorLayout, nullptr, &m_DescriptorSetLayout));
 
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
         pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutCreateInfo.setLayoutCount = 1;
         pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
 
-        CHECK_VK_RESULT(vkCreatePipelineLayout(m_VulkanDevice->GetDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Deferred));
+        CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Deferred));
 
         // Offscreen (scene) rendering pipeline layout
-        CHECK_VK_RESULT(vkCreatePipelineLayout(m_VulkanDevice->GetDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Offscreen));
+        CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Offscreen));
     }
 
     void VulkanRenderer::CreatePipelines()
@@ -770,7 +766,7 @@ namespace plumbus::vk
         colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStatesOutput.size());
         colorBlendState.pAttachments = blendAttachmentStatesOutput.data();
 
-        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_VulkanDevice->GetDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Output));
+        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Output));
     }
 
     void VulkanRenderer::CreateDescriptorPool()
@@ -795,7 +791,7 @@ namespace plumbus::vk
         descriptorPoolInfo.pPoolSizes = poolSizes.data();
         descriptorPoolInfo.maxSets = 100; //TODO
 
-        CHECK_VK_RESULT(vkCreateDescriptorPool(m_VulkanDevice->GetDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
+        CHECK_VK_RESULT(vkCreateDescriptorPool(m_Device->GetVulkanDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
     }
 
     void VulkanRenderer::CreateDescriptorSet()
@@ -805,7 +801,7 @@ namespace plumbus::vk
         // Textured quad descriptor set
 	    VkDescriptorSetAllocateInfo allocInfo = GetDescriptorSetAllocateInfo();
 
-        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_VulkanDevice->GetDevice(), &allocInfo, &m_OutputDescriptorSet));
+        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetVulkanDevice(), &allocInfo, &m_OutputDescriptorSet));
 
         // Image descriptors for the offscreen color attachments
         VkDescriptorImageInfo texDescriptorPosition{};
@@ -901,7 +897,7 @@ namespace plumbus::vk
             //colourWriteSetOutput
         };
 
-        vkUpdateDescriptorSets(m_VulkanDevice->GetDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+        vkUpdateDescriptorSets(m_Device->GetVulkanDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 
     }
 
@@ -945,7 +941,7 @@ namespace plumbus::vk
     {
         if (m_OffScreenCmdBuffer == VK_NULL_HANDLE)
         {
-            m_OffScreenCmdBuffer = m_VulkanDevice->CreateCommandBuffer(false);
+            m_OffScreenCmdBuffer = m_Device->CreateCommandBuffer(false);
         }
 
         if(m_OffscreenSemaphore == VK_NULL_HANDLE)
@@ -953,7 +949,7 @@ namespace plumbus::vk
             // Create a semaphore used to synchronize offscreen rendering and usage
             VkSemaphoreCreateInfo semaphoreCreateInfo{};
             semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            CHECK_VK_RESULT(vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreCreateInfo, nullptr, &m_OffscreenSemaphore));
+            CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_OffscreenSemaphore));
         }
         VkCommandBufferBeginInfo cmdBufInfo{};
         cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1015,13 +1011,13 @@ namespace plumbus::vk
     {
         if (m_OutputCmdBuffer == VK_NULL_HANDLE)
         {
-            m_OutputCmdBuffer = m_VulkanDevice->CreateCommandBuffer(false);
+            m_OutputCmdBuffer = m_Device->CreateCommandBuffer(false);
         }
 
         // Create a semaphore used to synchronize offscreen rendering and usage
         VkSemaphoreCreateInfo semaphoreCreateInfo{};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        CHECK_VK_RESULT(vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreCreateInfo, nullptr, &m_OutputSemaphore));
+        CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_OutputSemaphore));
 
         VkCommandBufferBeginInfo cmdBufInfo{};
         cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1092,7 +1088,7 @@ namespace plumbus::vk
 
         VkSwapchainCreateInfoKHR createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = m_Surface;
+        createInfo.surface = GetVulkanWindow()->GetSurface();
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -1100,7 +1096,7 @@ namespace plumbus::vk
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-        vk::VulkanDevice::QueueFamilyIndices indices = m_VulkanDevice->GetQueueFamilyIndices();
+        vk::Device::QueueFamilyIndices indices = m_Device->GetQueueFamilyIndices();
         uint32_t queueFamilyIndices[] = { (uint32_t)indices.m_GraphicsFamily, (uint32_t)indices.m_PresentFamily };
 
         if (indices.m_GraphicsFamily != indices.m_PresentFamily)
@@ -1122,14 +1118,14 @@ namespace plumbus::vk
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (vkCreateSwapchainKHR(m_VulkanDevice->GetDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
+        if (vkCreateSwapchainKHR(m_Device->GetVulkanDevice(), &createInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
         {
             Log::Fatal("failed to create swap chain!");
         }
 
-        vkGetSwapchainImagesKHR(m_VulkanDevice->GetDevice(), m_SwapChain, &imageCount, nullptr);
+        vkGetSwapchainImagesKHR(m_Device->GetVulkanDevice(), m_SwapChain, &imageCount, nullptr);
         m_SwapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(m_VulkanDevice->GetDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
+        vkGetSwapchainImagesKHR(m_Device->GetVulkanDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
         m_SwapChainImageFormat = surfaceFormat.format;
         m_SwapChainExtent = extent;
     }
@@ -1141,11 +1137,11 @@ namespace plumbus::vk
 
         Log::Info("Recreating Swapchain: %i x %i", m_Window->GetWidth(), m_Window->GetHeight());
 
-		vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
+		vkDeviceWaitIdle(m_Device->GetVulkanDevice());
 
         CleanupSwapChain();
 
-		vkDeviceWaitIdle(m_VulkanDevice->GetDevice());
+		vkDeviceWaitIdle(m_Device->GetVulkanDevice());
 
         CreateSwapChain();
 		ImGuiIO& io = ImGui::GetIO();
@@ -1159,24 +1155,24 @@ namespace plumbus::vk
 
     void VulkanRenderer::CleanupSwapChain()
     {
-        vkDestroyImageView(m_VulkanDevice->GetDevice(), m_DepthImageView, nullptr);
-        vkDestroyImage(m_VulkanDevice->GetDevice(), m_DepthImage, nullptr);
-        vkFreeMemory(m_VulkanDevice->GetDevice(), m_DepthImageMemory, nullptr);
+        vkDestroyImageView(m_Device->GetVulkanDevice(), m_DepthImageView, nullptr);
+        vkDestroyImage(m_Device->GetVulkanDevice(), m_DepthImage, nullptr);
+        vkFreeMemory(m_Device->GetVulkanDevice(), m_DepthImageMemory, nullptr);
 
         for (size_t i = 0; i < m_Framebuffers.size(); i++)
         {
-            vkDestroyFramebuffer(m_VulkanDevice->GetDevice(), m_Framebuffers[i], nullptr);
+            vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_Framebuffers[i], nullptr);
         }
 
-        vkFreeCommandBuffers(m_VulkanDevice->GetDevice(), m_VulkanDevice->GetCommandPool(), static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
-        vkDestroyRenderPass(m_VulkanDevice->GetDevice(), m_RenderPass, nullptr);
+        vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
+        vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_RenderPass, nullptr);
 
         for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
         {
-            vkDestroyImageView(m_VulkanDevice->GetDevice(), m_SwapChainImageViews[i], nullptr);
+            vkDestroyImageView(m_Device->GetVulkanDevice(), m_SwapChainImageViews[i], nullptr);
         }
 
-        vkDestroySwapchainKHR(m_VulkanDevice->GetDevice(), m_SwapChain, nullptr);
+        vkDestroySwapchainKHR(m_Device->GetVulkanDevice(), m_SwapChain, nullptr);
     }
 
     void VulkanRenderer::CreateImageViews()
@@ -1242,7 +1238,7 @@ namespace plumbus::vk
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(m_VulkanDevice->GetDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
+        if (vkCreateRenderPass(m_Device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
         {
             Log::Fatal("failed to create render pass!");
         }
@@ -1320,7 +1316,7 @@ namespace plumbus::vk
         for (uint32_t i = 0; i < m_Framebuffers.size(); i++)
         {
             attachments[0] = m_SwapChainImageViews[i];
-            CHECK_VK_RESULT(vkCreateFramebuffer(m_VulkanDevice->GetDevice(), &frameBufferCreateInfo, nullptr, &m_Framebuffers[i]));
+            CHECK_VK_RESULT(vkCreateFramebuffer(m_Device->GetVulkanDevice(), &frameBufferCreateInfo, nullptr, &m_Framebuffers[i]));
         }
     }
 
@@ -1331,11 +1327,11 @@ namespace plumbus::vk
 
         VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
         commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        commandBufferAllocateInfo.commandPool = m_VulkanDevice->GetCommandPool();
+        commandBufferAllocateInfo.commandPool = m_Device->GetCommandPool();
         commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         commandBufferAllocateInfo.commandBufferCount = (uint32_t)m_SwapChainImageViews.size();
 
-        CHECK_VK_RESULT(vkAllocateCommandBuffers(m_VulkanDevice->GetDevice(), &commandBufferAllocateInfo, m_CommandBuffers.data()));
+        CHECK_VK_RESULT(vkAllocateCommandBuffers(m_Device->GetVulkanDevice(), &commandBufferAllocateInfo, m_CommandBuffers.data()));
     }
 
 
@@ -1344,8 +1340,8 @@ namespace plumbus::vk
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-        if (vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS ||
-            vkCreateSemaphore(m_VulkanDevice->GetDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
+        if (vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS ||
+            vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
         {
 
             Log::Fatal("failed to create semaphores!");
@@ -1354,7 +1350,7 @@ namespace plumbus::vk
 
     void VulkanRenderer::SetupImGui()
     {
-        m_ImGui = new ImGUIImpl(m_VulkanDevice);
+        m_ImGui = new ImGUIImpl(m_Device);
         m_ImGui->Init((float)WIDTH, (float)HEIGHT);
         m_ImGui->InitResources(m_RenderPass, m_GraphicsQueue);
     }
@@ -1379,24 +1375,24 @@ namespace plumbus::vk
     VulkanRenderer::SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(VkPhysicalDevice device)
     {
         SwapChainSupportDetails details;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_Surface, &details.m_Capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, GetVulkanWindow()->GetSurface(), &details.m_Capabilities);
 
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, GetVulkanWindow()->GetSurface(), &formatCount, nullptr);
 
         if (formatCount != 0)
         {
             details.m_Formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_Surface, &formatCount, details.m_Formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, GetVulkanWindow()->GetSurface(), &formatCount, details.m_Formats.data());
         }
 
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, GetVulkanWindow()->GetSurface(), &presentModeCount, nullptr);
 
         if (presentModeCount != 0)
         {
             details.m_PresentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_Surface, &presentModeCount, details.m_PresentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, GetVulkanWindow()->GetSurface(), &presentModeCount, details.m_PresentModes.data());
         }
 
         return details;
@@ -1486,7 +1482,7 @@ namespace plumbus::vk
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
         VkShaderModule shaderModule;
-        if (vkCreateShaderModule(m_VulkanDevice->GetDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+        if (vkCreateShaderModule(m_Device->GetVulkanDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
         {
             Log::Fatal("failed to create shader module!");
         }
@@ -1520,6 +1516,11 @@ namespace plumbus::vk
 	std::vector<const char*> VulkanRenderer::GetRequiredDeviceExtensions()
 	{
         return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	}
+
+	plumbus::vk::VulkanRenderer* VulkanRenderer::Get()
+	{
+        return static_cast<VulkanRenderer*>(BaseApplication::Get().GetRenderer());
 	}
 
 }

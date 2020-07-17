@@ -12,7 +12,7 @@ namespace plumbus::vk
 		~Window() {}
 
 		void Init(uint32_t width, uint32_t height) override;
-		void CreateSurface(VkInstance instance, VkSurfaceKHR* surface);
+		void CreateSurface();
 		void Destroy() override;
 
 		glm::vec2 GetMousePos() override;
@@ -23,9 +23,10 @@ namespace plumbus::vk
 		bool ShouldClose();
 
 		GLFWwindow* GetWindow() { return m_Window; }
+		VkSurfaceKHR GetSurface() { return m_Surface; }
 
 	private:
 		GLFWwindow* m_Window;
-
+		VkSurfaceKHR m_Surface;
 	};
 }

@@ -93,7 +93,7 @@ namespace plumbus::tester::tests
 		BaseApplication::Get().GetScene()->LoadAssets();
 
 #if VULKAN_RENDERER
-		vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(Application::Get().GetRenderer());
+		vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
 		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->m_ColourSampler, vkRenderer->GetOffscreenFramebuffer()->m_Attachments["colour"].m_ImageView);
 		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->m_ColourSampler, vkRenderer->GetOffscreenFramebuffer()->m_Attachments["normal"].m_ImageView);
 		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->m_ColourSampler, vkRenderer->GetOffscreenFramebuffer()->m_Attachments["position"].m_ImageView);

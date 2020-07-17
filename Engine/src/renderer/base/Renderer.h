@@ -19,6 +19,8 @@ namespace plumbus::base
 		virtual void OnModelRemovedFromScene() = 0;
         
         Window* GetWindow() { return m_Window; };
+
+
         
     protected:
         Window* m_Window;
