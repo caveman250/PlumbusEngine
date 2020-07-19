@@ -16,16 +16,14 @@ namespace plumbus::vk
 		void Cleanup();
 		void Recreate();
 
-		VkExtent2D& GetExtents() { return m_SwapChainExtent; }
+		VkExtent2D& GetExtents() { return m_Extents; }
 		VkSwapchainKHR GetVulkanSwapChain() { return m_SwapChain; }
-		std::vector<VkImageView>& GetImageViews() { return m_SwapChainImageViews; }
-		VkFormat GetImageFormat() { return m_SwapChainImageFormat; }
 
 		const VkSemaphore& GetImageAvailableSemaphore() const { return m_ImageAvailableSemaphore; }
 		const VkSemaphore& GetRenderFinishedSemaphore() const { return m_RenderFinishedSemaphore; }
 
-		const CommandBufferRef& GetCommandBuffer(int index) const { return m_SwapChainCommandBuffers[index]; }
-		const VkRenderPass& GetRenderPass() const { return m_PresentRenderPass; }
+		const CommandBufferRef& GetCommandBuffer(int index) const { return m_CommandBuffers[index]; }
+		const VkRenderPass& GetRenderPass() const { return m_RenderPass; }
 
 	private:
 
@@ -41,20 +39,22 @@ namespace plumbus::vk
 		void CreateSemaphores();
 
 		VkSwapchainKHR m_SwapChain;
-		std::vector<VkImage> m_SwapChainImages;
-		VkFormat m_SwapChainImageFormat;
-		VkExtent2D m_SwapChainExtent;
-		std::vector<VkImageView> m_SwapChainImageViews;
 
-		std::vector<FrameBufferRef> m_SwapChainFramebuffers;
-		std::vector<CommandBufferRef> m_SwapChainCommandBuffers;
-		VkSemaphore m_ImageAvailableSemaphore;
-		VkSemaphore m_RenderFinishedSemaphore;
+		VkFormat m_ImageFormat;
+		VkExtent2D m_Extents;
+		std::vector<VkImage> m_Images;
+		std::vector<VkImageView> m_ImageViews;
 
-		VkRenderPass m_PresentRenderPass;
 		VkImage m_DepthImage;
 		VkDeviceMemory m_DepthImageMemory;
 		VkImageView m_DepthImageView;
+
+		std::vector<FrameBufferRef> m_Framebuffers;
+		std::vector<CommandBufferRef> m_CommandBuffers;
+
+		VkRenderPass m_RenderPass;
+		VkSemaphore m_ImageAvailableSemaphore;
+		VkSemaphore m_RenderFinishedSemaphore;
 	};
 };
 

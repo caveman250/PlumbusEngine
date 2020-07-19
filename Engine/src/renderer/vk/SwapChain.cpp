@@ -26,9 +26,9 @@ namespace plumbus::vk
 		CreateVulkanSwapChain();
 		CreateImageViews();
 
-		for (int i = 0; i < GetImageViews().size(); ++i)
+		for (int i = 0; i < m_ImageViews.size(); ++i)
 		{
-			m_SwapChainCommandBuffers.push_back(CommandBuffer::CreateCommandBuffer());
+			m_CommandBuffers.push_back(CommandBuffer::CreateCommandBuffer());
 		}
 
 		CreateRenderPass();
@@ -41,9 +41,9 @@ namespace plumbus::vk
 	{
 		DeviceRef device = VulkanRenderer::Get()->GetDevice();
 
-		for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
+		for (size_t i = 0; i < m_ImageViews.size(); i++)
 		{
-			vkDestroyImageView(device->GetVulkanDevice(), m_SwapChainImageViews[i], nullptr);
+			vkDestroyImageView(device->GetVulkanDevice(), m_ImageViews[i], nullptr);
 		}
 
 		vkDestroySwapchainKHR(device->GetVulkanDevice(), m_SwapChain, nullptr);
@@ -52,10 +52,10 @@ namespace plumbus::vk
 		vkDestroyImage(device->GetVulkanDevice(), m_DepthImage, nullptr);
 		vkFreeMemory(device->GetVulkanDevice(), m_DepthImageMemory, nullptr);
 
-		m_SwapChainFramebuffers.clear();
-		m_SwapChainCommandBuffers.clear();
+		m_Framebuffers.clear();
+		m_CommandBuffers.clear();
 
-		vkDestroyRenderPass(device->GetVulkanDevice(), m_PresentRenderPass, nullptr);
+		vkDestroyRenderPass(device->GetVulkanDevice(), m_RenderPass, nullptr);
 
 		vkDestroySemaphore(device->GetVulkanDevice(), m_RenderFinishedSemaphore, nullptr);
 		vkDestroySemaphore(device->GetVulkanDevice(), m_ImageAvailableSemaphore, nullptr);
@@ -134,18 +134,18 @@ namespace plumbus::vk
 		}
 
 		vkGetSwapchainImagesKHR(device->GetVulkanDevice(), m_SwapChain, &imageCount, nullptr);
-		m_SwapChainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(device->GetVulkanDevice(), m_SwapChain, &imageCount, m_SwapChainImages.data());
-		m_SwapChainImageFormat = surfaceFormat.format;
-		m_SwapChainExtent = extent;
+		m_Images.resize(imageCount);
+		vkGetSwapchainImagesKHR(device->GetVulkanDevice(), m_SwapChain, &imageCount, m_Images.data());
+		m_ImageFormat = surfaceFormat.format;
+		m_Extents = extent;
 	}
 
 	void SwapChain::CreateImageViews()
 	{
-		m_SwapChainImageViews.resize(m_SwapChainImages.size());
-		for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+		m_ImageViews.resize(m_Images.size());
+		for (size_t i = 0; i < m_Images.size(); i++)
 		{
-			m_SwapChainImageViews[i] = ImageHelpers::CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+			m_ImageViews[i] = ImageHelpers::CreateImageView(m_Images[i], m_ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 	}
 
@@ -207,7 +207,7 @@ namespace plumbus::vk
 	void SwapChain::CreateRenderPass()
 	{
 		VkAttachmentDescription colorAttachment = {};
-		colorAttachment.format = GetImageFormat();
+		colorAttachment.format = m_ImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -257,7 +257,7 @@ namespace plumbus::vk
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
-		if (vkCreateRenderPass(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &renderPassInfo, nullptr, &m_PresentRenderPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
 		{
 			Log::Fatal("failed to create render pass!");
 		}
@@ -282,13 +282,13 @@ namespace plumbus::vk
 
 	void SwapChain::CreateFrameBuffers()
 	{
-		m_SwapChainFramebuffers.resize(GetImageViews().size());
-		for (int i = 0; i < m_SwapChainFramebuffers.size(); ++i)
+		m_Framebuffers.resize(m_ImageViews.size());
+		for (int i = 0; i < m_Framebuffers.size(); ++i)
 		{
-			std::vector<VkImageView> attachments = { GetImageViews()[i], m_DepthImageView };
-			std::vector<VkFormat> attachmentFormats = { GetImageFormat(), VulkanRenderer::Get()->FindDepthFormat() };
-			m_SwapChainFramebuffers[i] = FrameBuffer::CreateFrameBuffer(GetExtents().width, GetExtents().height, m_PresentRenderPass, attachments, attachmentFormats);
-			m_SwapChainCommandBuffers[i]->SetFrameBuffer(m_SwapChainFramebuffers[i]);
+			std::vector<VkImageView> attachments = { m_ImageViews[i], m_DepthImageView };
+			std::vector<VkFormat> attachmentFormats = { m_ImageFormat, VulkanRenderer::Get()->FindDepthFormat() };
+			m_Framebuffers[i] = FrameBuffer::CreateFrameBuffer(GetExtents().width, GetExtents().height, m_RenderPass, attachments, attachmentFormats);
+			m_CommandBuffers[i]->SetFrameBuffer(m_Framebuffers[i]);
 		}
 	}
 
