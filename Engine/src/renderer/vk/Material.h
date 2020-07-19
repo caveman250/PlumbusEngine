@@ -14,6 +14,7 @@ namespace plumbus::vk
 		virtual void Destroy() override;
 		VkPipeline& GetPipeline() { return m_Pipeline; }
 		VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
+
 	private:
 		void CreatePipelineLayout();
 		void CreatePipeline();

@@ -305,7 +305,7 @@ namespace plumbus::vk
 	void Device::PickPhysicalDevice()
 	{
 		VulkanRenderer* renderer = VulkanRenderer::Get();
-		std::shared_ptr<Instance> instance = renderer->GetInstance();
+		InstanceRef instance = renderer->GetInstance();
 
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(instance->GetVulkanInstance(), &deviceCount, nullptr);

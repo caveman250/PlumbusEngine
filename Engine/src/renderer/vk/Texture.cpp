@@ -56,7 +56,7 @@ namespace plumbus::vk
 
 		gli::texture2d tex2D(gli::load(filename.c_str()));
 
-		PLUMBUS_ASSERT(!tex2D.empty());
+		PL_ASSERT(!tex2D.empty());
 
 		std::shared_ptr<vk::Device> device = VulkanRenderer::Get()->GetDevice();
 

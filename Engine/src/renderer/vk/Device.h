@@ -26,7 +26,7 @@ namespace plumbus::vk
 			std::vector<VkPresentModeKHR> m_PresentModes;
 		};
 
-		static std::shared_ptr<Device> CreateDevice();
+		static DeviceRef CreateDevice();
 		Device();
 		~Device();
 

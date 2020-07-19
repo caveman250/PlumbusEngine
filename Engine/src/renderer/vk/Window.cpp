@@ -7,11 +7,15 @@
 
 namespace plumbus::vk
 {
-	void Window::Init(uint32_t width, uint32_t height)
+	void Window::Init(uint32_t& width, uint32_t& height)
 	{
 		glfwInit();
-		//dont use OpenGl
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+		GLFWmonitor* monitor =  glfwGetPrimaryMonitor();
+   		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+		width = mode->width * 0.8f;
+		height = mode->height * 0.8f;
 
 		m_Window = glfwCreateWindow(width, height, "VulkanRenderer", nullptr, nullptr);
 

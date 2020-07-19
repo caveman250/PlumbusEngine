@@ -17,9 +17,9 @@
 #if PLUMBUS_PLATFORM_LINUX
 #include <gtk/gtk.h>
 #endif
+#include "CommandBuffer.h"
 
-const int WIDTH = 1600;
-const int HEIGHT = 900;
+static uint32_t s_Width, s_Height;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugReportFlagsEXT flags,
@@ -31,7 +31,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const char* msg,
     void* userData)
 {
-    PLUMBUS_ASSERT(false, "validation layer: %s", msg);
+    PL_ASSERT(false, "validation layer: %s", msg);
 
     return VK_FALSE;
 }
@@ -69,19 +69,26 @@ namespace plumbus::vk
         SetupDebugCallback();
 		GetVulkanWindow()->CreateSurface();
         m_Device = Device::CreateDevice();
-        m_SwapChain = SwapChain::CreateSwapChain();
-        CreateCommandBuffers();
-        CreateRenderPass();
         CreatePipelineCache();
-        CreateDepthResources();
-        CreateFrameBuffers();
-        CreateSemaphores();
+        m_SwapChain = SwapChain::CreateSwapChain();
 
         GenerateQuads();
-        m_OffscreenFrameBuffer = new vk::FrameBuffer();
-        m_OffscreenFrameBuffer->PrepareOffscreenFramebuffer();
-        m_OutputFrameBuffer = new vk::FrameBuffer();
-        m_OutputFrameBuffer->PrepareOutputFramebuffer();
+
+        std::vector<FrameBuffer::FrameBufferAttachmentInfo> offscreenAttachmentInfo =
+        {
+            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R16G16B16A16_SFLOAT, false, "position"),
+            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R16G16B16A16_SFLOAT, false, "normal"),
+            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
+            FrameBuffer::FrameBufferAttachmentInfo(FindDepthFormat(), true, "depth")
+        };
+        m_OffscreenFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
+
+		std::vector<FrameBuffer::FrameBufferAttachmentInfo> outputAttachmentInfo =
+		{
+			FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
+			FrameBuffer::FrameBufferAttachmentInfo(FindDepthFormat(), true, "depth")
+		};
+		m_OutputFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo);
 
         CreateUniformBuffers();
         CreateDescriptorSetLayout();
@@ -91,7 +98,7 @@ namespace plumbus::vk
 
         SetupImGui();
         m_OutputTexture.CreateTextureSampler();
-        m_OutputTexture.m_ImageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
+        m_OutputTexture.m_ImageView = m_OutputFrameBuffer->GetAttachment("colour").m_ImageView;
 
         BuildDefferedCommandBuffer();
         BuildOutputFrameBuffer();
@@ -112,7 +119,7 @@ namespace plumbus::vk
     void VulkanRenderer::DrawFrame()
     {
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_SwapChain->GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -129,14 +136,14 @@ namespace plumbus::vk
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
+        VkSemaphore waitSemaphores[] = { m_SwapChain->GetImageAvailableSemaphore() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &m_OffScreenCmdBuffer;
+        submitInfo.pCommandBuffers = &m_OffScreenCmdBuffer->GetVulkanCommandBuffer();
 
         VkSemaphore signalSemaphores[] = { m_OffscreenSemaphore };
         submitInfo.signalSemaphoreCount = 1;
@@ -147,19 +154,19 @@ namespace plumbus::vk
         submitInfo.pWaitSemaphores = &m_OffscreenSemaphore;
         submitInfo.pSignalSemaphores = &m_OutputSemaphore;
 
-        submitInfo.pCommandBuffers = &m_OutputCmdBuffer;
+        submitInfo.pCommandBuffers = &m_OutputCmdBuffer->GetVulkanCommandBuffer();
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
         submitInfo.pWaitSemaphores = &m_OutputSemaphore;
-        submitInfo.pSignalSemaphores = &m_RenderFinishedSemaphore;
+        submitInfo.pSignalSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
 
-        submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
+        submitInfo.pCommandBuffers = &m_SwapChain->GetCommandBuffer(imageIndex)->GetVulkanCommandBuffer();
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
         VkPresentInfoKHR presentInfo = {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &m_RenderFinishedSemaphore;
+        presentInfo.pWaitSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
 
         VkSwapchainKHR swapChains[] = { m_SwapChain->GetVulkanSwapChain() };
         presentInfo.swapchainCount = 1;
@@ -196,7 +203,7 @@ namespace plumbus::vk
     void VulkanRenderer::Init()
     {
 		m_Window = new vk::Window();
-		m_Window->Init(WIDTH, HEIGHT);
+		m_Window->Init(s_Width, s_Height);
 #if PLUMBUS_PLATFORM_LINUX
         gtk_init(&::app_argc, &::app_argv);
 #endif
@@ -205,39 +212,10 @@ namespace plumbus::vk
 
     void VulkanRenderer::Cleanup()
     {
-        // Color attachments
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_ImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Image, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["position"].m_Memory, nullptr);
+        m_OffscreenFrameBuffer.reset();
+        m_OutputFrameBuffer.reset();
 
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_ImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Image, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["normal"].m_Memory, nullptr);
-
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
-
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
-
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Image, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["colour"].m_Memory, nullptr);
-
-        vkDestroyImageView(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_ImageView, nullptr);
-        vkDestroyImage(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Image, nullptr);
-        vkFreeMemory(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_Attachments["depth"].m_Memory, nullptr);
-
-        vkDestroySampler(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_ColourSampler, nullptr);
         vkDestroySampler(m_Device->GetVulkanDevice(), m_OutputTexture.m_TextureSampler, nullptr);
-        Log::Info("Destroyed Sampler 0x%x", &m_OffscreenFrameBuffer->m_ColourSampler);
-        
-        vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_FrameBuffer, nullptr);
-        vkDestroySampler(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_ColourSampler, nullptr);
-        Log::Info("Destroyed Sampler 0x%x", &m_OutputFrameBuffer->m_ColourSampler);
-        vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_FrameBuffer, nullptr);
 
         vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Deferred, nullptr);
         vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Deferred, nullptr);
@@ -262,25 +240,11 @@ namespace plumbus::vk
 
         delete m_ImGui;
 
-        vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), 1, &m_OffScreenCmdBuffer);
-        vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), 1, &m_OutputCmdBuffer);
+        m_OffScreenCmdBuffer.reset();
+        m_OutputCmdBuffer.reset();
 
-        vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_OffscreenFrameBuffer->m_RenderPass, nullptr);
-        vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_OutputFrameBuffer->m_RenderPass, nullptr);
-
-        m_SwapChain->CleanupSwapChain();
-
-		vkDestroyImageView(m_Device->GetVulkanDevice(), m_DepthImageView, nullptr);
-		vkDestroyImage(m_Device->GetVulkanDevice(), m_DepthImage, nullptr);
-		vkFreeMemory(m_Device->GetVulkanDevice(), m_DepthImageMemory, nullptr);
-
-		for (size_t i = 0; i < m_Framebuffers.size(); i++)
-		{
-			vkDestroyFramebuffer(m_Device->GetVulkanDevice(), m_Framebuffers[i], nullptr);
-		}
-
-		vkFreeCommandBuffers(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), static_cast<uint32_t>(m_CommandBuffers.size()), m_CommandBuffers.data());
-		vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_RenderPass, nullptr);
+        m_SwapChain->Cleanup();
+        m_SwapChain.reset();
 
         vkDestroyDescriptorPool(m_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
 
@@ -294,8 +258,6 @@ namespace plumbus::vk
 
         vkDestroySemaphore(m_Device->GetVulkanDevice(), m_OutputSemaphore, nullptr);
         vkDestroySemaphore(m_Device->GetVulkanDevice(), m_OffscreenSemaphore, nullptr);
-        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_RenderFinishedSemaphore, nullptr);
-        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_ImageAvailableSemaphore, nullptr);
 
         m_Device.reset();
 
@@ -432,7 +394,7 @@ namespace plumbus::vk
                 {
                     if (light->GetType() == LightType::Point)
                     {
-                        PLUMBUS_ASSERT(pointLightIndex < MAX_POINT_LIGHTS, "Point light count exceeds MAX_POINT_LIGHTS");
+                        PL_ASSERT(pointLightIndex < MAX_POINT_LIGHTS, "Point light count exceeds MAX_POINT_LIGHTS");
 
                         PointLight* pointLight = static_cast<PointLight*>(light);
 
@@ -449,7 +411,7 @@ namespace plumbus::vk
                     }
                     else if (light->GetType() == LightType::Directional)
                     {
-						PLUMBUS_ASSERT(dirLightIndex < MAX_DIRECTIONAL_LIGHTS, "Directional light count exceeds MAX_DIRECTIONAL_LIGHTS");
+						PL_ASSERT(dirLightIndex < MAX_DIRECTIONAL_LIGHTS, "Directional light count exceeds MAX_DIRECTIONAL_LIGHTS");
 
 						DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
 
@@ -635,7 +597,7 @@ namespace plumbus::vk
 		pipelineCreateInfo.pDynamicState = &dynamicState;
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
-        pipelineCreateInfo.renderPass = m_OutputFrameBuffer->m_RenderPass;
+        pipelineCreateInfo.renderPass = m_OutputFrameBuffer->GetRenderPass();
         pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
 
 		//dummy vertex input state to keep validation happy. 
@@ -701,23 +663,23 @@ namespace plumbus::vk
 
         // Image descriptors for the offscreen color attachments
         VkDescriptorImageInfo texDescriptorPosition{};
-        texDescriptorPosition.sampler = m_OffscreenFrameBuffer->m_ColourSampler;
-        texDescriptorPosition.imageView = m_OffscreenFrameBuffer->m_Attachments["position"].m_ImageView;
+        texDescriptorPosition.sampler = m_OffscreenFrameBuffer->GetSampler();
+        texDescriptorPosition.imageView = m_OffscreenFrameBuffer->GetAttachment("position").m_ImageView;
         texDescriptorPosition.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkDescriptorImageInfo texDescriptorNormal{};
-        texDescriptorNormal.sampler = m_OffscreenFrameBuffer->m_ColourSampler;
-        texDescriptorNormal.imageView = m_OffscreenFrameBuffer->m_Attachments["normal"].m_ImageView;
+        texDescriptorNormal.sampler = m_OffscreenFrameBuffer->GetSampler();
+        texDescriptorNormal.imageView = m_OffscreenFrameBuffer->GetAttachment("normal").m_ImageView;
         texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkDescriptorImageInfo texDescriptorAlbedo{};
-        texDescriptorAlbedo.sampler = m_OffscreenFrameBuffer->m_ColourSampler;
-        texDescriptorAlbedo.imageView = m_OffscreenFrameBuffer->m_Attachments["colour"].m_ImageView;
+        texDescriptorAlbedo.sampler = m_OffscreenFrameBuffer->GetSampler();
+        texDescriptorAlbedo.imageView = m_OffscreenFrameBuffer->GetAttachment("colour").m_ImageView;
         texDescriptorAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkDescriptorImageInfo texDescriptorOutput{};
-        texDescriptorOutput.sampler = m_OutputFrameBuffer->m_ColourSampler;
-        texDescriptorOutput.imageView = m_OutputFrameBuffer->m_Attachments["colour"].m_ImageView;
+        texDescriptorOutput.sampler = m_OutputFrameBuffer->GetSampler();
+        texDescriptorOutput.imageView = m_OutputFrameBuffer->GetAttachment("colour").m_ImageView;
         texDescriptorOutput.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         // Binding 0 : Vertex shader uniform buffer
@@ -799,45 +761,23 @@ namespace plumbus::vk
 
     void VulkanRenderer::BuildImguiCommandBuffer(int index)
     {
-        VkCommandBufferBeginInfo cmdBufInfo{};
-        cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        VkClearValue clearValues[2];
-        clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 0.0f } };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
-        VkRenderPassBeginInfo renderPassBeginInfo{};
-        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.renderPass = m_RenderPass;
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = m_SwapChain->GetSwapChainExtent().width;
-        renderPassBeginInfo.renderArea.extent.height = m_SwapChain->GetSwapChainExtent().height;
-        renderPassBeginInfo.clearValueCount = 2;
-        renderPassBeginInfo.pClearValues = clearValues;
-
         m_ImGui->NewFrame();
         m_ImGui->UpdateBuffers();
 
         // Set target frame buffer
-        renderPassBeginInfo.framebuffer = m_Framebuffers[index];
-
-        CHECK_VK_RESULT(vkBeginCommandBuffer(m_CommandBuffers[index], &cmdBufInfo));
-
-        vkCmdBeginRenderPass(m_CommandBuffers[index], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        m_ImGui->DrawFrame(m_CommandBuffers[index]);
-
-        vkCmdEndRenderPass(m_CommandBuffers[index]);
-
-        CHECK_VK_RESULT(vkEndCommandBuffer(m_CommandBuffers[index]));
+        m_SwapChain->GetCommandBuffer(index)->BeginRecording();
+        m_SwapChain->GetCommandBuffer(index)->BeginRenderPass();
+        m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(index)->GetVulkanCommandBuffer());
+        m_SwapChain->GetCommandBuffer(index)->EndRenderPass();
+        m_SwapChain->GetCommandBuffer(index)->EndRecording();
     }
 
     void VulkanRenderer::BuildDefferedCommandBuffer()
     {
-        if (m_OffScreenCmdBuffer == VK_NULL_HANDLE)
+        if (!m_OffScreenCmdBuffer)
         {
-            m_OffScreenCmdBuffer = m_Device->CreateCommandBuffer(false);
+            m_OffScreenCmdBuffer = CommandBuffer::CreateCommandBuffer();
+            m_OffScreenCmdBuffer->SetFrameBuffer(m_OffscreenFrameBuffer);
         }
 
         if(m_OffscreenSemaphore == VK_NULL_HANDLE)
@@ -847,42 +787,11 @@ namespace plumbus::vk
             semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
             CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_OffscreenSemaphore));
         }
-        VkCommandBufferBeginInfo cmdBufInfo{};
-        cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-        // Clear values for all attachments written in the fragment sahder
-        std::array<VkClearValue, 4> clearValues;
-        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        clearValues[3].depthStencil = { 1.0f, 0 };
-
-        VkRenderPassBeginInfo renderPassBeginInfo{};
-        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.renderPass = m_OffscreenFrameBuffer->m_RenderPass;
-        renderPassBeginInfo.framebuffer = m_OffscreenFrameBuffer->m_FrameBuffer;
-        renderPassBeginInfo.renderArea.extent.width = m_OffscreenFrameBuffer->m_Width;
-        renderPassBeginInfo.renderArea.extent.height = m_OffscreenFrameBuffer->m_Height;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
-
-        CHECK_VK_RESULT(vkBeginCommandBuffer(m_OffScreenCmdBuffer, &cmdBufInfo));
-
-        vkCmdBeginRenderPass(m_OffScreenCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        VkViewport viewport{};
-        viewport.width = (float)m_OffscreenFrameBuffer->m_Width;
-        viewport.height = (float)m_OffscreenFrameBuffer->m_Height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(m_OffScreenCmdBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.extent.width = m_OffscreenFrameBuffer->m_Width;
-        scissor.extent.height = m_OffscreenFrameBuffer->m_Height;
-        scissor.offset.x = 0;
-        scissor.offset.y = 0;
-        vkCmdSetScissor(m_OffScreenCmdBuffer, 0, 1, &scissor);
+        m_OffScreenCmdBuffer->BeginRecording();
+        m_OffScreenCmdBuffer->BeginRenderPass();
+        m_OffScreenCmdBuffer->SetViewport(m_OffscreenFrameBuffer->GetWidth(), m_OffscreenFrameBuffer->GetHeight(), 0.f, 1.f);
+        m_OffScreenCmdBuffer->SetScissor(m_OffscreenFrameBuffer->GetWidth(), m_OffscreenFrameBuffer->GetHeight(), 0, 0);
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -892,22 +801,22 @@ namespace plumbus::vk
 				{
                     if (vk::Mesh* vkModel = static_cast<vk::Mesh*>(model))
                     {
-                        vkModel->SetupCommandBuffer(m_OffScreenCmdBuffer, m_PipelineLayouts.m_Offscreen);
+                        vkModel->Render();
                     }
 				}
             }
         }
 
-        vkCmdEndRenderPass(m_OffScreenCmdBuffer);
-
-        CHECK_VK_RESULT(vkEndCommandBuffer(m_OffScreenCmdBuffer));
+        m_OffScreenCmdBuffer->EndRenderPass();
+        m_OffScreenCmdBuffer->EndRecording();
     }
 
     void VulkanRenderer::BuildOutputFrameBuffer()
     {
-        if (m_OutputCmdBuffer == VK_NULL_HANDLE)
+        if (!m_OutputCmdBuffer)
         {
-            m_OutputCmdBuffer = m_Device->CreateCommandBuffer(false);
+            m_OutputCmdBuffer = CommandBuffer::CreateCommandBuffer();
+            m_OutputCmdBuffer->SetFrameBuffer(m_OutputFrameBuffer);
         }
 
         // Create a semaphore used to synchronize offscreen rendering and usage
@@ -915,115 +824,18 @@ namespace plumbus::vk
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_OutputSemaphore));
 
-        VkCommandBufferBeginInfo cmdBufInfo{};
-        cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        m_OutputCmdBuffer->BeginRecording();
+        m_OutputCmdBuffer->BeginRenderPass();
+        m_OutputCmdBuffer->SetViewport(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0.f, 1.f);
+        m_OutputCmdBuffer->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
 
-        // Clear values for all attachments written in the fragment sahder
-        std::array<VkClearValue, 2> clearValues;
-        clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
-        VkRenderPassBeginInfo renderPassBeginInfo{};
-        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassBeginInfo.renderPass = m_OutputFrameBuffer->m_RenderPass;
-        renderPassBeginInfo.framebuffer = m_OutputFrameBuffer->m_FrameBuffer;
-        renderPassBeginInfo.renderArea.extent.width = m_OutputFrameBuffer->m_Width;
-        renderPassBeginInfo.renderArea.extent.height = m_OutputFrameBuffer->m_Height;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
-
-        CHECK_VK_RESULT(vkBeginCommandBuffer(m_OutputCmdBuffer, &cmdBufInfo));
-
-        vkCmdBeginRenderPass(m_OutputCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        vkCmdBindPipeline(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Output);
-
-        VkViewport viewport{};
-        viewport.width = (float)m_SwapChain->GetSwapChainExtent().width;
-        viewport.height = (float)m_SwapChain->GetSwapChainExtent().height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        vkCmdSetViewport(m_OutputCmdBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor{};
-        scissor.extent.width = m_SwapChain->GetSwapChainExtent().width;
-        scissor.extent.height = m_SwapChain->GetSwapChainExtent().height;
-        scissor.offset.x = 0;
-        scissor.offset.y = 0;
-        vkCmdSetScissor(m_OutputCmdBuffer, 0, 1, &scissor);
-
-        VkDeviceSize offsets[1] = { 0 };
-        vkCmdBindDescriptorSets(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayouts.m_Deferred, 0, 1, &m_OutputDescriptorSet, 0, NULL);
-
-        // Final composition as full screen quad
-        vkCmdBindPipeline(m_OutputCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipelines.m_Output);
-        vkCmdBindVertexBuffers(m_OutputCmdBuffer, 0, 1, &m_ScreenQuad.GetVertexBuffer().m_Buffer, offsets);
-        vkCmdBindIndexBuffer(m_OutputCmdBuffer, m_ScreenQuad.GetIndexBuffer().m_Buffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdDrawIndexed(m_OutputCmdBuffer, 6, 1, 0, 0, 1);
-
-        vkCmdEndRenderPass(m_OutputCmdBuffer);
-
-        CHECK_VK_RESULT(vkEndCommandBuffer(m_OutputCmdBuffer));
-    }
-
-    void VulkanRenderer::CreateRenderPass()
-    {
-        VkAttachmentDescription colorAttachment = {};
-        colorAttachment.format = m_SwapChain->GetSwapChainImageFormat();
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentRef = {};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription depthAttachment = {};
-        depthAttachment.format = FindDepthFormat();
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass = {};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-        VkSubpassDependency dependency = {};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-        std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
-        VkRenderPassCreateInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(m_Device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass) != VK_SUCCESS)
-        {
-            Log::Fatal("failed to create render pass!");
-        }
+        m_OutputCmdBuffer->BindPipeline(m_Pipelines.m_Output);
+        m_OutputCmdBuffer->BindDescriptorSet(m_PipelineLayouts.m_Deferred, m_OutputDescriptorSet);
+        m_OutputCmdBuffer->BindVertexBuffer(m_ScreenQuad.GetVertexBuffer());
+        m_OutputCmdBuffer->BindIndexBuffer(m_ScreenQuad.GetIndexBuffer());
+        m_OutputCmdBuffer->RecordDraw(6);
+        m_OutputCmdBuffer->EndRenderPass();
+        m_OutputCmdBuffer->EndRecording();
     }
 
     void VulkanRenderer::UpdateUniformBuffersScreen()
@@ -1076,82 +888,13 @@ namespace plumbus::vk
         memcpy(m_UniformBuffers.m_FragLights.m_Mapped, &m_LightsUBO, sizeof(m_LightsUBO));
     }
 
-    void VulkanRenderer::CreateFrameBuffers()
-    {
-        VkImageView attachments[2];
 
-        // Depth/Stencil attachment is the same for all frame buffers
-        attachments[1] = m_DepthImageView;
-
-        VkFramebufferCreateInfo frameBufferCreateInfo = {};
-        frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        frameBufferCreateInfo.pNext = NULL;
-        frameBufferCreateInfo.renderPass = m_RenderPass;
-        frameBufferCreateInfo.attachmentCount = 2;
-        frameBufferCreateInfo.pAttachments = attachments;
-        frameBufferCreateInfo.width = m_SwapChain->GetSwapChainExtent().width;
-        frameBufferCreateInfo.height = m_SwapChain->GetSwapChainExtent().height;
-        frameBufferCreateInfo.layers = 1;
-
-        // Create frame buffers for every swap chain image
-        m_Framebuffers.resize(m_SwapChain->GetImageViews().size());
-        for (uint32_t i = 0; i < m_Framebuffers.size(); i++)
-        {
-            attachments[0] = m_SwapChain->GetImageViews()[i];
-            CHECK_VK_RESULT(vkCreateFramebuffer(m_Device->GetVulkanDevice(), &frameBufferCreateInfo, nullptr, &m_Framebuffers[i]));
-        }
-    }
-
-    void VulkanRenderer::CreateCommandBuffers()
-    {
-        m_CommandBuffers.resize(m_SwapChain->GetImageViews().size());
-
-
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
-        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        commandBufferAllocateInfo.commandPool = m_Device->GetCommandPool();
-        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        commandBufferAllocateInfo.commandBufferCount = (uint32_t)m_SwapChain->GetImageViews().size();
-
-        CHECK_VK_RESULT(vkAllocateCommandBuffers(m_Device->GetVulkanDevice(), &commandBufferAllocateInfo, m_CommandBuffers.data()));
-    }
-
-
-    void VulkanRenderer::CreateSemaphores()
-    {
-        VkSemaphoreCreateInfo semaphoreInfo = {};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        if (vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS ||
-            vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
-        {
-
-            Log::Fatal("failed to create semaphores!");
-        }
-    }
 
     void VulkanRenderer::SetupImGui()
     {
         m_ImGui = new ImGUIImpl();
-        m_ImGui->Init((float)WIDTH, (float)HEIGHT);
-        m_ImGui->InitResources(m_RenderPass, GetDevice()->GetGraphicsQueue());
-    }
-
-    void VulkanRenderer::CreateDepthResources()
-    {
-        VkFormat depthFormat = FindDepthFormat();
-        ImageHelpers::CreateImage(m_SwapChain->GetSwapChainExtent().width,
-            m_SwapChain->GetSwapChainExtent().height,
-            depthFormat,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            m_DepthImage,
-            m_DepthImageMemory);
-
-        m_DepthImageView = ImageHelpers::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-        ImageHelpers::TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, GetDevice()->GetGraphicsQueue());
+        m_ImGui->Init((float)s_Width, (float)s_Height);
+        m_ImGui->InitResources(m_SwapChain->GetRenderPass(), GetDevice()->GetGraphicsQueue());
     }
 
     VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage)
@@ -1161,7 +904,7 @@ namespace plumbus::vk
         shaderStage.stage = stage;
         shaderStage.module = CreateShaderModule(Helpers::ReadFile(fileName));
         shaderStage.pName = "main"; // todo : make param
-		PLUMBUS_ASSERT(shaderStage.module != VK_NULL_HANDLE);
+		PL_ASSERT(shaderStage.module != VK_NULL_HANDLE);
         m_ShaderModules.push_back(shaderStage.module);
         return shaderStage;
     }
@@ -1237,15 +980,12 @@ namespace plumbus::vk
 
 	void VulkanRenderer::RecreateSwapChain()
 	{
-        m_SwapChain->RecreateSwapChain();
+        vkDeviceWaitIdle(m_Device->GetVulkanDevice());
+
+        m_SwapChain->Recreate();
 
 		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChain->GetSwapChainExtent().width), static_cast<float>(m_SwapChain->GetSwapChainExtent().height));
-
-		CreateRenderPass();
-		CreateDepthResources();
-		CreateFrameBuffers();
-		CreateCommandBuffers();
+		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChain->GetExtents().width), static_cast<float>(m_SwapChain->GetExtents().height));
 	}
 
 }

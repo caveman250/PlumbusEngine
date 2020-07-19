@@ -4,7 +4,6 @@
 #include "renderer/base/Texture.h"
 #include "renderer/base/Material.h"
 #include "components/ModelComponent.h"
-#include "renderer/base/renderer_fwd.h"
 
 struct ModelPart
 {

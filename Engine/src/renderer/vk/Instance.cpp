@@ -3,9 +3,9 @@
 
 namespace plumbus::vk
 {
-	std::shared_ptr<Instance> Instance::CreateInstance(const std::string& appName, uint32_t appVersion, const std::vector<const char*> enabledLayers, const std::vector<const char*> enabledExtensions)
+	InstanceRef Instance::CreateInstance(const std::string& appName, uint32_t appVersion, const std::vector<const char*> enabledLayers, const std::vector<const char*> enabledExtensions)
 	{
-		std::shared_ptr<Instance> instance = std::make_shared<Instance>();
+		InstanceRef instance = std::make_shared<Instance>();
 
 		if (!CheckLayerSupport(enabledLayers))
 		{

@@ -40,7 +40,7 @@ namespace plumbus
 	{
 		m_Renderer->Init();
 
-		PLUMBUS_ASSERT(m_Scene != nullptr);
+		PL_ASSERT(m_Scene != nullptr);
 
 		InitScene();
 		MainLoop();
@@ -55,7 +55,7 @@ namespace plumbus
 
 	void BaseApplication::SetScene(Scene* scene)
 	{
-		PLUMBUS_ASSERT(!m_Scene || !m_Scene->IsInitialised());
+		PL_ASSERT(!m_Scene || !m_Scene->IsInitialised());
 		m_Scene = scene;
 	}
 

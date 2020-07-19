@@ -3,7 +3,6 @@
 #include "plumbus.h"
 
 #include "GameComponent.h"
-#include "renderer/base/renderer_fwd.h"
 
 namespace plumbus::base
 {

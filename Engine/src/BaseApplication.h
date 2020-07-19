@@ -15,7 +15,7 @@ namespace plumbus
 	public:
 		BaseApplication();
 
-		static void CreateInstance() { PLUMBUS_ASSERT(false); /*create your own application class.*/ }
+		static void CreateInstance() { PL_ASSERT(false); /*create your own application class.*/ }
 		static BaseApplication& Get() { return *s_Instance; }
 		void Run();
 		double GetDeltaTime() { return m_DeltaTime; }
@@ -49,7 +49,7 @@ namespace plumbus
 	template <typename T>
 	void BaseApplication::CreateScene()
 	{
-		PLUMBUS_ASSERT(IsValidToReplaceCurrentScene());
+		PL_ASSERT(IsValidToReplaceCurrentScene());
 		m_Scene = new T();
 	}
 }

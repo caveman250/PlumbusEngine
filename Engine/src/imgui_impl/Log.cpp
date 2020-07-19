@@ -28,7 +28,7 @@ namespace plumbus
 		case LogLevel::Fatal:
 			return ImVec4(1, 0, 1, 1);
 		default:
-			PLUMBUS_ASSERT(false);
+			PL_ASSERT(false);
 			return ImVec4(0, 0, 0, 1);
 		}
 	}
@@ -110,7 +110,7 @@ namespace plumbus
 
 		va_end(args);
 
-		PLUMBUS_ASSERT(false, (char*)&buffer);
+		PL_ASSERT(false, (char*)&buffer);
 	}
 
 	void Log::Draw(const char* title)

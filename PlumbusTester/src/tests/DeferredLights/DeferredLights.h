@@ -1,7 +1,6 @@
 #pragma once
 
 #include "tests/Test.h"
-#include "renderer/base/renderer_fwd.h"
 
 namespace plumbus
 {

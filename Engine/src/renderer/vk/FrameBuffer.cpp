@@ -7,7 +7,53 @@
 
 namespace plumbus::vk
 {
-	void FrameBuffer::CreateAttachment(VkFormat format, VkImageUsageFlagBits usage, const char* id)
+	FrameBuffer::FrameBuffer(int32_t width, int32_t height, bool ownsResources)
+		: m_Width(width)
+		, m_Height(height)
+		, m_OwnsResources(ownsResources)
+	{
+
+	}
+
+	FrameBuffer::~FrameBuffer()
+	{
+		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
+
+		if (m_OwnsResources)
+		{
+			for (auto& [_, attachment] : m_Attachments)
+			{
+				if (attachment.m_ImageView != VK_NULL_HANDLE)
+				{
+					vkDestroyImageView(device, attachment.m_ImageView, nullptr);
+					attachment.m_ImageView == VK_NULL_HANDLE;
+				}
+
+				if (attachment.m_Image != VK_NULL_HANDLE)
+				{
+					vkDestroyImage(device, attachment.m_Image, nullptr);
+					attachment.m_Image == VK_NULL_HANDLE;
+				}
+
+				if (attachment.m_Memory != VK_NULL_HANDLE)
+				{
+					vkFreeMemory(device, attachment.m_Memory, nullptr);
+					attachment.m_Memory == VK_NULL_HANDLE;
+				}
+			}
+
+			if (m_ColourSampler != VK_NULL_HANDLE)
+			{
+				vkDestroySampler(device, m_ColourSampler, nullptr);
+			}
+
+			vkDestroyRenderPass(device, m_RenderPass, nullptr);
+		}
+
+		vkDestroyFramebuffer(device, m_FrameBuffer, nullptr);
+	}
+
+	void FrameBuffer::CreateAttachment(VkFormat format, VkImageUsageFlagBits usage, std::string id)
 	{
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
@@ -28,7 +74,7 @@ namespace plumbus::vk
 			imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		}
 
-		PLUMBUS_ASSERT(aspectMask > 0);
+		PL_ASSERT(aspectMask > 0);
 
 		VkImageCreateInfo image{ };
 		image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -70,173 +116,72 @@ namespace plumbus::vk
 		CHECK_VK_RESULT(vkCreateImageView(device->GetVulkanDevice(), &imageView, nullptr, &attachment.m_ImageView));
 	}
 
-	void FrameBuffer::PrepareOffscreenFramebuffer()
+	void FrameBuffer::AddAttachment(VkImageView imageView, VkFormat imageFormat, std::string id)
 	{
-        vk::VulkanRenderer* renderer = VulkanRenderer::Get();
+		m_Attachments[id] = FrameBufferAttachment();
+		FrameBufferAttachment& attachment = m_Attachments[id];
 
-		std::shared_ptr<vk::Device> device = renderer->GetDevice();
-
-		m_Width = renderer->GetSwapChain()->GetSwapChainExtent().width;
-		m_Height = renderer->GetSwapChain()->GetSwapChainExtent().height;
-
-		// Color attachments
-
-		// (World space) Positions
-		CreateAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "position");
-
-		// (World space) Normals
-		CreateAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "normal");
-
-		// Albedo (color)
-		CreateAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "colour");
-
-		// Depth attachment
-
-		// Find a suitable depth format
-		VkFormat attDepthFormat = renderer->FindDepthFormat();
-
-		CreateAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, "depth");
-
-		// Set up separate renderpass with references to the color and depth attachments
-		std::array<VkAttachmentDescription, 4> attachmentDescs = {};
-
-		// Init attachment properties
-		for (uint32_t i = 0; i < 4; ++i)
-		{
-			attachmentDescs[i].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachmentDescs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			if (i == 3)
-			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			}
-			else
-			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			}
-		}
-
-		// Formats
-		attachmentDescs[0].format = m_Attachments["position"].m_Format;
-		attachmentDescs[1].format = m_Attachments["normal"].m_Format;
-		attachmentDescs[2].format = m_Attachments["colour"].m_Format;
-		attachmentDescs[3].format = m_Attachments["depth"].m_Format;
-
-		std::vector<VkAttachmentReference> colorReferences;
-		colorReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-		colorReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-		colorReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 3;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.pColorAttachments = colorReferences.data();
-		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
-		subpass.pDepthStencilAttachment = &depthReference;
-
-		// Use subpass dependencies for attachment layput transitions
-		std::array<VkSubpassDependency, 2> dependencies;
-
-		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[0].dstSubpass = 0;
-		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-		dependencies[1].srcSubpass = 0;
-		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-		VkRenderPassCreateInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.pAttachments = attachmentDescs.data();
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
-		renderPassInfo.dependencyCount = 2;
-		renderPassInfo.pDependencies = dependencies.data();
-
-		CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass));
-
-		std::array<VkImageView, 4> attachments;
-		attachments[0] = m_Attachments["position"].m_ImageView;
-		attachments[1] = m_Attachments["normal"].m_ImageView;
-		attachments[2] = m_Attachments["colour"].m_ImageView;
-		attachments[3] = m_Attachments["depth"].m_ImageView;
-
-		VkFramebufferCreateInfo fbufCreateInfo = {};
-		fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fbufCreateInfo.pNext = NULL;
-		fbufCreateInfo.renderPass = m_RenderPass;
-		fbufCreateInfo.pAttachments = attachments.data();
-		fbufCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		fbufCreateInfo.width = m_Width;
-		fbufCreateInfo.height = m_Height;
-		fbufCreateInfo.layers = 1;
-		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetVulkanDevice(), &fbufCreateInfo, nullptr, &m_FrameBuffer));
-
-		// Create sampler to sample from the color attachments
-		VkSamplerCreateInfo sampler{};
-		sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sampler.maxAnisotropy = 1.0f;
-		sampler.magFilter = VK_FILTER_NEAREST;
-		sampler.minFilter = VK_FILTER_NEAREST;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 1.0f;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 1.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &sampler, nullptr, &m_ColourSampler));
+		attachment.m_Format = imageFormat;
+		attachment.m_ImageView = imageView;
 	}
 
-	void FrameBuffer::PrepareOutputFramebuffer()
+	plumbus::vk::FrameBufferRef FrameBuffer::CreateFrameBuffer(uint32_t width, uint32_t height, VkRenderPass renderPass, std::vector<VkImageView> attachments, std::vector<VkFormat> attachmentFormats)
 	{
-        vk::VulkanRenderer* renderer = VulkanRenderer::Get();
+		PL_ASSERT(attachments.size() == attachmentFormats.size());
+
+		VkFramebufferCreateInfo frameBufferCreateInfo = {};
+		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		frameBufferCreateInfo.pNext = NULL;
+		frameBufferCreateInfo.renderPass = renderPass;
+		frameBufferCreateInfo.attachmentCount = attachments.size();
+		frameBufferCreateInfo.pAttachments = attachments.data();
+		frameBufferCreateInfo.width = width;
+		frameBufferCreateInfo.height = height;
+		frameBufferCreateInfo.layers = 1;
+		VkFramebuffer frameBufferObj;
+		vkCreateFramebuffer(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &frameBufferCreateInfo, nullptr, &frameBufferObj);
+
+		FrameBufferRef fb = std::make_shared<FrameBuffer>(width, height, false);
+		fb->SetRenderPass(renderPass);
+		fb->SetVulkanFrameBuffer(frameBufferObj);
+		for (int i = 0; i < attachments.size(); ++i)
+		{
+			fb->AddAttachment(attachments[i], attachmentFormats[i], std::to_string(i));
+		}
+
+		return fb;
+	}
+
+	plumbus::vk::FrameBufferRef FrameBuffer::CreateFrameBuffer(uint32_t width, uint32_t height, std::vector<FrameBufferAttachmentInfo> attachments)
+	{
+		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 		std::shared_ptr<vk::Device> device = renderer->GetDevice();
-
-		m_Width = renderer->GetSwapChain()->GetSwapChainExtent().width;
-		m_Height = renderer->GetSwapChain()->GetSwapChainExtent().height;
-
-		// Albedo (color)
-		CreateAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, "colour");
-
-		// Depth attachment
-
-		// Find a suitable depth format
-		VkFormat attDepthFormat = renderer->FindDepthFormat();
-
-		CreateAttachment(attDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, "depth");
+		
+		FrameBufferRef fb = std::make_shared<FrameBuffer>(width, height, true);
 
 		// Set up separate renderpass with references to the color and depth attachments
-		std::array<VkAttachmentDescription, 2> attachmentDescs = {};
+		std::vector<VkAttachmentDescription> attachmentDescs = {};
+		attachmentDescs.resize(attachments.size());
 
-		// Init attachment properties
-		for (uint32_t i = 0; i < 2; ++i)
+		std::vector<VkImageView> attachmentImageViews = {};
+		attachmentImageViews.resize(attachments.size());
+
+		std::vector<VkAttachmentReference> colorReferences;
+
+		int depthIndex = 0;
+		for (int i = 0; i < attachments.size(); ++i)
 		{
+			fb->CreateAttachment(attachments[i].attachmentFormat, !attachments[i].depthAttachment ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, attachments[i].attachmentName);
+
 			attachmentDescs[i].samples = VK_SAMPLE_COUNT_1_BIT;
 			attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachmentDescs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			if (i == 1)
+
+			if (attachments[i].depthAttachment)
 			{
+				depthIndex = i;
 				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			}
@@ -244,18 +189,18 @@ namespace plumbus::vk
 			{
 				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+				colorReferences.push_back({ (uint32_t)i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 			}
+
+			attachmentDescs[i].format = attachments[i].attachmentFormat;
+
+			attachmentImageViews[i] = fb->GetAttachment(attachments[i].attachmentName).m_ImageView;
 		}
 
-		// Formats
-		attachmentDescs[0].format = m_Attachments["colour"].m_Format;
-		attachmentDescs[1].format = m_Attachments["depth"].m_Format;
-
-		std::vector<VkAttachmentReference> colorReferences;
-		colorReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-
+		//CREATE RENDER PASS
 		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
+		depthReference.attachment = depthIndex;
 		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkSubpassDescription subpass = {};
@@ -292,39 +237,47 @@ namespace plumbus::vk
 		renderPassInfo.dependencyCount = 2;
 		renderPassInfo.pDependencies = dependencies.data();
 
-		CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass));
+		VkRenderPass renderPass;
+		CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &renderPass));
+		fb->SetRenderPass(renderPass);
 
-		std::array<VkImageView, 2> attachments;
-		attachments[0] = m_Attachments["colour"].m_ImageView;
-		attachments[1] = m_Attachments["depth"].m_ImageView;
 
-		VkFramebufferCreateInfo fbufCreateInfo = {};
-		fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fbufCreateInfo.pNext = NULL;
-		fbufCreateInfo.renderPass = m_RenderPass;
-		fbufCreateInfo.pAttachments = attachments.data();
-		fbufCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		fbufCreateInfo.width = m_Width;
-		fbufCreateInfo.height = m_Height;
-		fbufCreateInfo.layers = 1;
-		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetVulkanDevice(), &fbufCreateInfo, nullptr, &m_FrameBuffer));
+		//CREATE FRAMEBUFFER
+		VkFramebufferCreateInfo fbCreateInfo = {};
+		fbCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		fbCreateInfo.pNext = NULL;
+		fbCreateInfo.renderPass = renderPass;
+		fbCreateInfo.pAttachments = attachmentImageViews.data();
+		fbCreateInfo.attachmentCount = static_cast<uint32_t>(attachmentImageViews.size());
+		fbCreateInfo.width = width;
+		fbCreateInfo.height = height;
+		fbCreateInfo.layers = 1;
 
-		// Create sampler to sample from the color attachments
-		VkSamplerCreateInfo sampler{};
-		sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sampler.maxAnisotropy = 1.0f;
-		sampler.magFilter = VK_FILTER_NEAREST;
-		sampler.minFilter = VK_FILTER_NEAREST;
-		sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sampler.addressModeV = sampler.addressModeU;
-		sampler.addressModeW = sampler.addressModeU;
-		sampler.mipLodBias = 0.0f;
-		sampler.maxAnisotropy = 1.0f;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = 1.0f;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &sampler, nullptr, &m_ColourSampler));
+		VkFramebuffer frameBuffer;
+		CHECK_VK_RESULT(vkCreateFramebuffer(device->GetVulkanDevice(), &fbCreateInfo, nullptr, &frameBuffer));
+		fb->SetVulkanFrameBuffer(frameBuffer);
+
+		//CREATE SAMPLER
+		VkSamplerCreateInfo samplerCreateInfo{};
+		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerCreateInfo.maxAnisotropy = 1.0f;
+		samplerCreateInfo.magFilter = VK_FILTER_NEAREST;
+		samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerCreateInfo.mipLodBias = 0.0f;
+		samplerCreateInfo.maxAnisotropy = 1.0f;
+		samplerCreateInfo.minLod = 0.0f;
+		samplerCreateInfo.maxLod = 1.0f;
+		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+		VkSampler sampler;
+		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &samplerCreateInfo, nullptr, &sampler));
+		fb->SetSampler(sampler);
+
+		return fb;
 	}
 
 }

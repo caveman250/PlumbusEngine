@@ -86,7 +86,7 @@ namespace plumbus
 
 			std::shared_ptr<vk::Instance> GetInstance() { return m_Instance; }
 			std::shared_ptr<vk::Device> GetDevice() { return m_Device; }
-			std::shared_ptr<SwapChain> GetSwapChain() { return m_SwapChain; }
+			SwapChainRef GetSwapChain() { return m_SwapChain; }
 
 			vk::Window* GetVulkanWindow() { return static_cast<vk::Window*>(m_Window); }
 
@@ -101,7 +101,8 @@ namespace plumbus
 
 			VkDescriptorSetAllocateInfo GetDescriptorSetAllocateInfo();
 
-			vk::FrameBuffer* GetOffscreenFramebuffer() { return m_OffscreenFrameBuffer; }
+			FrameBufferRef GetOffscreenFramebuffer() { return m_OffscreenFrameBuffer; }
+			const CommandBufferRef& GetOffscreenCommandBuffer() { return m_OffScreenCmdBuffer; }
 			VkPipelineCache& GetPipelineCache() { return m_PipelineCache; }
 
 			//used for imgui
@@ -127,13 +128,8 @@ namespace plumbus
 			void BuildDefferedCommandBuffer();
 			void BuildOutputFrameBuffer();
 			void RecreateSwapChain();
-			void CreateRenderPass();
 			void UpdateUniformBuffersScreen();
 			void UpdateLightsUniformBuffer();
-			void CreateDepthResources();
-			void CreateFrameBuffers();
-			void CreateCommandBuffers();
-			void CreateSemaphores();
 			void SetupImGui();
 
 			static void OnWindowResized(GLFWwindow* window, int width, int height);
@@ -142,36 +138,30 @@ namespace plumbus
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-			std::shared_ptr<Instance> m_Instance;
+			InstanceRef m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
-			std::shared_ptr<Device> m_Device;
-			std::shared_ptr<SwapChain> m_SwapChain;
+			DeviceRef m_Device;
+			SwapChainRef m_SwapChain;
 			
-			VkRenderPass m_RenderPass;
 			VkDescriptorPool m_DescriptorPool;
 			VkDescriptorSetLayout m_DescriptorSetLayout;
 			VkDescriptorSet m_OutputDescriptorSet;
 			PipelineLayouts m_PipelineLayouts;
 			Pipelines m_Pipelines;
-			std::vector<VkFramebuffer> m_Framebuffers;
-			std::vector<VkCommandBuffer> m_CommandBuffers;
-			VkSemaphore m_ImageAvailableSemaphore;
-			VkSemaphore m_RenderFinishedSemaphore;
+
 			VkSemaphore m_OffscreenSemaphore;
 			VkSemaphore m_OutputSemaphore;
 
-			vk::FrameBuffer* m_OffscreenFrameBuffer;
-			vk::FrameBuffer* m_OutputFrameBuffer;
+			FrameBufferRef m_OffscreenFrameBuffer;
+			FrameBufferRef m_OutputFrameBuffer;
 			UniformBuffers m_UniformBuffers;
 			UniformBufferVert m_VertUBO;
 			UniformBufferLights m_LightsUBO;
 
 			VkPipelineCache m_PipelineCache;
-			VkCommandBuffer m_OffScreenCmdBuffer = VK_NULL_HANDLE;
-			VkCommandBuffer m_OutputCmdBuffer = VK_NULL_HANDLE;
-			VkImage m_DepthImage;
-			VkDeviceMemory m_DepthImageMemory;
-			VkImageView m_DepthImageView;
+			CommandBufferRef m_OffScreenCmdBuffer;
+			CommandBufferRef m_OutputCmdBuffer;
+
 			vk::Mesh m_ScreenQuad;
 			std::vector<VkShaderModule> m_ShaderModules;
 

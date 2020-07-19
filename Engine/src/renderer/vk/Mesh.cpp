@@ -11,6 +11,7 @@
 #include "renderer/vk/ImageHelpers.h"
 #include "Helpers.h"
 #include "renderer/vk/VulkanRenderer.h"
+#include "renderer/vk/CommandBuffer.h"
 
 namespace plumbus::vk
 {
@@ -121,6 +122,8 @@ namespace plumbus::vk
 			m_Material->Setup(&m_VertexLayout);
 			CreateUniformBuffer(vkRenderer->GetDevice().get());
 			CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
+
+			m_CommandBuffer = vkRenderer->GetOffscreenCommandBuffer();
 		}
 	}
 
@@ -182,17 +185,15 @@ namespace plumbus::vk
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
 	}
 
-	void Mesh::SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout)
+	void Mesh::Render()
 	{
-		vk::Material* vkMaterial = static_cast<vk::Material*>(m_Material.get());
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkMaterial->GetPipeline());
+		Material* material = GetVkMaterial();
 
-		VkDeviceSize offsets[1] = { 0 };
-		// Object
-		vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkMaterial->GetPipelineLayout(), 0, 1, &m_DescriptorSet, 0, NULL);
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &m_VulkanVertexBuffer.m_Buffer, offsets);
-		vkCmdBindIndexBuffer(cmdBuffer, m_VulkanIndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(cmdBuffer, m_IndexSize, 1, 0, 0, 0);
+		m_CommandBuffer->BindPipeline(material->GetPipeline());
+		m_CommandBuffer->BindDescriptorSet(material->GetPipelineLayout(), m_DescriptorSet);
+		m_CommandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
+		m_CommandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
+		m_CommandBuffer->RecordDraw(m_IndexSize);
 	}
 
 	Buffer& Mesh::GetVertexBuffer()
@@ -212,7 +213,7 @@ namespace plumbus::vk
 
 	void Mesh::SetMaterial(MaterialRef material)
 	{
-		PLUMBUS_ASSERT(dynamic_cast<vk::Material*>(material.get()) != nullptr);
+		PL_ASSERT(dynamic_cast<vk::Material*>(material.get()) != nullptr);
 		m_Material = material;
 	}
 

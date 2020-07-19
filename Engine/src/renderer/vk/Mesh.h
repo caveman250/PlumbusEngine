@@ -25,7 +25,7 @@ namespace plumbus::vk
 
 		void CreateUniformBuffer(vk::Device* vulkanDevice);
 		void CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
-		void SetupCommandBuffer(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout);
+		void Render();
 
 		void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo) override;
 
@@ -35,6 +35,8 @@ namespace plumbus::vk
 		//todo there should really be a constructor for custom geometry, remove this once added.
 		void SetIndexSize(uint32_t indexSize); 
 private:
+		Material* GetVkMaterial() { return static_cast<Material*>(m_Material.get()); }
+
 		uint32_t m_IndexSize;
 
 		vk::Buffer m_VulkanVertexBuffer;
@@ -45,5 +47,7 @@ private:
 		vk::Buffer m_UniformBuffer;
 
 		VertexLayout m_VertexLayout;
+
+		CommandBufferRef m_CommandBuffer;
 	};
 }

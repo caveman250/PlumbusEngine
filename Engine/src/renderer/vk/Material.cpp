@@ -74,10 +74,10 @@ namespace plumbus::vk
 				binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 				break;
 			case VERTEX_COMPONENT_DUMMY_FLOAT:
-				PLUMBUS_ASSERT(false , "Material::CreatePipelineLayout() VertexLayoutComponent Type Not Implemented");
+				PL_ASSERT(false , "Material::CreatePipelineLayout() VertexLayoutComponent Type Not Implemented");
 				break;
 			case VERTEX_COMPONENT_DUMMY_VEC4:
-				PLUMBUS_ASSERT(false , "Material::CreatePipelineLayout() VertexLayoutComponent Type Not Implemented");
+				PL_ASSERT(false , "Material::CreatePipelineLayout() VertexLayoutComponent Type Not Implemented");
 				break;
 			}
 
@@ -167,7 +167,7 @@ namespace plumbus::vk
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineCreateInfo.layout = m_PipelineLayout;
-		pipelineCreateInfo.renderPass = renderer->GetOffscreenFramebuffer()->m_RenderPass;
+		pipelineCreateInfo.renderPass = renderer->GetOffscreenFramebuffer()->GetRenderPass();
 		pipelineCreateInfo.flags = 0;
 		pipelineCreateInfo.basePipelineIndex = -1;
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
