@@ -62,9 +62,9 @@ namespace plumbus
 		va_list args;
 		va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
-		BEGIN_WHITE
-		LogInternal(LogLevel::Info, "[Info] %s", (char*)&buffer);
-		END_COLOUR
+		//BEGIN_WHITE
+		LogInternal(LogLevel::Info, "[Info] %s\n", (char*)&buffer);
+		//END_COLOUR
 
 		va_end(args);
 
@@ -109,8 +109,8 @@ namespace plumbus
 		END_COLOUR
 
 		va_end(args);
-
-		PL_ASSERT(false, (char*)&buffer);
+		raise(SIGINT);
+		exit(0);
 	}
 
 	void Log::Draw(const char* title)
