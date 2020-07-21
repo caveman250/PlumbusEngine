@@ -15,6 +15,7 @@
 #include "renderer/vk/Material.h"
 #include "renderer/vk/VulkanRenderer.h"
 #include "imgui_impl/ImGuiImpl.h"
+#include "renderer/vk/DescriptorSet.h"
 #endif
 
 
@@ -160,9 +161,9 @@ namespace plumbus::tester::tests
 		ImGui::DragFloat("Light Radius", &m_LightRadius, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Distance From Center", &m_LightsDistanceFromCenter, 0.01f, 0.f, 20.f);
 #if VULKAN_RENDERER
-		ImGui::Image(m_AlbedoTextureDescSet, ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
-		ImGui::Image(m_NormalsTextureDescSet, ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
-		ImGui::Image(m_WorldPosTextureDescSet, ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_AlbedoTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_NormalsTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_WorldPosTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
 #endif
 	}
 

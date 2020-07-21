@@ -3,6 +3,7 @@
 #include "renderer/vk/Material.h"
 #include "renderer/vk/VulkanRenderer.h"
 #include "BaseApplication.h"
+#include "DescriptorSetLayout.h"
 
 namespace plumbus::vk
 {
@@ -12,6 +13,7 @@ namespace plumbus::vk
 		, m_FragShaderName(fragShader)
 		, m_Pipeline(VK_NULL_HANDLE)
 		, m_PipelineLayout(VK_NULL_HANDLE)
+		, m_ShadersLoaded(false)
 	{
 	}
 
@@ -19,9 +21,18 @@ namespace plumbus::vk
 	{
 		m_VertexLayout = *layout;
 		CreateVertexDescriptions();
+
+		std::vector<DescriptorSetLayout::Binding> bindingInfo;
+		if (!m_ShadersLoaded)
+		{
+			VulkanRenderer* renderer = VulkanRenderer::Get();
+			m_VertShaderPipelineCreateInfo = renderer->LoadShader(m_VertShaderName, VK_SHADER_STAGE_VERTEX_BIT, bindingInfo);
+			m_FragShaderPipelineCreateInfo = renderer->LoadShader(m_FragShaderName, VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo);
+		}
+
 		if(m_PipelineLayout == VK_NULL_HANDLE)
 		{
-			CreatePipelineLayout();
+			CreatePipelineLayout(bindingInfo);
 		}
 
 		if(m_Pipeline == VK_NULL_HANDLE)
@@ -34,74 +45,26 @@ namespace plumbus::vk
 	{
 		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
-		vkDestroyDescriptorSetLayout(renderer->GetDevice()->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
+		m_DescriptorSetLayout.reset();
 		vkDestroyPipeline(renderer->GetDevice()->GetVulkanDevice(), m_Pipeline, nullptr);
 		vkDestroyPipelineLayout(renderer->GetDevice()->GetVulkanDevice(), m_PipelineLayout, nullptr);
 	}
 
-	void Material::CreatePipelineLayout()
+	void Material::CreatePipelineLayout(const std::vector<DescriptorSetLayout::Binding>& bindings)
 	{
-		std::vector<VkDescriptorSetLayoutBinding> bindings;
-		for (int i = 0; i < m_VertexLayout.components.size(); ++i)
+		m_DescriptorSetLayout = DescriptorSetLayout::CreateDescriptorSetLayout();
+		for (const DescriptorSetLayout::Binding& binding : bindings)
 		{
-			VertexLayoutComponent& component = m_VertexLayout.components[i];
-			VkDescriptorSetLayoutBinding binding {};
-
-			switch (component)
-			{
-			case VERTEX_COMPONENT_POSITION:
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-				break;
-			case VERTEX_COMPONENT_NORMAL:
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-				break;
-			case VERTEX_COMPONENT_COLOR:
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-				break;
-			case VERTEX_COMPONENT_UV:
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-				break;
-			case VERTEX_COMPONENT_TANGENT:
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-				break;
-			case VERTEX_COMPONENT_BITANGENT:
-				binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-				break;
-			case VERTEX_COMPONENT_DUMMY_FLOAT:
-				PL_ASSERT(false , "Material::CreatePipelineLayout() VertexLayoutComponent Type Not Implemented");
-				break;
-			case VERTEX_COMPONENT_DUMMY_VEC4:
-				PL_ASSERT(false , "Material::CreatePipelineLayout() VertexLayoutComponent Type Not Implemented");
-				break;
-			}
-
-			binding.binding = i;
-			binding.descriptorCount = 1;
-
-			bindings.push_back(binding);
+			m_DescriptorSetLayout->AddBinding(binding);
 		}
-
-		VkDescriptorSetLayoutCreateInfo descriptorLayout{};
-		descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorLayout.pBindings = bindings.data();
-		descriptorLayout.bindingCount = static_cast<uint32_t>(bindings.size());
-
-		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
-
-		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(renderer->GetDevice()->GetVulkanDevice(), &descriptorLayout, nullptr, &m_DescriptorSetLayout));
+		m_DescriptorSetLayout->Build();
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
+		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout->GetVulkanDescriptorSetLayout();
 
-		CHECK_VK_RESULT(vkCreatePipelineLayout(renderer->GetDevice()->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 	}
 
 	void Material::CreatePipeline()
@@ -183,8 +146,9 @@ namespace plumbus::vk
 
 		// Offscreen pipeline
 		pipelineCreateInfo.pVertexInputState = &m_VertexDescriptions.m_InputState;
-		shaderStages[0] = renderer->LoadShader(m_VertShaderName, VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = renderer->LoadShader(m_FragShaderName, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+		shaderStages[0] = m_VertShaderPipelineCreateInfo;
+		shaderStages[1] = m_FragShaderPipelineCreateInfo;
 
 		// Blend attachment states required for all color attachments
 		// This is important, as color write mask will otherwise be 0x0 and you

@@ -7,6 +7,9 @@
 #include "components/LightComponent.h"
 #include "imgui/imgui_internal.h"
 #include "Scene.h"
+#include "renderer/vk/Material.h"
+#include "renderer/vk/DescriptorPool.h"
+#include "renderer/vk/DescriptorSet.h"
 
 namespace plumbus
 {
@@ -28,8 +31,11 @@ namespace plumbus
 		vkDestroyPipelineCache(device->GetVulkanDevice(), m_PipelineCache, nullptr);
 		vkDestroyPipeline(device->GetVulkanDevice(), m_Pipeline, nullptr);
 		vkDestroyPipelineLayout(device->GetVulkanDevice(), m_PipelineLayout, nullptr);
-		vkDestroyDescriptorPool(device->GetVulkanDevice(), m_DescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(device->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
+
+		m_DescriptorSet.reset();
+		m_GameViewTextureDescSet.reset();
+		m_DescriptorSetLayout.reset();
+		m_DescriptorPool.reset();
 	}
 
 	void ImGUIImpl::Init(float width, float height)
@@ -185,67 +191,15 @@ namespace plumbus
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &samplerInfo, nullptr, &m_Sampler));
 
-		VkDescriptorPoolSize descriptorPoolSize{};
-		descriptorPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorPoolSize.descriptorCount = 5;
-		// Descriptor pool
-		std::vector<VkDescriptorPoolSize> poolSizes =
-		{
-			descriptorPoolSize
-		};
+		m_DescriptorPool = vk::DescriptorPool::CreateDescriptorPool(0, 5, 5);
 
-		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
-		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-		descriptorPoolInfo.pPoolSizes = poolSizes.data();
-		descriptorPoolInfo.maxSets = 5;
-		CHECK_VK_RESULT(vkCreateDescriptorPool(device->GetVulkanDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
+		m_DescriptorSetLayout = vk::DescriptorSetLayout::CreateDescriptorSetLayout();
+		m_DescriptorSetLayout->AddBinding(vk::DescriptorSetLayout::BindingUsage::FragmentShader, vk::DescriptorSetLayout::BindingType::ImageSampler, 0);
+		m_DescriptorSetLayout->Build();
 
-		// Descriptor set layout
-		VkDescriptorSetLayoutBinding setLayoutBinding{};
-		setLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		setLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		setLayoutBinding.binding = 0;
-		setLayoutBinding.descriptorCount = 1;
-		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-		{
-			setLayoutBinding
-		};
-
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
-		descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		descriptorSetLayoutCreateInfo.pBindings = setLayoutBindings.data();
-		descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-
-		CHECK_VK_RESULT(vkCreateDescriptorSetLayout(device->GetVulkanDevice(), &descriptorSetLayoutCreateInfo, nullptr, &m_DescriptorSetLayout));
-
-		// Descriptor set
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
-		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		descriptorSetAllocateInfo.descriptorPool = m_DescriptorPool;
-		descriptorSetAllocateInfo.pSetLayouts = &m_DescriptorSetLayout;
-		descriptorSetAllocateInfo.descriptorSetCount = 1;
-
-		CHECK_VK_RESULT(vkAllocateDescriptorSets(device->GetVulkanDevice(), &descriptorSetAllocateInfo, &m_DescriptorSet));
-
-		VkDescriptorImageInfo descriptorImageInfo{};
-		descriptorImageInfo.sampler = m_Sampler;
-		descriptorImageInfo.imageView = m_FontView;
-		descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		VkDescriptorImageInfo fontDescriptor = descriptorImageInfo;
-
-		VkWriteDescriptorSet writeDescriptorSet{};
-		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		writeDescriptorSet.dstSet = m_DescriptorSet;
-		writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		writeDescriptorSet.dstBinding = 0;
-		writeDescriptorSet.pImageInfo = &fontDescriptor;
-		writeDescriptorSet.descriptorCount = 1;
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-			writeDescriptorSet
-		};
-		vkUpdateDescriptorSets(device->GetVulkanDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+		m_DescriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
+		m_DescriptorSet->AddTexture(m_Sampler, m_FontView, vk::DescriptorSet::BindingUsage::FragmentShader);
+		m_DescriptorSet->Build();
 
 		// Pipeline cache
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -262,7 +216,7 @@ namespace plumbus
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
+		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout->GetVulkanDescriptorSetLayout();
 		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
 		CHECK_VK_RESULT(vkCreatePipelineLayout(device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
@@ -396,10 +350,11 @@ namespace plumbus
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		shaderStages[0] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-		shaderStages[1] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+		std::vector<vk::DescriptorSetLayout::Binding> bindingInfo;
+		shaderStages[0] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, bindingInfo);
+		shaderStages[1] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo);
 
-		io.Fonts->TexID = (void*)m_DescriptorSet;
+		io.Fonts->TexID = (void*)m_DescriptorSet->GetVulkanDescriptorSet();
 
 		CHECK_VK_RESULT(vkCreateGraphicsPipelines(device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
 	}
@@ -408,9 +363,11 @@ namespace plumbus
 	{
 		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
-		if (m_GameViewTextureDescSet == VK_NULL_HANDLE)
-			m_GameViewTextureDescSet = AddTexture(renderer->m_OutputTexture.m_TextureSampler, renderer->m_OutputTexture.m_ImageView);
-
+		if (!m_GameViewTextureDescSet)
+		{
+			m_GameViewTextureDescSet = AddTexture(renderer->GetOutputFramebuffer()->GetSampler(), renderer->GetOutputFramebuffer()->GetAttachment("colour").m_ImageView);
+		}
+		
 		ImGuiIO& io = ImGui::GetIO();
 
 		io.DeltaTime = (float)BaseApplication::Get().GetDeltaTime();
@@ -528,7 +485,7 @@ namespace plumbus
 			BaseApplication::Get().m_GameWindowFocused = ImGui::IsWindowHovered();
 
 			//TODO game size is fixed to initial window size, give more control over game resolution.
-			ImGui::Image((void*)m_GameViewTextureDescSet, ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), true);
+			ImGui::Image((void*)m_GameViewTextureDescSet->GetVulkanDescriptorSet(), ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), true);
 			ImGui::End();
 
 			Log::Draw("Log");
@@ -642,37 +599,43 @@ namespace plumbus
 		}
 	}
 
-	VkDescriptorSet ImGUIImpl::AddTexture(VkSampler sampler, VkImageView image_view)
+	vk::DescriptorSetRef ImGUIImpl::AddTexture(VkSampler sampler, VkImageView image_view)
 	{
-		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
+		vk::DescriptorSetRef descriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
+		descriptorSet->AddTexture(sampler, image_view, vk::DescriptorSet::BindingUsage::FragmentShader);
+		descriptorSet->Build();
+		return descriptorSet;
 
-		VkDescriptorSet descriptor_set;
-		// Create Descriptor Set:
-		{
-			VkDescriptorSetAllocateInfo alloc_info = {};
-			alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			alloc_info.descriptorPool = m_DescriptorPool;
-			alloc_info.descriptorSetCount = 1;
-			alloc_info.pSetLayouts = &m_DescriptorSetLayout;
-			CHECK_VK_RESULT(vkAllocateDescriptorSets(device->GetVulkanDevice(), &alloc_info, &descriptor_set));
-		}
 
-		// Update the Descriptor Set:s
-		{
-			VkDescriptorImageInfo desc_image[1] = {};
-			desc_image[0].sampler = sampler;
-			desc_image[0].imageView = image_view;
-			desc_image[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			VkWriteDescriptorSet write_desc[1] = {};
-			write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			write_desc[0].dstSet = descriptor_set;
-			write_desc[0].descriptorCount = 1;
-			write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			write_desc[0].pImageInfo = desc_image;
-			vkUpdateDescriptorSets(device->GetVulkanDevice(), 1, write_desc, 0, NULL);
-		}
+		// std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
 
-		return descriptor_set;
+		// VkDescriptorSet descriptor_set;
+		// // Create Descriptor Set:
+		// {
+		// 	VkDescriptorSetAllocateInfo alloc_info = {};
+		// 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		// 	alloc_info.descriptorPool = m_DescriptorPool;
+		// 	alloc_info.descriptorSetCount = 1;
+		// 	alloc_info.pSetLayouts = &m_DescriptorSetLayout;
+		// 	CHECK_VK_RESULT(vkAllocateDescriptorSets(device->GetVulkanDevice(), &alloc_info, &descriptor_set));
+		// }
+
+		// // Update the Descriptor Set:s
+		// {
+		// 	VkDescriptorImageInfo desc_image[1] = {};
+		// 	desc_image[0].sampler = sampler;
+		// 	desc_image[0].imageView = image_view;
+		// 	desc_image[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		// 	VkWriteDescriptorSet write_desc[1] = {};
+		// 	write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		// 	write_desc[0].dstSet = descriptor_set;
+		// 	write_desc[0].descriptorCount = 1;
+		// 	write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		// 	write_desc[0].pImageInfo = desc_image;
+		// 	vkUpdateDescriptorSets(device->GetVulkanDevice(), 1, write_desc, 0, NULL);
+		// }
+
+		// return descriptor_set;
 	}
 
 	void ImGUIImpl::OnMouseScolled(GLFWwindow* window, double xoffset, double yoffset)

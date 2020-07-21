@@ -1,6 +1,7 @@
 #include "CommandBuffer.h"
 #include "Helpers.h"
 #include "VulkanRenderer.h"
+#include "DescriptorSet.h"
 
 namespace plumbus::vk
 {
@@ -76,9 +77,9 @@ namespace plumbus::vk
 		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, piepline);
 	}
 
-	void CommandBuffer::BindDescriptorSet(const VkPipelineLayout layout, const VkDescriptorSet descriptorSet) const
+	void CommandBuffer::BindDescriptorSet(const VkPipelineLayout layout, const DescriptorSetRef& descriptorSet) const
 	{
-		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descriptorSet, 0, NULL);
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descriptorSet->GetVulkanDescriptorSet(), 0, NULL);
 	}
 
 	void CommandBuffer::BindVertexBuffer(const vk::Buffer& buffer) const

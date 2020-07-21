@@ -3,6 +3,7 @@
 #include "plumbus.h"
 
 #include "renderer/base/Material.h"
+#include "DescriptorSetLayout.h"
 
 namespace plumbus::vk
 {
@@ -15,8 +16,10 @@ namespace plumbus::vk
 		VkPipeline& GetPipeline() { return m_Pipeline; }
 		VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
 
+		const DescriptorSetLayoutRef& GetLayout() { return m_DescriptorSetLayout; }
+
 	private:
-		void CreatePipelineLayout();
+		void CreatePipelineLayout(const std::vector<DescriptorSetLayout::Binding>& binding);
 		void CreatePipeline();
 		void CreateVertexDescriptions();
 
@@ -28,7 +31,7 @@ namespace plumbus::vk
 		};
 
 		VertexDescription m_VertexDescriptions;
-		VkDescriptorSetLayout m_DescriptorSetLayout;
+		DescriptorSetLayoutRef m_DescriptorSetLayout;
 
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_Pipeline;
@@ -36,5 +39,9 @@ namespace plumbus::vk
 		VertexLayout m_VertexLayout;
 		const char* m_VertShaderName;
 		const char* m_FragShaderName;
+
+		VkPipelineShaderStageCreateInfo m_VertShaderPipelineCreateInfo;
+		VkPipelineShaderStageCreateInfo m_FragShaderPipelineCreateInfo;
+		bool m_ShadersLoaded;
 	};
 }

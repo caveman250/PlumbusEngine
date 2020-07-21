@@ -3,9 +3,9 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (binding = 1) uniform sampler2D samplerposition;
-layout (binding = 2) uniform sampler2D samplerNormal;
-layout (binding = 3) uniform sampler2D samplerAlbedo;
+layout (binding = 0) uniform sampler2D samplerposition;
+layout (binding = 1) uniform sampler2D samplerNormal;
+layout (binding = 2) uniform sampler2D samplerAlbedo;
 
 layout (location = 0) in vec2 inUV;
 
@@ -25,7 +25,7 @@ struct DirectionalLight {
 const int MAX_POINT_LIGHTS = 6;
 const int MAX_DIRECTIONAL_LIGHTS = 1;
 
-layout (binding = 4) uniform UBO 
+layout (binding = 3) uniform UBO 
 {
 		vec4 viewPos;
 	PointLight pointLights[MAX_POINT_LIGHTS];

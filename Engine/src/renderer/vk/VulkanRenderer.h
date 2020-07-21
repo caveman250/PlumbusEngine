@@ -7,6 +7,7 @@
 #include "renderer/vk/FrameBuffer.h"
 #include "renderer/vk/Window.h"
 #include "renderer/vk/SwapChain.h"
+#include "DescriptorSetLayout.h"
 
 namespace plumbus
 {
@@ -22,7 +23,6 @@ namespace plumbus
 		private:
 			struct UniformBuffers
 			{
-				vk::Buffer m_VertFullScreen;
 				vk::Buffer m_FragLights;
 			};
 
@@ -90,23 +90,23 @@ namespace plumbus
 
 			vk::Window* GetVulkanWindow() { return static_cast<vk::Window*>(m_Window); }
 
-			VkDescriptorPool& GetDescriptorPool() { return m_DescriptorPool; }
-			VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
 			GLFWwindow* GetWindow() { return static_cast<vk::Window*>(m_Window)->GetWindow(); }
-			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
+
+			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorSetLayout::Binding>& outBindingInfo);
 
 			std::vector<const char*> GetRequiredDeviceExtensions();
 			std::vector<const char*> GetRequiredInstanceExtensions();
 			std::vector<const char*> GetRequiredValidationLayers();
 
-			VkDescriptorSetAllocateInfo GetDescriptorSetAllocateInfo();
-
 			FrameBufferRef GetOffscreenFramebuffer() { return m_OffscreenFrameBuffer; }
 			const CommandBufferRef& GetOffscreenCommandBuffer() { return m_OffScreenCmdBuffer; }
-			VkPipelineCache& GetPipelineCache() { return m_PipelineCache; }
+			FrameBufferRef GetOutputFramebuffer() { return m_OutputFrameBuffer; }
+			const CommandBufferRef& GetOutputCommandBuffer() { return m_OutputCmdBuffer; }
 
-			//used for imgui
-			vk::Texture m_OutputTexture;
+			//TODO: this shouldnt be a big global thing, create pools where relavnt.
+			const DescriptorPoolRef& GeDescriptorPool() { return m_DescriptorPool; }
+
+			VkPipelineCache& GetPipelineCache() { return m_PipelineCache; }
 
 			VkFormat FindDepthFormat();
 
@@ -120,15 +120,12 @@ namespace plumbus
 			
 			void CreateUniformBuffers();
 			void InitLightsVBO();
-			void CreateDescriptorSetLayout();
 			void CreatePipelines();
-			void CreateDescriptorPool();
 			void CreateDescriptorSet();
 			void BuildImguiCommandBuffer(int index);
 			void BuildDefferedCommandBuffer();
 			void BuildOutputFrameBuffer();
 			void RecreateSwapChain();
-			void UpdateUniformBuffersScreen();
 			void UpdateLightsUniformBuffer();
 			void SetupImGui();
 
@@ -143,9 +140,10 @@ namespace plumbus
 			DeviceRef m_Device;
 			SwapChainRef m_SwapChain;
 			
-			VkDescriptorPool m_DescriptorPool;
-			VkDescriptorSetLayout m_DescriptorSetLayout;
-			VkDescriptorSet m_OutputDescriptorSet;
+			DescriptorPoolRef m_DescriptorPool;
+
+			DescriptorSetRef m_OutputDescriptorSet;
+			DescriptorSetLayoutRef m_OutputDescriptorSetLayout;
 			PipelineLayouts m_PipelineLayouts;
 			Pipelines m_Pipelines;
 

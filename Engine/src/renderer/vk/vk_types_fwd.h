@@ -17,4 +17,13 @@ namespace plumbus::vk
 
     class FrameBuffer;
     typedef std::shared_ptr<FrameBuffer> FrameBufferRef;
+
+	class DescriptorSet;
+	typedef std::shared_ptr<DescriptorSet> DescriptorSetRef;
+
+    class DescriptorPool;
+    typedef std::shared_ptr<DescriptorPool> DescriptorPoolRef;
+
+    class DescriptorSetLayout;
+    typedef std::shared_ptr<DescriptorSetLayout> DescriptorSetLayoutRef;
 }

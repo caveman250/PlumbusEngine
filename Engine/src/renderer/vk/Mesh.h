@@ -23,14 +23,14 @@ namespace plumbus::vk
 		void Setup(base::Renderer* renderer) override;
 		void SetMaterial(MaterialRef material) override;
 
-		void CreateUniformBuffer(vk::Device* vulkanDevice);
-		void CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo);
+		void CreateUniformBuffer(Device* vulkanDevice);
+		void CreateDescriptorSet();
 		void Render();
 
 		void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo) override;
 
-		vk::Buffer& GetVertexBuffer();
-		vk::Buffer& GetIndexBuffer();
+		Buffer& GetVertexBuffer();
+		Buffer& GetIndexBuffer();
 
 		//todo there should really be a constructor for custom geometry, remove this once added.
 		void SetIndexSize(uint32_t indexSize); 
@@ -39,12 +39,12 @@ private:
 
 		uint32_t m_IndexSize;
 
-		vk::Buffer m_VulkanVertexBuffer;
-		vk::Buffer m_VulkanIndexBuffer;
+		Buffer m_VulkanVertexBuffer;
+		Buffer m_VulkanIndexBuffer;
 
-		VkDescriptorSet m_DescriptorSet;
+		DescriptorSetRef m_DescriptorSet;
 
-		vk::Buffer m_UniformBuffer;
+		Buffer m_UniformBuffer;
 
 		VertexLayout m_VertexLayout;
 

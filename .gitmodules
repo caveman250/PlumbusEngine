@@ -10,3 +10,6 @@
 [submodule "third_party/gli"]
 	path = third_party/gli
 	url = https://github.com/g-truc/gli
+[submodule "third_party/SPIRV-Cross"]
+	path = third_party/SPIRV-Cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross

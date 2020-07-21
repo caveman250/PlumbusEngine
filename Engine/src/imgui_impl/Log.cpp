@@ -109,7 +109,11 @@ namespace plumbus
 		END_COLOUR
 
 		va_end(args);
+#if PLUMBUS_PLATFORM_LINUX
 		raise(SIGINT);
+#elif PLUMBUS_PLATFORM_WINDOWS
+		__debugbreak();
+#endif
 		exit(0);
 	}
 

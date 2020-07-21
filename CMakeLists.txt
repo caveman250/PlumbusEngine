@@ -5,5 +5,6 @@ project(PlumbusEngine)
 
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/assimp)
+add_subdirectory(third_party/SPIRV-Cross)
 add_subdirectory(PlumbusTester)
 add_subdirectory(Engine)

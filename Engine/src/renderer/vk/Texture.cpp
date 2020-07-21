@@ -7,13 +7,6 @@
 
 namespace plumbus::vk
 {
-	void Texture::UpdateDescriptor()
-	{
-		m_Descriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		m_Descriptor.imageView = m_ImageView;
-		m_Descriptor.sampler = m_TextureSampler;
-	}
-
 	void Texture::CreateTextureSampler()
 	{
 		VkSamplerCreateInfo samplerInfo = {};
@@ -168,7 +161,6 @@ namespace plumbus::vk
 
 		m_ImageView = ImageHelpers::CreateImageView(m_Image, format, VK_IMAGE_ASPECT_COLOR_BIT);
 		CreateTextureSampler();
-		UpdateDescriptor();
 	}
 
 	void Texture::Cleanup()

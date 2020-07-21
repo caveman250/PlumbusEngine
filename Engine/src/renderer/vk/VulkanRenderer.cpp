@@ -18,6 +18,11 @@
 #include <gtk/gtk.h>
 #endif
 #include "CommandBuffer.h"
+#include "DescriptorSet.h"
+#include "DescriptorSetLayout.h"
+#include "DescriptorPool.h"
+
+#include "SPIRV-Cross/spirv_cpp.hpp"
 
 static uint32_t s_Width, s_Height;
 
@@ -91,20 +96,17 @@ namespace plumbus::vk
 		m_OutputFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo);
 
         CreateUniformBuffers();
-        CreateDescriptorSetLayout();
-		CreatePipelines();
-        CreateDescriptorPool();
+        m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
         CreateDescriptorSet();
 
+		CreatePipelines();
+
+
         SetupImGui();
-        m_OutputTexture.CreateTextureSampler();
-        m_OutputTexture.m_ImageView = m_OutputFrameBuffer->GetAttachment("colour").m_ImageView;
 
         BuildDefferedCommandBuffer();
         BuildOutputFrameBuffer();
     }
-
-   
 
     void VulkanRenderer::SetupDebugCallback()
     {
@@ -215,15 +217,11 @@ namespace plumbus::vk
         m_OffscreenFrameBuffer.reset();
         m_OutputFrameBuffer.reset();
 
-        vkDestroySampler(m_Device->GetVulkanDevice(), m_OutputTexture.m_TextureSampler, nullptr);
-
         vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Deferred, nullptr);
         vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Deferred, nullptr);
         vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Offscreen, nullptr);
         vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
         vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Output, nullptr);
-
-        vkDestroyDescriptorSetLayout(m_Device->GetVulkanDevice(), m_DescriptorSetLayout, nullptr);
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -235,7 +233,6 @@ namespace plumbus::vk
 
         m_ScreenQuad.Cleanup();
 
-        m_UniformBuffers.m_VertFullScreen.Cleanup();
         m_UniformBuffers.m_FragLights.Cleanup();
 
         delete m_ImGui;
@@ -246,7 +243,9 @@ namespace plumbus::vk
         m_SwapChain->Cleanup();
         m_SwapChain.reset();
 
-        vkDestroyDescriptorPool(m_Device->GetVulkanDevice(), m_DescriptorPool, nullptr);
+        m_OutputDescriptorSet.reset();
+        m_OutputDescriptorSetLayout.reset();
+        m_DescriptorPool.reset();
 
         for (auto& shaderModule : m_ShaderModules)
         {
@@ -433,13 +432,6 @@ namespace plumbus::vk
 
     void VulkanRenderer::CreateUniformBuffers()
     {
-        // Fullscreen vertex shader
-        CHECK_VK_RESULT(m_Device->CreateBuffer(
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &m_UniformBuffers.m_VertFullScreen,
-            sizeof(m_VertUBO)));
-
         // Deferred fragment shader
         CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -447,82 +439,23 @@ namespace plumbus::vk
             &m_UniformBuffers.m_FragLights,
             sizeof(m_LightsUBO)));
 
-        // Map persistent
-        CHECK_VK_RESULT(m_UniformBuffers.m_VertFullScreen.Map());
-
         CHECK_VK_RESULT(m_UniformBuffers.m_FragLights.Map());
 
-        // Update
-        UpdateUniformBuffersScreen();
         UpdateLightsUniformBuffer();
-    }
-
-    void VulkanRenderer::CreateDescriptorSetLayout()
-    {
-        // Binding 0 : Vertex shader uniform buffer
-        VkDescriptorSetLayoutBinding vertUniformBufferBinding{};
-        vertUniformBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        vertUniformBufferBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        vertUniformBufferBinding.binding = 0;
-        vertUniformBufferBinding.descriptorCount = 1;
-
-        // Binding 1 : Position
-        VkDescriptorSetLayoutBinding positionBinding{};
-        positionBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        positionBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        positionBinding.binding = 1;
-        positionBinding.descriptorCount = 1;
-
-        // Binding 2 : Normal
-        VkDescriptorSetLayoutBinding normalBinding{};
-        normalBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        normalBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        normalBinding.binding = 2;
-        normalBinding.descriptorCount = 1;
-
-        // Binding 3 : Albedo
-        VkDescriptorSetLayoutBinding albedoBinding{};
-        albedoBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        albedoBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        albedoBinding.binding = 3;
-        albedoBinding.descriptorCount = 1;
-
-        VkDescriptorSetLayoutBinding descriptorSetBinding{};
-        descriptorSetBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorSetBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptorSetBinding.binding = 4;
-        descriptorSetBinding.descriptorCount = 1;
-
-        // Deferred shading layout
-        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings =
-        {
-            vertUniformBufferBinding,
-            positionBinding,
-            normalBinding,
-            albedoBinding,
-            descriptorSetBinding,
-        };
-
-        VkDescriptorSetLayoutCreateInfo descriptorLayout{};
-        descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptorLayout.pBindings = setLayoutBindings.data();
-        descriptorLayout.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-
-        CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_Device->GetVulkanDevice(), &descriptorLayout, nullptr, &m_DescriptorSetLayout));
-
-        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-        pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutCreateInfo.setLayoutCount = 1;
-        pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
-
-        CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Deferred));
-
-        // Offscreen (scene) rendering pipeline layout
-        CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Offscreen));
     }
 
     void VulkanRenderer::CreatePipelines()
     {
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
+		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
+		pipelineLayoutCreateInfo.pSetLayouts = &m_OutputDescriptorSetLayout->GetVulkanDescriptorSetLayout();
+
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Deferred));
+
+		// Offscreen (scene) rendering pipeline layout
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Offscreen));
+
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
 		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -580,8 +513,9 @@ namespace plumbus::vk
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
 
         // Output pipeline
-        shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+        std::vector<vk::DescriptorSetLayout::Binding> bindingInfo;
+        shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, bindingInfo);
+        shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo);
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -627,136 +561,21 @@ namespace plumbus::vk
         CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Output));
     }
 
-    void VulkanRenderer::CreateDescriptorPool()
-    {
-        VkDescriptorPoolSize uniformPoolSize{};
-        uniformPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uniformPoolSize.descriptorCount = 100; //TODO
-
-        VkDescriptorPoolSize imageSamplerPoolSize{};
-        imageSamplerPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        imageSamplerPoolSize.descriptorCount = 100; //TODO
-
-        std::vector<VkDescriptorPoolSize> poolSizes =
-        {
-            uniformPoolSize,
-            imageSamplerPoolSize
-        };
-
-        VkDescriptorPoolCreateInfo descriptorPoolInfo{};
-        descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        descriptorPoolInfo.pPoolSizes = poolSizes.data();
-        descriptorPoolInfo.maxSets = 100; //TODO
-
-        CHECK_VK_RESULT(vkCreateDescriptorPool(m_Device->GetVulkanDevice(), &descriptorPoolInfo, nullptr, &m_DescriptorPool));
-    }
-
     void VulkanRenderer::CreateDescriptorSet()
     {
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+        m_OutputDescriptorSetLayout = DescriptorSetLayout::CreateDescriptorSetLayout();
+        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::ImageSampler, 0);
+        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::ImageSampler, 1);
+        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::ImageSampler, 2);
+        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::UniformBuffer, 3);
+        m_OutputDescriptorSetLayout->Build();
 
-        // Textured quad descriptor set
-	    VkDescriptorSetAllocateInfo allocInfo = GetDescriptorSetAllocateInfo();
-
-        CHECK_VK_RESULT(vkAllocateDescriptorSets(m_Device->GetVulkanDevice(), &allocInfo, &m_OutputDescriptorSet));
-
-        // Image descriptors for the offscreen color attachments
-        VkDescriptorImageInfo texDescriptorPosition{};
-        texDescriptorPosition.sampler = m_OffscreenFrameBuffer->GetSampler();
-        texDescriptorPosition.imageView = m_OffscreenFrameBuffer->GetAttachment("position").m_ImageView;
-        texDescriptorPosition.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkDescriptorImageInfo texDescriptorNormal{};
-        texDescriptorNormal.sampler = m_OffscreenFrameBuffer->GetSampler();
-        texDescriptorNormal.imageView = m_OffscreenFrameBuffer->GetAttachment("normal").m_ImageView;
-        texDescriptorNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkDescriptorImageInfo texDescriptorAlbedo{};
-        texDescriptorAlbedo.sampler = m_OffscreenFrameBuffer->GetSampler();
-        texDescriptorAlbedo.imageView = m_OffscreenFrameBuffer->GetAttachment("colour").m_ImageView;
-        texDescriptorAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkDescriptorImageInfo texDescriptorOutput{};
-        texDescriptorOutput.sampler = m_OutputFrameBuffer->GetSampler();
-        texDescriptorOutput.imageView = m_OutputFrameBuffer->GetAttachment("colour").m_ImageView;
-        texDescriptorOutput.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        // Binding 0 : Vertex shader uniform buffer
-        VkWriteDescriptorSet uniformWriteSet{};
-        uniformWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        uniformWriteSet.dstSet = m_OutputDescriptorSet;
-        uniformWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uniformWriteSet.dstBinding = 0;
-        uniformWriteSet.pBufferInfo = &m_UniformBuffers.m_VertFullScreen.m_Descriptor;
-        uniformWriteSet.descriptorCount = 1;
-
-        // Binding 1 : Position texture target
-        VkWriteDescriptorSet positionWriteSet{};
-        positionWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        positionWriteSet.dstSet = m_OutputDescriptorSet;
-        positionWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        positionWriteSet.dstBinding = 1;
-        positionWriteSet.pImageInfo = &texDescriptorPosition;
-        positionWriteSet.descriptorCount = 1;
-
-        // Binding 2 : Normals texture target
-        VkWriteDescriptorSet normalWriteSet{};
-        normalWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        normalWriteSet.dstSet = m_OutputDescriptorSet;
-        normalWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        normalWriteSet.dstBinding = 2;
-        normalWriteSet.pImageInfo = &texDescriptorNormal;
-        normalWriteSet.descriptorCount = 1;
-
-        // Binding 3 : Albedo texture target
-        VkWriteDescriptorSet albedoWriteSet{};
-        albedoWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        albedoWriteSet.dstSet = m_OutputDescriptorSet;
-        albedoWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        albedoWriteSet.dstBinding = 3;
-        albedoWriteSet.pImageInfo = &texDescriptorAlbedo;
-        albedoWriteSet.descriptorCount = 1;
-
-        // Binding 4 : Fragment shader uniform buffer
-        VkWriteDescriptorSet fragWriteSet{};
-        fragWriteSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        fragWriteSet.dstSet = m_OutputDescriptorSet;
-        fragWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        fragWriteSet.dstBinding = 4;
-        fragWriteSet.pBufferInfo = &m_UniformBuffers.m_FragLights.m_Descriptor;
-        fragWriteSet.descriptorCount = 1;
-
-        //// Binding 0 : output Vertex shader uniform buffer
-        //VkWriteDescriptorSet uniformWriteSetOutput{};
-        //uniformWriteSetOutput.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //uniformWriteSetOutput.dstSet = m_OutputDescriptorSet;
-        //uniformWriteSetOutput.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        //uniformWriteSetOutput.dstBinding = 0;
-        //uniformWriteSetOutput.pBufferInfo = &m_UniformBuffers.m_VertFullScreen.m_Descriptor;
-        //uniformWriteSetOutput.descriptorCount = 1;
-        //
-        //// Binding 0 : output colour
-        //VkWriteDescriptorSet colourWriteSetOutput{};
-        //colourWriteSetOutput.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //colourWriteSetOutput.dstSet = m_OutputDescriptorSet;
-        //colourWriteSetOutput.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        //colourWriteSetOutput.dstBinding = 1;
-        //colourWriteSetOutput.pImageInfo = &texDescriptorOutput;
-        //colourWriteSetOutput.descriptorCount = 1;
-
-        writeDescriptorSets = {
-            uniformWriteSet,
-            positionWriteSet,
-            normalWriteSet,
-            albedoWriteSet,
-            fragWriteSet,
-            //uniformWriteSetOutput,
-            //colourWriteSetOutput
-        };
-
-        vkUpdateDescriptorSets(m_Device->GetVulkanDevice(), static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
-
+        m_OutputDescriptorSet = DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_OutputDescriptorSetLayout);
+        m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "position", DescriptorSet::BindingUsage::FragmentShader);
+        m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "normal", DescriptorSet::BindingUsage::FragmentShader);
+        m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "colour", DescriptorSet::BindingUsage::FragmentShader);
+        m_OutputDescriptorSet->AddBuffer(&m_UniformBuffers.m_FragLights, DescriptorSet::BindingUsage::FragmentShader);
+        m_OutputDescriptorSet->Build();
     }
 
     void VulkanRenderer::BuildImguiCommandBuffer(int index)
@@ -838,14 +657,6 @@ namespace plumbus::vk
         m_OutputCmdBuffer->EndRecording();
     }
 
-    void VulkanRenderer::UpdateUniformBuffersScreen()
-    {
-        m_VertUBO.m_Projection = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
-        m_VertUBO.m_Model = glm::mat4(1.0f);
-
-        memcpy(m_UniformBuffers.m_VertFullScreen.m_Mapped, &m_VertUBO, sizeof(m_VertUBO));
-    }
-
     void VulkanRenderer::UpdateLightsUniformBuffer()
     {
         //TODO surely there is a way of only copying the lights that have changed.
@@ -897,27 +708,64 @@ namespace plumbus::vk
         m_ImGui->InitResources(m_SwapChain->GetRenderPass(), GetDevice()->GetGraphicsQueue());
     }
 
-    VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage)
+	static std::vector<uint32_t> read_spirv_file(const char* path)
+	{
+		FILE* file = fopen(path, "rb");
+		if (!file)
+		{
+			fprintf(stderr, "Failed to open SPIR-V file: %s\n", path);
+			return {};
+		}
+
+		fseek(file, 0, SEEK_END);
+		long len = ftell(file) / sizeof(uint32_t);
+		rewind(file);
+
+        std::vector<uint32_t> spirv(len);
+		if (fread(spirv.data(), sizeof(uint32_t), len, file) != size_t(len))
+			spirv.clear();
+
+		fclose(file);
+		return spirv;
+	}
+
+    VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorSetLayout::Binding>& outBindingInfo)
     {
+        std::vector<char> spirvText = Helpers::ReadFile(fileName);
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
-        shaderStage.module = CreateShaderModule(Helpers::ReadFile(fileName));
+        shaderStage.module = CreateShaderModule(spirvText);
         shaderStage.pName = "main"; // todo : make param
-		PL_ASSERT(shaderStage.module != VK_NULL_HANDLE);
+        PL_ASSERT(shaderStage.module != VK_NULL_HANDLE);
         m_ShaderModules.push_back(shaderStage.module);
+
+        std::vector<uint32_t> spirvBinary = read_spirv_file(fileName.c_str());
+        spirv_cross::Compiler spirv(std::move(spirvBinary));
+
+        spirv_cross::ShaderResources resources = spirv.get_shader_resources();
+
+        for (auto &resource : resources.sampled_images)
+        {
+            DescriptorSetLayout::Binding binding;
+
+            binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
+            binding.m_Type = DescriptorSetLayout::BindingType::ImageSampler;
+            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorSetLayout::BindingUsage::VertexShader : DescriptorSetLayout::BindingUsage::FragmentShader; 
+            outBindingInfo.push_back(binding);
+        }
+
+        for (auto &resource : resources.uniform_buffers)
+        {
+            DescriptorSetLayout::Binding binding;
+
+            binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
+            binding.m_Type = DescriptorSetLayout::BindingType::UniformBuffer;
+            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorSetLayout::BindingUsage::VertexShader : DescriptorSetLayout::BindingUsage::FragmentShader; ;
+            outBindingInfo.push_back(binding);
+        }
+
         return shaderStage;
-    }
-
-    VkDescriptorSetAllocateInfo VulkanRenderer::GetDescriptorSetAllocateInfo()
-    {
-	    VkDescriptorSetAllocateInfo allocInfo{};
-	    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	    allocInfo.descriptorPool = m_DescriptorPool;
-	    allocInfo.pSetLayouts = &m_DescriptorSetLayout;
-	    allocInfo.descriptorSetCount = 1;
-
-	    return allocInfo;
     }
 
     VkShaderModule VulkanRenderer::CreateShaderModule(const std::vector<char>& code)

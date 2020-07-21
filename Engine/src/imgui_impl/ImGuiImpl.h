@@ -5,6 +5,7 @@
 #include "glm/glm.hpp"
 #include "imgui/imgui.h"
 #include "renderer/vk/ImageHelpers.h"
+#include "renderer/vk/vk_types_fwd.h"
 
 namespace plumbus
 {
@@ -30,7 +31,7 @@ namespace plumbus
 		void UpdateBuffers();
 		void DrawFrame(VkCommandBuffer commandBuffer);
 
-		VkDescriptorSet AddTexture(VkSampler sampler, VkImageView image_view);
+		vk::DescriptorSetRef AddTexture(VkSampler sampler, VkImageView image_view);
 
 		static void OnMouseScolled(GLFWwindow* window, double xoffset, double yoffset);
 		static void OnKeyDown(GLFWwindow*, int key, int, int action, int mods);
@@ -47,11 +48,11 @@ namespace plumbus
 		VkPipelineCache m_PipelineCache;
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_Pipeline;
-		VkDescriptorPool m_DescriptorPool;
-		VkDescriptorSetLayout m_DescriptorSetLayout;
-		VkDescriptorSet m_DescriptorSet;
 
-		VkDescriptorSet m_GameViewTextureDescSet = VK_NULL_HANDLE;
+		vk::DescriptorPoolRef m_DescriptorPool;
+		vk::DescriptorSetLayoutRef m_DescriptorSetLayout;
+		vk::DescriptorSetRef m_DescriptorSet;
+		vk::DescriptorSetRef m_GameViewTextureDescSet;
 
 		GameObject* m_SelectedObject = nullptr;
 	};

@@ -12,6 +12,7 @@
 #include "Helpers.h"
 #include "renderer/vk/VulkanRenderer.h"
 #include "renderer/vk/CommandBuffer.h"
+#include "DescriptorSet.h"
 
 namespace plumbus::vk
 {
@@ -121,7 +122,7 @@ namespace plumbus::vk
 			vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
 			m_Material->Setup(&m_VertexLayout);
 			CreateUniformBuffer(vkRenderer->GetDevice().get());
-			CreateDescriptorSet(vkRenderer->GetDescriptorSetAllocateInfo());
+			CreateDescriptorSet();
 
 			m_CommandBuffer = vkRenderer->GetOffscreenCommandBuffer();
 		}
@@ -143,46 +144,16 @@ namespace plumbus::vk
 		CHECK_VK_RESULT(m_UniformBuffer.Map());
 	}
 
-	void Mesh::CreateDescriptorSet(VkDescriptorSetAllocateInfo allocInfo)
+	void Mesh::CreateDescriptorSet()
 	{
-		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
+		vk::Texture* vkColourMap = static_cast<vk::Texture*>(m_ColourMap);
+		vk::Texture* vkNormalMap = static_cast<vk::Texture*>(m_NormalMap);
 
-		CHECK_VK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_DescriptorSet));
-
-		// Binding 0: Vertex shader uniform buffer
-		VkWriteDescriptorSet vertUniformModelWrite{};
-		vertUniformModelWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		vertUniformModelWrite.dstSet = m_DescriptorSet;
-		vertUniformModelWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		vertUniformModelWrite.dstBinding = 0;
-		vertUniformModelWrite.pBufferInfo = &m_UniformBuffer.m_Descriptor;
-		vertUniformModelWrite.descriptorCount = 1;
-
-		// Binding 1: Color map
-		VkWriteDescriptorSet colourWrite{};
-		colourWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		colourWrite.dstSet = m_DescriptorSet;
-		colourWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		colourWrite.dstBinding = 1;
-		colourWrite.pImageInfo = &static_cast<vk::Texture*>(m_ColourMap)->m_Descriptor;
-		colourWrite.descriptorCount = 1;
-
-		// Binding 2: Normal map
-		VkWriteDescriptorSet normalWrite{};
-		normalWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		normalWrite.dstSet = m_DescriptorSet;
-		normalWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		normalWrite.dstBinding = 2;
-		normalWrite.pImageInfo = &static_cast<vk::Texture*>(m_NormalMap)->m_Descriptor;
-		normalWrite.descriptorCount = 1;
-
-		std::vector<VkWriteDescriptorSet> writeDescriptorSets =
-		{
-			vertUniformModelWrite,
-			colourWrite,
-			normalWrite
-		};
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, NULL);
+		m_DescriptorSet = DescriptorSet::CreateDescriptorSet(VulkanRenderer::Get()->GeDescriptorPool(), static_cast<vk::Material*>(m_Material.get())->GetLayout());
+		m_DescriptorSet->AddBuffer(&m_UniformBuffer, DescriptorSet::BindingUsage::VertexShader);
+		m_DescriptorSet->AddTexture(vkColourMap->m_TextureSampler, vkColourMap->m_ImageView, DescriptorSet::BindingUsage::FragmentShader);
+		m_DescriptorSet->AddTexture(vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView, DescriptorSet::BindingUsage::FragmentShader);
+		m_DescriptorSet->Build();
 	}
 
 	void Mesh::Render()

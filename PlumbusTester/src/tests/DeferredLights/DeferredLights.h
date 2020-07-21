@@ -31,9 +31,9 @@ namespace plumbus
 			MaterialRef m_DeferredLightMaterial;
 
 #if VULKAN_RENDERER
-			VkDescriptorSet m_AlbedoTextureDescSet = VK_NULL_HANDLE;
-			VkDescriptorSet m_WorldPosTextureDescSet = VK_NULL_HANDLE;
-			VkDescriptorSet m_NormalsTextureDescSet = VK_NULL_HANDLE;
+			vk::DescriptorSetRef m_AlbedoTextureDescSet;
+			vk::DescriptorSetRef m_WorldPosTextureDescSet;
+			vk::DescriptorSetRef m_NormalsTextureDescSet;
 #endif
 		};
 	}

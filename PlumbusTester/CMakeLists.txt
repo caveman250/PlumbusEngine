@@ -13,8 +13,6 @@ else (UNIX)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /IGNORE:C4100")
 endif (UNIX)
 
-
-
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 # SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 # SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
@@ -42,6 +40,7 @@ include_directories(../third_party/glfw/include/)
 include_directories(../Engine/src)
 include_directories(src)
 include_directories(../third_party/vulkan)
+include_directories(../third_party/SPIRV-Cross)
 
 
 if (WIN32)
@@ -66,6 +65,8 @@ target_link_libraries(${NAME} ${Vulkan_LIBRARIES})
 target_link_libraries(${NAME} glfw ${GLFW_LIBRARIES})
 target_link_libraries(${NAME} assimp)
 link_libraries(${ASSIMP_LIBRARIES})
+
+target_link_libraries(${NAME} spirv-cross-cpp)
 
 if (UNIX)
 	FIND_PACKAGE(PkgConfig REQUIRED)
