@@ -217,11 +217,11 @@ namespace plumbus::vk
         m_OffscreenFrameBuffer.reset();
         m_OutputFrameBuffer.reset();
 
-        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Deferred, nullptr);
-        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Deferred, nullptr);
-        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Offscreen, nullptr);
-        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_PipelineLayouts.m_Offscreen, nullptr);
-        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_Pipelines.m_Output, nullptr);
+        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_DeferredPipeline, nullptr);
+        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_DeferredPipelineLayout, nullptr);
+        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_OffscreenPipeline, nullptr);
+        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_OffscreenPipelineLayout, nullptr);
+        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_OutputPipeline, nullptr);
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -232,8 +232,7 @@ namespace plumbus::vk
         }
 
         m_ScreenQuad.Cleanup();
-
-        m_UniformBuffers.m_FragLights.Cleanup();
+        m_FragLights.Cleanup();
 
         delete m_ImGui;
 
@@ -415,7 +414,7 @@ namespace plumbus::vk
 						DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
 
                         DirectionalLightBufferInfo info = {};
-                        info.m_Colour = directionalLight->GetColour();
+                        info.m_Colour = glm::vec4(directionalLight->GetColour(), 1);
                         info.m_Direction = directionalLight->GetDirection();
 
 						m_LightsUBO.m_DirectionalLights[dirLightIndex] = info;
@@ -436,10 +435,10 @@ namespace plumbus::vk
         CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &m_UniformBuffers.m_FragLights,
+            &m_FragLights,
             sizeof(m_LightsUBO)));
 
-        CHECK_VK_RESULT(m_UniformBuffers.m_FragLights.Map());
+        CHECK_VK_RESULT(m_FragLights.Map());
 
         UpdateLightsUniformBuffer();
     }
@@ -451,10 +450,10 @@ namespace plumbus::vk
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
 		pipelineLayoutCreateInfo.pSetLayouts = &m_OutputDescriptorSetLayout->GetVulkanDescriptorSetLayout();
 
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Deferred));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_DeferredPipelineLayout));
 
 		// Offscreen (scene) rendering pipeline layout
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayouts.m_Offscreen));
+		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_OffscreenPipelineLayout));
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
 		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -532,7 +531,7 @@ namespace plumbus::vk
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
         pipelineCreateInfo.renderPass = m_OutputFrameBuffer->GetRenderPass();
-        pipelineCreateInfo.layout = m_PipelineLayouts.m_Deferred;
+        pipelineCreateInfo.layout = m_DeferredPipelineLayout;
 
 		//dummy vertex input state to keep validation happy. 
 		VkPipelineVertexInputStateCreateInfo inputState = {};
@@ -558,7 +557,7 @@ namespace plumbus::vk
         colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStatesOutput.size());
         colorBlendState.pAttachments = blendAttachmentStatesOutput.data();
 
-        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipelines.m_Output));
+        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_OutputPipeline));
     }
 
     void VulkanRenderer::CreateDescriptorSet()
@@ -574,7 +573,7 @@ namespace plumbus::vk
         m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "position", DescriptorSet::BindingUsage::FragmentShader);
         m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "normal", DescriptorSet::BindingUsage::FragmentShader);
         m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "colour", DescriptorSet::BindingUsage::FragmentShader);
-        m_OutputDescriptorSet->AddBuffer(&m_UniformBuffers.m_FragLights, DescriptorSet::BindingUsage::FragmentShader);
+        m_OutputDescriptorSet->AddBuffer(&m_FragLights, DescriptorSet::BindingUsage::FragmentShader);
         m_OutputDescriptorSet->Build();
     }
 
@@ -648,8 +647,8 @@ namespace plumbus::vk
         m_OutputCmdBuffer->SetViewport(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0.f, 1.f);
         m_OutputCmdBuffer->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
 
-        m_OutputCmdBuffer->BindPipeline(m_Pipelines.m_Output);
-        m_OutputCmdBuffer->BindDescriptorSet(m_PipelineLayouts.m_Deferred, m_OutputDescriptorSet);
+        m_OutputCmdBuffer->BindPipeline(m_OutputPipeline);
+        m_OutputCmdBuffer->BindDescriptorSet(m_DeferredPipelineLayout, m_OutputDescriptorSet);
         m_OutputCmdBuffer->BindVertexBuffer(m_ScreenQuad.GetVertexBuffer());
         m_OutputCmdBuffer->BindIndexBuffer(m_ScreenQuad.GetIndexBuffer());
         m_OutputCmdBuffer->RecordDraw(6);
@@ -687,7 +686,7 @@ namespace plumbus::vk
                     {
                         DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
                         m_LightsUBO.m_DirectionalLights[dirLightIndex].m_Direction = directionalLight->GetDirection();
-						m_LightsUBO.m_DirectionalLights[dirLightIndex].m_Colour = directionalLight->GetColour();
+						m_LightsUBO.m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
                     }
                 }
             }
@@ -696,7 +695,7 @@ namespace plumbus::vk
         // Current view position
         m_LightsUBO.m_ViewPos = glm::vec4(BaseApplication::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
-        memcpy(m_UniformBuffers.m_FragLights.m_Mapped, &m_LightsUBO, sizeof(m_LightsUBO));
+        memcpy(m_FragLights.m_Mapped, &m_LightsUBO, sizeof(m_LightsUBO));
     }
 
 
@@ -761,7 +760,7 @@ namespace plumbus::vk
 
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
             binding.m_Type = DescriptorSetLayout::BindingType::UniformBuffer;
-            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorSetLayout::BindingUsage::VertexShader : DescriptorSetLayout::BindingUsage::FragmentShader; ;
+            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorSetLayout::BindingUsage::VertexShader : DescriptorSetLayout::BindingUsage::FragmentShader;
             outBindingInfo.push_back(binding);
         }
 
@@ -786,18 +785,6 @@ namespace plumbus::vk
 
 	void VulkanRenderer::OnModelAddedToScene()
 	{
-		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
-		{
-            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
-            {
-                for (base::Mesh* model : comp->GetModels())
-                {
-                    model->Setup(this);
-                }
-            }
-		}
-		
-		InitLightsVBO();
 		BuildDefferedCommandBuffer();
 	}
 

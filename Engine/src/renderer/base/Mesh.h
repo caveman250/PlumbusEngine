@@ -32,9 +32,8 @@ namespace plumbus::base
 		virtual void PostLoad() = 0;
 		virtual void Cleanup() = 0;
 		virtual void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo) = 0;
-		virtual void Setup(Renderer* renderer) = 0;
+		virtual void Setup() = 0;
 		virtual void SetMaterial(plumbus::MaterialRef material) { m_Material = material; }
-
 		std::vector<float>& GetVertexBuffer() { return m_VertexBuffer; }
 		std::vector<uint32_t>& GetIndexBuffer() { return m_IndexBuffer; }
         

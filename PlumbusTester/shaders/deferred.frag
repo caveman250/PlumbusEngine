@@ -27,7 +27,7 @@ const int MAX_DIRECTIONAL_LIGHTS = 1;
 
 layout (binding = 3) uniform UBO 
 {
-		vec4 viewPos;
+	vec4 viewPos;
 	PointLight pointLights[MAX_POINT_LIGHTS];
 	DirectionalLight directionalLights[MAX_DIRECTIONAL_LIGHTS];
 } ubo;
@@ -40,7 +40,7 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
 	
-	#define ambient 0.1
+	#define ambient 0.3
 	
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;

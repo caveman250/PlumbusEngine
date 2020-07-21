@@ -52,7 +52,7 @@ namespace plumbus::tester::tests
 				AddComponent<TranslationComponent>(new TranslationComponent())->
 				AddComponent<LightComponent>(new LightComponent()));
 
-        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.f, -0.8f, 1.f));
+        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.5f, 1.f, 1.f));
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}

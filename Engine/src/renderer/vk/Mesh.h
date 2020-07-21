@@ -20,7 +20,7 @@ namespace plumbus::vk
 		void PostLoad() override;
 		void Cleanup() override;
 
-		void Setup(base::Renderer* renderer) override;
+		void Setup() override;
 		void SetMaterial(MaterialRef material) override;
 
 		void CreateUniformBuffer(Device* vulkanDevice);

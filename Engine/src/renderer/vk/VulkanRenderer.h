@@ -20,56 +20,6 @@ namespace plumbus
 
 		class VulkanRenderer : public base::Renderer
 		{
-		private:
-			struct UniformBuffers
-			{
-				vk::Buffer m_FragLights;
-			};
-
-			struct UniformBufferVert
-			{
-				glm::mat4 m_Projection;
-				glm::mat4 m_Model;
-				glm::mat4 m_View;
-				glm::vec4 m_InstancePos[3];
-			};
-
-			struct PointLightBufferInfo
-			{
-				glm::vec4 m_Position;
-				glm::vec3 m_Colour;
-				float m_Radius;
-			};
-
-			struct DirectionalLightBufferInfo
-			{
-				glm::vec3 m_Colour;
-				glm::vec3 m_Direction;
-			};
-
-			static constexpr size_t MAX_POINT_LIGHTS = 6;
-			static constexpr size_t MAX_DIRECTIONAL_LIGHTS = 1;
-			struct UniformBufferLights
-			{
-				glm::vec4 m_ViewPos;
-				PointLightBufferInfo m_PointLights[MAX_POINT_LIGHTS];
-				DirectionalLightBufferInfo m_DirectionalLights[MAX_DIRECTIONAL_LIGHTS];
-			};
-
-			struct PipelineLayouts
-			{
-				VkPipelineLayout m_Deferred;
-				VkPipelineLayout m_Offscreen;
-			};
-
-			struct Pipelines
-			{
-				VkPipeline m_Deferred;
-				VkPipeline m_Offscreen;
-				//VkPipeline m_Debug;
-				VkPipeline m_Output;
-			};
-
 		public:
 			static VulkanRenderer* Get();
 
@@ -84,8 +34,8 @@ namespace plumbus
 			virtual void OnModelAddedToScene() override;
 			virtual void OnModelRemovedFromScene() override;
 
-			std::shared_ptr<vk::Instance> GetInstance() { return m_Instance; }
-			std::shared_ptr<vk::Device> GetDevice() { return m_Device; }
+			InstanceRef GetInstance() { return m_Instance; }
+			DeviceRef GetDevice() { return m_Device; }
 			SwapChainRef GetSwapChain() { return m_SwapChain; }
 
 			vk::Window* GetVulkanWindow() { return static_cast<vk::Window*>(m_Window); }
@@ -104,7 +54,7 @@ namespace plumbus
 			const CommandBufferRef& GetOutputCommandBuffer() { return m_OutputCmdBuffer; }
 
 			//TODO: this shouldnt be a big global thing, create pools where relavnt.
-			const DescriptorPoolRef& GeDescriptorPool() { return m_DescriptorPool; }
+			const DescriptorPoolRef& GetDescriptorPool() { return m_DescriptorPool; }
 
 			VkPipelineCache& GetPipelineCache() { return m_PipelineCache; }
 
@@ -144,17 +94,19 @@ namespace plumbus
 
 			DescriptorSetRef m_OutputDescriptorSet;
 			DescriptorSetLayoutRef m_OutputDescriptorSetLayout;
-			PipelineLayouts m_PipelineLayouts;
-			Pipelines m_Pipelines;
+			VkPipelineLayout m_DeferredPipelineLayout;
+			VkPipelineLayout m_OffscreenPipelineLayout;
+			VkPipeline m_DeferredPipeline;
+			VkPipeline m_OffscreenPipeline;
+			VkPipeline m_OutputPipeline;
 
 			VkSemaphore m_OffscreenSemaphore;
 			VkSemaphore m_OutputSemaphore;
 
 			FrameBufferRef m_OffscreenFrameBuffer;
 			FrameBufferRef m_OutputFrameBuffer;
-			UniformBuffers m_UniformBuffers;
-			UniformBufferVert m_VertUBO;
-			UniformBufferLights m_LightsUBO;
+			vk::Buffer m_FragLights;
+			
 
 			VkPipelineCache m_PipelineCache;
 			CommandBufferRef m_OffScreenCmdBuffer;
@@ -164,6 +116,31 @@ namespace plumbus
 			std::vector<VkShaderModule> m_ShaderModules;
 
 			plumbus::ImGUIImpl* m_ImGui = nullptr;
+
+			//Lights
+			struct PointLightBufferInfo
+			{
+				glm::vec4 m_Position;
+				glm::vec3 m_Colour;
+				float m_Radius;
+			};
+
+			struct DirectionalLightBufferInfo
+			{
+				glm::vec4 m_Colour;
+				glm::vec3 m_Direction;
+			};
+
+			static constexpr size_t MAX_POINT_LIGHTS = 6;
+			static constexpr size_t MAX_DIRECTIONAL_LIGHTS = 1;
+			struct UniformBufferLights
+			{
+				glm::vec4 m_ViewPos;
+				PointLightBufferInfo m_PointLights[MAX_POINT_LIGHTS];
+				DirectionalLightBufferInfo m_DirectionalLights[MAX_DIRECTIONAL_LIGHTS];
+			};
+
+			UniformBufferLights m_LightsUBO;
 		};
 	}
 }

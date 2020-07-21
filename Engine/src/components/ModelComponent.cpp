@@ -57,6 +57,7 @@ namespace plumbus
 			for (base::Mesh* model : m_Models)
 			{
 				model->SetMaterial(m_Material);
+				model->Setup();
 			}
 		}
 	}

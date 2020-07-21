@@ -115,11 +115,11 @@ namespace plumbus::vk
 		m_NormalMap->Cleanup();
 	}
 
-	void Mesh::Setup(base::Renderer* renderer)
+	void Mesh::Setup()
 	{
 		if (PLUMBUS_VERIFY(m_Material != nullptr))
 		{
-			vk::VulkanRenderer* vkRenderer = static_cast<vk::VulkanRenderer*>(renderer);
+			vk::VulkanRenderer* vkRenderer = VulkanRenderer::Get();
 			m_Material->Setup(&m_VertexLayout);
 			CreateUniformBuffer(vkRenderer->GetDevice().get());
 			CreateDescriptorSet();
@@ -149,7 +149,7 @@ namespace plumbus::vk
 		vk::Texture* vkColourMap = static_cast<vk::Texture*>(m_ColourMap);
 		vk::Texture* vkNormalMap = static_cast<vk::Texture*>(m_NormalMap);
 
-		m_DescriptorSet = DescriptorSet::CreateDescriptorSet(VulkanRenderer::Get()->GeDescriptorPool(), static_cast<vk::Material*>(m_Material.get())->GetLayout());
+		m_DescriptorSet = DescriptorSet::CreateDescriptorSet(VulkanRenderer::Get()->GetDescriptorPool(), static_cast<vk::Material*>(m_Material.get())->GetLayout());
 		m_DescriptorSet->AddBuffer(&m_UniformBuffer, DescriptorSet::BindingUsage::VertexShader);
 		m_DescriptorSet->AddTexture(vkColourMap->m_TextureSampler, vkColourMap->m_ImageView, DescriptorSet::BindingUsage::FragmentShader);
 		m_DescriptorSet->AddTexture(vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView, DescriptorSet::BindingUsage::FragmentShader);
