@@ -96,11 +96,11 @@ namespace plumbus::tester::tests
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 
-#if VULKAN_RENDERER
+#if VULKAN_RENDERER && !PL_DIST
 		vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
-		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->GetSampler(), vkRenderer->GetOffscreenFramebuffer()->GetAttachment("colour").m_ImageView);
-		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->GetSampler(), vkRenderer->GetOffscreenFramebuffer()->GetAttachment("normal").m_ImageView);
-		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetOffscreenFramebuffer()->GetSampler(), vkRenderer->GetOffscreenFramebuffer()->GetAttachment("position").m_ImageView);
+		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour").m_ImageView);
+		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal").m_ImageView);
+		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("position").m_ImageView);
 #endif
 	}
 

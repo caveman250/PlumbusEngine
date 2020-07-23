@@ -221,7 +221,7 @@ namespace plumbus::vk
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentDescription depthAttachment = {};
-		depthAttachment.format = VulkanRenderer::Get()->FindDepthFormat();
+		depthAttachment.format = VulkanRenderer::Get()->GetDepthFormat();
 		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -265,7 +265,7 @@ namespace plumbus::vk
 
 	void SwapChain::CreateDepthTexture()
 	{
-		VkFormat depthFormat = VulkanRenderer::Get()->FindDepthFormat();
+		VkFormat depthFormat = VulkanRenderer::Get()->GetDepthFormat();
 		ImageHelpers::CreateImage(GetExtents().width,
 			GetExtents().height,
 			depthFormat,
@@ -286,7 +286,7 @@ namespace plumbus::vk
 		for (int i = 0; i < m_Framebuffers.size(); ++i)
 		{
 			std::vector<VkImageView> attachments = { m_ImageViews[i], m_DepthImageView };
-			std::vector<VkFormat> attachmentFormats = { m_ImageFormat, VulkanRenderer::Get()->FindDepthFormat() };
+			std::vector<VkFormat> attachmentFormats = { m_ImageFormat, VulkanRenderer::Get()->GetDepthFormat() };
 			m_Framebuffers[i] = FrameBuffer::CreateFrameBuffer(GetExtents().width, GetExtents().height, m_RenderPass, attachments, attachmentFormats);
 			m_CommandBuffers[i]->SetFrameBuffer(m_Framebuffers[i]);
 		}

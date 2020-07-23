@@ -22,66 +22,60 @@ namespace plumbus
 		public:
 			static VulkanRenderer* Get();
 
-			virtual void Init();
-			virtual void Cleanup();
+			void Init();
+			void Cleanup();
 
-			virtual void DrawFrame();
-			virtual bool WindowShouldClose();
+			void DrawFrame();
+			void AwaitIdle();
 
-			virtual void AwaitIdle();
+			bool WindowShouldClose();
 
-			virtual void OnModelAddedToScene();
-			virtual void OnModelRemovedFromScene();
+			void OnModelAddedToScene();
+			void OnModelRemovedFromScene();
+
+			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs);
 
 			InstanceRef GetInstance() { return m_Instance; }
 			DeviceRef GetDevice() { return m_Device; }
 			SwapChainRef GetSwapChain() { return m_SwapChain; }
-
 			Window* GetWindow() { return m_Window; }
+			const DescriptorPoolRef& GetDescriptorPool() { return m_DescriptorPool; }
+			const PipelineCacheRef& GetPipelineCache() { return m_PipelineCache; }
+			VkFormat GetDepthFormat();
 
-			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs);
+			FrameBufferRef GetDeferredFramebuffer() { return m_DeferredFrameBuffer; }
+			const CommandBufferRef& GetDeferredCommandBuffer() { return m_DeferredCommandBuffer; }
+#if !PL_DIST
+			FrameBufferRef GetDeferredOutputFramebuffer() { return m_DeferredOutputFrameBuffer; }
+			const CommandBufferRef& GetDeferredOutputCommandBuffer() { return m_DeferredOutputCommandBuffer; }
+
+			ImGUIImpl* GetImGui() { return m_ImGui; }
+#endif
 
 			std::vector<const char*> GetRequiredDeviceExtensions();
 			std::vector<const char*> GetRequiredInstanceExtensions();
 			std::vector<const char*> GetRequiredValidationLayers();
 
-			FrameBufferRef GetOffscreenFramebuffer() { return m_OffscreenFrameBuffer; }
-			const CommandBufferRef& GetOffscreenCommandBuffer() { return m_OffScreenCmdBuffer; }
-			FrameBufferRef GetOutputFramebuffer() { return m_OutputFrameBuffer; }
-			const CommandBufferRef& GetOutputCommandBuffer() { return m_OutputCmdBuffer; }
-
-			//TODO: this shouldnt be a big global thing, create pools where relavnt.
-			const DescriptorPoolRef& GetDescriptorPool() { return m_DescriptorPool; }
-
-			const PipelineCacheRef& GetPipelineCache() { return m_PipelineCache; }
-
-			VkFormat FindDepthFormat();
-
-			ImGUIImpl* GetImGui() { return m_ImGui; }
-
 		private:
 			void InitVulkan();
 			void SetupDebugCallback();
-			void GenerateQuads();
-			
-			void CreateUniformBuffers();
-			void InitLightsVBO();
-			void BuildImguiCommandBuffer(int index);
+			void GenerateFullscreenQuad();
+			void CreateLightsUniformBuffers();
+			void BuildPresentCommandBuffer(int index);
 			void BuildDefferedCommandBuffer();
 #if !PL_DIST
-			void BuildOutputCommandBuffer();
+			void SetupImGui();
+			void BuildDeferredOutputCommandBuffer();
 #endif
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
-			void SetupImGui();
-
-			static void OnWindowResized(GLFWwindow* window, int width, int height);
-
-			VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
+			VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
 			Window* m_Window;
+			vk::Mesh m_FullscreenQuad;
 
 			InstanceRef m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
@@ -89,28 +83,21 @@ namespace plumbus
 			SwapChainRef m_SwapChain;
 			
 			DescriptorPoolRef m_DescriptorPool;
-
-			PipelineLayoutRef m_DeferredPipelineLayout;
-			PipelineLayoutRef m_OffscreenPipelineLayout;
-			PipelineRef m_DeferredPipeline;
-			PipelineRef m_OffscreenPipeline;
-
-			MaterialRef m_OutputMaterial;
-			MaterialInstanceRef m_OutputMaterialInstance;
-			PipelineRef m_OutputPipeline;
-
-			VkSemaphore m_OffscreenSemaphore;
-			VkSemaphore m_OutputSemaphore;
-
-			FrameBufferRef m_OffscreenFrameBuffer;
-			FrameBufferRef m_OutputFrameBuffer;
-			vk::Buffer m_FragLights;
-			
 			PipelineCacheRef m_PipelineCache;
-			CommandBufferRef m_OffScreenCmdBuffer;
-			CommandBufferRef m_OutputCmdBuffer;
 
-			vk::Mesh m_ScreenQuad;
+			MaterialRef m_DeferredOutputMaterial;
+			MaterialInstanceRef m_DeferredOutputMaterialInstance;
+
+			VkSemaphore m_DeferredSemaphore;
+			CommandBufferRef m_DeferredCommandBuffer;
+			FrameBufferRef m_DeferredFrameBuffer;
+			
+#if !PL_DIST
+			VkSemaphore m_DeferredOutputSemaphore;
+			CommandBufferRef m_DeferredOutputCommandBuffer;
+			FrameBufferRef m_DeferredOutputFrameBuffer;
+#endif
+
 			std::vector<VkShaderModule> m_ShaderModules;
 
 			plumbus::ImGUIImpl* m_ImGui = nullptr;
@@ -138,7 +125,8 @@ namespace plumbus
 				DirectionalLightBufferInfo m_DirectionalLights[MAX_DIRECTIONAL_LIGHTS];
 			};
 
-			UniformBufferLights m_LightsUBO;
+			vk::Buffer m_LightsVulkanBuffer;
+			UniformBufferLights m_LightsUniformBuffer;
 		};
 	}
 }

@@ -115,7 +115,7 @@ namespace plumbus::vk
 			CreateUniformBuffer(vkRenderer->GetDevice().get());
 			SetupUniforms();
 
-			m_CommandBuffer = vkRenderer->GetOffscreenCommandBuffer();
+			m_CommandBuffer = vkRenderer->GetDeferredCommandBuffer();
 		}
 	}
 

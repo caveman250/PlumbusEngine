@@ -7,6 +7,7 @@
 #include "renderer/vk/ImageHelpers.h"
 #include "renderer/vk/vk_types_fwd.h"
 
+#if !PL_DIST
 namespace plumbus
 {
 	class ImGUIImpl
@@ -57,3 +58,4 @@ namespace plumbus
 		GameObject* m_SelectedObject = nullptr;
 	};
 }
+#endif

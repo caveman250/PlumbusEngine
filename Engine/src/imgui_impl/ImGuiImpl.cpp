@@ -11,6 +11,7 @@
 #include "renderer/vk/DescriptorPool.h"
 #include "renderer/vk/DescriptorSet.h"
 
+#if !PL_DIST
 namespace plumbus
 {
 	ImGUIImpl::ImGUIImpl()
@@ -366,7 +367,7 @@ namespace plumbus
 
 		if (!m_GameViewTextureDescSet)
 		{
-			m_GameViewTextureDescSet = AddTexture(renderer->GetOutputFramebuffer()->GetSampler(), renderer->GetOutputFramebuffer()->GetAttachment("colour").m_ImageView);
+			m_GameViewTextureDescSet = AddTexture(renderer->GetDeferredOutputFramebuffer()->GetSampler(), renderer->GetDeferredOutputFramebuffer()->GetAttachment("colour").m_ImageView);
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -635,3 +636,4 @@ namespace plumbus
 			io.AddInputCharacter((unsigned short)c);
 	}
 }
+#endif
