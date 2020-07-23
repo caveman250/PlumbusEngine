@@ -14,7 +14,7 @@
 #include "Scene.h"
 #include "Instance.h"
 
-#if PLUMBUS_PLATFORM_LINUX
+#if PL_PLATFORM_LINUX
 #include <gtk/gtk.h>
 #endif
 #include "CommandBuffer.h"
@@ -74,7 +74,9 @@ namespace plumbus::vk
     void VulkanRenderer::InitVulkan()
     {
         m_Instance = Instance::CreateInstance("PlumbusEngine", 1, GetRequiredValidationLayers(), GetRequiredInstanceExtensions());
+#if !PL_DIST
         SetupDebugCallback();
+#endif
 		m_Window->CreateSurface();
         m_Device = Device::CreateDevice();
         m_PipelineCache = PipelineCache::CreatePipelineCache();
@@ -101,7 +103,11 @@ namespace plumbus::vk
         CreateUniformBuffers();
         m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
 
+#if !PL_DIST
         m_OutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_OutputFrameBuffer->GetRenderPass());
+#else
+        m_OutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_SwapChain->GetRenderPass());
+#endif
         m_OutputMaterial->Setup(VertexLayout());
 
         m_OutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_OutputMaterial);
@@ -114,7 +120,9 @@ namespace plumbus::vk
         SetupImGui();
 
         BuildDefferedCommandBuffer();
+#if !PL_DIST
         BuildOutputCommandBuffer();
+#endif
     }
 
     void VulkanRenderer::SetupDebugCallback()
@@ -162,6 +170,7 @@ namespace plumbus::vk
 
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
+#if !PL_DIST
         submitInfo.pWaitSemaphores = &m_OffscreenSemaphore;
         submitInfo.pSignalSemaphores = &m_OutputSemaphore;
 
@@ -169,6 +178,9 @@ namespace plumbus::vk
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
         submitInfo.pWaitSemaphores = &m_OutputSemaphore;
+#else
+        submitInfo.pWaitSemaphores = &m_OffscreenSemaphore;
+#endif
         submitInfo.pSignalSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
 
         submitInfo.pCommandBuffers = &m_SwapChain->GetCommandBuffer(imageIndex)->GetVulkanCommandBuffer();
@@ -215,7 +227,7 @@ namespace plumbus::vk
     {
 		m_Window = new vk::Window();
 		m_Window->Init(s_Width, s_Height);
-#if PLUMBUS_PLATFORM_LINUX
+#if PL_PLATFORM_LINUX
         gtk_init(&::app_argc, &::app_argv);
 #endif
         InitVulkan();
@@ -448,13 +460,26 @@ namespace plumbus::vk
 
     void VulkanRenderer::BuildImguiCommandBuffer(int index)
     {
+#if !PL_DIST 
         m_ImGui->NewFrame();
         m_ImGui->UpdateBuffers();
+#endif
 
         // Set target frame buffer
         m_SwapChain->GetCommandBuffer(index)->BeginRecording();
         m_SwapChain->GetCommandBuffer(index)->BeginRenderPass();
+
+#if !PL_DIST
         m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(index)->GetVulkanCommandBuffer());
+#else
+        m_SwapChain->GetCommandBuffer(index)->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
+        m_SwapChain->GetCommandBuffer(index)->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
+
+        m_OutputMaterialInstance->Bind(m_SwapChain->GetCommandBuffer(index));
+        m_SwapChain->GetCommandBuffer(index)->BindVertexBuffer(m_ScreenQuad.GetVertexBuffer());
+        m_SwapChain->GetCommandBuffer(index)->BindIndexBuffer(m_ScreenQuad.GetIndexBuffer());
+        m_SwapChain->GetCommandBuffer(index)->RecordDraw(6);
+#endif
         m_SwapChain->GetCommandBuffer(index)->EndRenderPass();
         m_SwapChain->GetCommandBuffer(index)->EndRecording();
     }
@@ -495,6 +520,7 @@ namespace plumbus::vk
         m_OffScreenCmdBuffer->EndRecording();
     }
 
+#if !PL_DIST
     void VulkanRenderer::BuildOutputCommandBuffer()
     {
         if (!m_OutputCmdBuffer)
@@ -520,6 +546,7 @@ namespace plumbus::vk
         m_OutputCmdBuffer->EndRenderPass();
         m_OutputCmdBuffer->EndRecording();
     }
+#endif
 
     void VulkanRenderer::UpdateLightsUniformBuffer()
     {
@@ -656,11 +683,15 @@ namespace plumbus::vk
 
 	std::vector<const char*> VulkanRenderer::GetRequiredValidationLayers()
 	{
+#if !PL_DIST
 		return 		
 		{
 			"VK_LAYER_KHRONOS_validation",
 			"VK_LAYER_RENDERDOC_Capture"
 		};
+#else   
+        return {};
+#endif
 	}
 
 	void VulkanRenderer::RecreateSwapChain()

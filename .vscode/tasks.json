@@ -83,5 +83,72 @@
             ],
             "group": "build"
         },
+        {
+            "type": "shell",
+            "label": "Uber Clean Release",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "--target",
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/bin/Release/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Build Dist",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "-j8"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/bin/Dist"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Clean Dist",
+            "command": "cd PlumbusTester && make clean && cd ../Engine && make clean",
+            "args": [
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/bin/Dist"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Uber Clean Dist",
+            "command": "cmake",
+            "args": [
+                "--build",
+                ".",
+                "--target",
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/bin/Dist/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
     ]
 }

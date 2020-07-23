@@ -23,7 +23,11 @@ namespace plumbus
 		float deltaTime = (float)BaseApplication::Get().GetDeltaTime();
 
 		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
+#if !PL_DIST
 		bool focused = BaseApplication::Get().m_GameWindowFocused;
+#else
+		bool focused = true;
+#endif
 		bool mouseDown = glfwGetMouseButton(renderer->GetWindow()->GetWindow(), GLFW_MOUSE_BUTTON_1);
 		if (focused && mouseDown)
 		{

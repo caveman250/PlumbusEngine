@@ -68,7 +68,9 @@ namespace plumbus
 			void InitLightsVBO();
 			void BuildImguiCommandBuffer(int index);
 			void BuildDefferedCommandBuffer();
+#if !PL_DIST
 			void BuildOutputCommandBuffer();
+#endif
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
 			void SetupImGui();

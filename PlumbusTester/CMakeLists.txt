@@ -29,6 +29,18 @@ options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
 RelWithDebInfo MinSizeRel.")
 ENDIF()
 
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+	add_compile_definitions(PL_DEBUG=1)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+
+IF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+	add_compile_definitions(PL_RELEASE=1)
+ENDIF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+
+IF(CMAKE_BUILD_TYPE MATCHES Release)
+	add_compile_definitions(PL_DIST=1)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
+
 project(${NAME})
 
 include_directories(../third_party)
@@ -42,11 +54,10 @@ include_directories(src)
 include_directories(../third_party/vulkan)
 include_directories(../third_party/SPIRV-Cross)
 
-
 if (WIN32)
-	add_compile_definitions(PLUMBUS_PLATFORM_WINDOWS=1)
+	add_compile_definitions(PL_PLATFORM_WINDOWS=1)
 else (WIN32)
-	add_compile_definitions(PLUMBUS_PLATFORM_LINUX=1)
+	add_compile_definitions(PL_PLATFORM_LINUX=1)
 endif(WIN32)
 
 file(GLOB_RECURSE SOURCE src/*.cpp src/*.h)

@@ -33,7 +33,7 @@
             ],
             "defines": [
                 "VULKAN_RENDERER=1",
-                "PLUMBUS_PLATFORM_LINUX=1"
+                "PL_PLATFORM_LINUX=1"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

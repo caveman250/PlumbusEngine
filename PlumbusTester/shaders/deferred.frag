@@ -45,7 +45,7 @@ void main()
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;
 	
-	for(int i = 0; i < MAX_POINT_LIGHTS; ++i)
+	for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
 	{
 		// Vector to light
 		vec3 L = ubo.pointLights[i].position.xyz - fragPos;
@@ -56,25 +56,26 @@ void main()
 		vec3 V = ubo.viewPos.xyz - fragPos;
 		V = normalize(V);
 
-			// Light to fragment
-			L = normalize(L);
-	
-			// Attenuation
-			float atten = ubo.pointLights[i].radius / (pow(dist, 2.0) + 1.0);
-	
-			// Diffuse part
-			vec3 N = normalize(normal);
-			float NdotL = max(0.0, dot(N, L));
-			vec3 diff = ubo.pointLights[i].color * albedo.rgb * NdotL * atten;
-	
-			// Specular part
-			// Specular map values are stored in alpha of albedo mrt
-			vec3 R = reflect(-L, N);
-			float NdotR = max(0.0, dot(R, V));
-			vec3 spec = ubo.pointLights[i].color * albedo.a * pow(NdotR, 16.0) * atten;
-	
-			fragcolor += diff + spec;	
+		// Light to fragment
+		L = normalize(L);
+
+		// Attenuation
+		float atten = ubo.pointLights[i].radius / (pow(dist, 2.0) + 1.0);
+
+		// Diffuse part
+		vec3 N = normalize(normal);
+		float NdotL = max(0.0, dot(N, L));
+		vec3 diff = ubo.pointLights[i].color * albedo.rgb * NdotL * atten;
+
+		// Specular part
+		// Specular map values are stored in alpha of albedo mrt
+		vec3 R = reflect(-L, N);
+		float NdotR = max(0.0, dot(R, V));
+		vec3 spec = ubo.pointLights[i].color * albedo.a * pow(NdotR, 16.0) * atten;
+
+		fragcolor += diff + spec;	
 	}
+	
 	for (int i = 0; i < MAX_DIRECTIONAL_LIGHTS; ++i)
 	{
 		vec3 L = normalize(ubo.directionalLights[i].direction);

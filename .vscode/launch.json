@@ -49,6 +49,29 @@
             "sourceFileMap": {
                 "/build/glibc-YYA7BZ/": "/usr/src/glibc"
             }
+        },
+        {
+            "name": "Dist",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/Dist/PlumbusTester/PlumbusTester",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/PlumbusTester",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "Build Dist",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "sourceFileMap": {
+                "/build/glibc-YYA7BZ/": "/usr/src/glibc"
+            }
         }
     ]
 }

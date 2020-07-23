@@ -29,13 +29,13 @@
 #include <set>
 #include <unordered_map>
 
-#if PLUMBUS_PLATFORM_LINUX
+#if PL_PLATFORM_LINUX
 #include <gtk/gtk.h>
 #endif
 
 namespace plumbus
 {
-#if PLUMBUS_PLATFORM_WINDOWS
+#if PL_PLATFORM_WINDOWS
 #if NDEBUG
 #define PL_ASSERT(expr, ...) \
 	do { \
@@ -109,7 +109,7 @@ namespace plumbus
 #define PLUMBUS_VARG_COUNT_01N(...) PLUMBUS_EXPAND_ARGS(PLUMBUS_AUGMENT_ARGS(__VA_ARGS__), PLUMBUS_VARG_COUNT_01N_HELPER())
 
 #define PLUMBUS_VARG_COUNT_HELPER() 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
-#if PLUMBUS_PLATFORM_LINUX //wat, TODO
+#if PL_PLATFORM_LINUX //wat, TODO
 #define PLUMBUS_VARG_COUNT_01N_HELPER() N, N, N, N, N, N, N, N, N, N, N, N, N, N, 1, 0, 0 
 #else
 #define PLUMBUS_VARG_COUNT_01N_HELPER() N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, 1, 0
