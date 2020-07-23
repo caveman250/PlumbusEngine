@@ -23,6 +23,9 @@
 #include "DescriptorPool.h"
 
 #include "SPIRV-Cross/spirv_cpp.hpp"
+#include "PipelineCache.h"
+#include "PipelineLayout.h"
+#include "MaterialInstance.h"
 
 static uint32_t s_Width, s_Height;
 
@@ -72,9 +75,9 @@ namespace plumbus::vk
     {
         m_Instance = Instance::CreateInstance("PlumbusEngine", 1, GetRequiredValidationLayers(), GetRequiredInstanceExtensions());
         SetupDebugCallback();
-		GetVulkanWindow()->CreateSurface();
+		m_Window->CreateSurface();
         m_Device = Device::CreateDevice();
-        CreatePipelineCache();
+        m_PipelineCache = PipelineCache::CreatePipelineCache();
         m_SwapChain = SwapChain::CreateSwapChain();
 
         GenerateQuads();
@@ -97,15 +100,21 @@ namespace plumbus::vk
 
         CreateUniformBuffers();
         m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
-        CreateDescriptorSet();
 
-		CreatePipelines();
+        m_OutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_OutputFrameBuffer->GetRenderPass());
+        m_OutputMaterial->Setup(VertexLayout());
 
+        m_OutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_OutputMaterial);
+        const FrameBuffer::FrameBufferAttachment& positionAttachment = m_OffscreenFrameBuffer->GetAttachment("position");
+        m_OutputMaterialInstance->SetTextureUniform("samplerposition", m_OffscreenFrameBuffer->GetSampler(), m_OffscreenFrameBuffer->GetAttachment("position").m_ImageView);
+        m_OutputMaterialInstance->SetTextureUniform("samplerNormal", m_OffscreenFrameBuffer->GetSampler(), m_OffscreenFrameBuffer->GetAttachment("normal").m_ImageView);
+        m_OutputMaterialInstance->SetTextureUniform("samplerAlbedo", m_OffscreenFrameBuffer->GetSampler(), m_OffscreenFrameBuffer->GetAttachment("colour").m_ImageView);
+        m_OutputMaterialInstance->SetBufferUniform("UBO", &m_FragLights);
 
         SetupImGui();
 
         BuildDefferedCommandBuffer();
-        BuildOutputFrameBuffer();
+        BuildOutputCommandBuffer();
     }
 
     void VulkanRenderer::SetupDebugCallback()
@@ -217,11 +226,12 @@ namespace plumbus::vk
         m_OffscreenFrameBuffer.reset();
         m_OutputFrameBuffer.reset();
 
-        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_DeferredPipeline, nullptr);
-        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_DeferredPipelineLayout, nullptr);
-        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_OffscreenPipeline, nullptr);
-        vkDestroyPipelineLayout(m_Device->GetVulkanDevice(), m_OffscreenPipelineLayout, nullptr);
-        vkDestroyPipeline(m_Device->GetVulkanDevice(), m_OutputPipeline, nullptr);
+        m_DeferredPipeline.reset();
+        m_OffscreenPipeline.reset();
+        m_OutputPipeline.reset();
+
+        m_DeferredPipelineLayout.reset();
+        m_OffscreenPipelineLayout.reset();
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -242,8 +252,8 @@ namespace plumbus::vk
         m_SwapChain->Cleanup();
         m_SwapChain.reset();
 
-        m_OutputDescriptorSet.reset();
-        m_OutputDescriptorSetLayout.reset();
+        m_OutputMaterialInstance.reset();
+        m_OutputMaterial.reset();
         m_DescriptorPool.reset();
 
         for (auto& shaderModule : m_ShaderModules)
@@ -251,7 +261,7 @@ namespace plumbus::vk
             vkDestroyShaderModule(m_Device->GetVulkanDevice(), shaderModule, nullptr);
         }
 
-        vkDestroyPipelineCache(m_Device->GetVulkanDevice(), m_PipelineCache, nullptr);
+        m_PipelineCache.reset();
         vkDestroyCommandPool(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), nullptr);
 
         vkDestroySemaphore(m_Device->GetVulkanDevice(), m_OutputSemaphore, nullptr);
@@ -260,7 +270,7 @@ namespace plumbus::vk
         m_Device.reset();
 
         DestroyDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), m_Callback, nullptr);
-        vkDestroySurfaceKHR(m_Instance->GetVulkanInstance(), GetVulkanWindow()->GetSurface(), nullptr);
+        vkDestroySurfaceKHR(m_Instance->GetVulkanInstance(), m_Window->GetSurface(), nullptr);
         
         m_Instance->Destroy();
     }
@@ -311,13 +321,6 @@ namespace plumbus::vk
         extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
         return extensions;
-    }
-
-    void VulkanRenderer::CreatePipelineCache()
-    {
-        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        CHECK_VK_RESULT(vkCreatePipelineCache(m_Device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
     }
 
     void VulkanRenderer::GenerateQuads()
@@ -443,140 +446,6 @@ namespace plumbus::vk
         UpdateLightsUniformBuffer();
     }
 
-    void VulkanRenderer::CreatePipelines()
-    {
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &m_OutputDescriptorSetLayout->GetVulkanDescriptorSetLayout();
-
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_DeferredPipelineLayout));
-
-		// Offscreen (scene) rendering pipeline layout
-		CHECK_VK_RESULT(vkCreatePipelineLayout(m_Device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_OffscreenPipelineLayout));
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
-		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssemblyState.flags = 0;
-		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState{};
-		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-		rasterizationState.flags = 0;
-		rasterizationState.depthClampEnable = VK_FALSE;
-		rasterizationState.lineWidth = 1.0f;
-
-		VkPipelineColorBlendAttachmentState blendAttachmentState{};
-		blendAttachmentState.colorWriteMask = 0xf;
-		blendAttachmentState.blendEnable = VK_FALSE;
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState{};
-		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendState.attachmentCount = 1;
-		colorBlendState.pAttachments = &blendAttachmentState;
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState{};
-		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilState.depthTestEnable = VK_TRUE;
-		depthStencilState.depthWriteEnable = VK_TRUE;
-		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		depthStencilState.front = depthStencilState.back;
-		depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
-
-		VkPipelineViewportStateCreateInfo viewportState{};
-		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportState.viewportCount = 1;
-		viewportState.scissorCount = 1;
-		viewportState.flags = 0;
-
-		VkPipelineMultisampleStateCreateInfo multisampleState{};
-		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisampleState.flags = 0;
-
-		std::vector<VkDynamicState> dynamicStateEnables = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState{};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.pDynamicStates = dynamicStateEnables.data();
-		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-		dynamicState.flags = 0;
-
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
-
-        // Output pipeline
-        std::vector<vk::DescriptorSetLayout::Binding> bindingInfo;
-        shaderStages[0] = LoadShader("shaders/deferred.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, bindingInfo);
-        shaderStages[1] = LoadShader("shaders/deferred.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo);
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
-		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCreateInfo.flags = 0;
-		pipelineCreateInfo.basePipelineIndex = -1;
-		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfo.pStages = shaderStages.data();
-        pipelineCreateInfo.renderPass = m_OutputFrameBuffer->GetRenderPass();
-        pipelineCreateInfo.layout = m_DeferredPipelineLayout;
-
-		//dummy vertex input state to keep validation happy. 
-		VkPipelineVertexInputStateCreateInfo inputState = {};
-		inputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		inputState.vertexBindingDescriptionCount = 0;
-		inputState.pVertexBindingDescriptions = nullptr;
-		inputState.vertexAttributeDescriptionCount = 0;
-		inputState.pVertexAttributeDescriptions = nullptr;
-
-		pipelineCreateInfo.pVertexInputState = &inputState;
-
-        // Blend attachment states required for all color attachments
-        // This is important, as color write mask will otherwise be 0x0 and you
-        // won't see anything rendered to the attachment
-        VkPipelineColorBlendAttachmentState blendAttachmentStateOutput{};
-        blendAttachmentStateOutput.colorWriteMask = 0xf;
-        blendAttachmentStateOutput.blendEnable = VK_FALSE;
-
-        std::array<VkPipelineColorBlendAttachmentState, 1> blendAttachmentStatesOutput = {
-            blendAttachmentStateOutput,
-        };
-
-        colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStatesOutput.size());
-        colorBlendState.pAttachments = blendAttachmentStatesOutput.data();
-
-        CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_Device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_OutputPipeline));
-    }
-
-    void VulkanRenderer::CreateDescriptorSet()
-    {
-        m_OutputDescriptorSetLayout = DescriptorSetLayout::CreateDescriptorSetLayout();
-        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::ImageSampler, 0);
-        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::ImageSampler, 1);
-        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::ImageSampler, 2);
-        m_OutputDescriptorSetLayout->AddBinding(DescriptorSetLayout::BindingUsage::FragmentShader, DescriptorSetLayout::BindingType::UniformBuffer, 3);
-        m_OutputDescriptorSetLayout->Build();
-
-        m_OutputDescriptorSet = DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_OutputDescriptorSetLayout);
-        m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "position", DescriptorSet::BindingUsage::FragmentShader);
-        m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "normal", DescriptorSet::BindingUsage::FragmentShader);
-        m_OutputDescriptorSet->AddFramebufferAttachment(m_OffscreenFrameBuffer, "colour", DescriptorSet::BindingUsage::FragmentShader);
-        m_OutputDescriptorSet->AddBuffer(&m_FragLights, DescriptorSet::BindingUsage::FragmentShader);
-        m_OutputDescriptorSet->Build();
-    }
-
     void VulkanRenderer::BuildImguiCommandBuffer(int index)
     {
         m_ImGui->NewFrame();
@@ -608,19 +477,16 @@ namespace plumbus::vk
 
         m_OffScreenCmdBuffer->BeginRecording();
         m_OffScreenCmdBuffer->BeginRenderPass();
-        m_OffScreenCmdBuffer->SetViewport(m_OffscreenFrameBuffer->GetWidth(), m_OffscreenFrameBuffer->GetHeight(), 0.f, 1.f);
+        m_OffScreenCmdBuffer->SetViewport((float)m_OffscreenFrameBuffer->GetWidth(), (float)m_OffscreenFrameBuffer->GetHeight(), 0.f, 1.f);
         m_OffScreenCmdBuffer->SetScissor(m_OffscreenFrameBuffer->GetWidth(), m_OffscreenFrameBuffer->GetHeight(), 0, 0);
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
-				for (base::Mesh* model : comp->GetModels())
+				for (Mesh* model : comp->GetModels())
 				{
-                    if (vk::Mesh* vkModel = static_cast<vk::Mesh*>(model))
-                    {
-                        vkModel->Render();
-                    }
+                    model->Render();
 				}
             }
         }
@@ -629,7 +495,7 @@ namespace plumbus::vk
         m_OffScreenCmdBuffer->EndRecording();
     }
 
-    void VulkanRenderer::BuildOutputFrameBuffer()
+    void VulkanRenderer::BuildOutputCommandBuffer()
     {
         if (!m_OutputCmdBuffer)
         {
@@ -644,11 +510,10 @@ namespace plumbus::vk
 
         m_OutputCmdBuffer->BeginRecording();
         m_OutputCmdBuffer->BeginRenderPass();
-        m_OutputCmdBuffer->SetViewport(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0.f, 1.f);
+        m_OutputCmdBuffer->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
         m_OutputCmdBuffer->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
 
-        m_OutputCmdBuffer->BindPipeline(m_OutputPipeline);
-        m_OutputCmdBuffer->BindDescriptorSet(m_DeferredPipelineLayout, m_OutputDescriptorSet);
+        m_OutputMaterialInstance->Bind(m_OutputCmdBuffer);
         m_OutputCmdBuffer->BindVertexBuffer(m_ScreenQuad.GetVertexBuffer());
         m_OutputCmdBuffer->BindIndexBuffer(m_ScreenQuad.GetIndexBuffer());
         m_OutputCmdBuffer->RecordDraw(6);
@@ -707,28 +572,7 @@ namespace plumbus::vk
         m_ImGui->InitResources(m_SwapChain->GetRenderPass(), GetDevice()->GetGraphicsQueue());
     }
 
-	static std::vector<uint32_t> read_spirv_file(const char* path)
-	{
-		FILE* file = fopen(path, "rb");
-		if (!file)
-		{
-			fprintf(stderr, "Failed to open SPIR-V file: %s\n", path);
-			return {};
-		}
-
-		fseek(file, 0, SEEK_END);
-		long len = ftell(file) / sizeof(uint32_t);
-		rewind(file);
-
-        std::vector<uint32_t> spirv(len);
-		if (fread(spirv.data(), sizeof(uint32_t), len, file) != size_t(len))
-			spirv.clear();
-
-		fclose(file);
-		return spirv;
-	}
-
-    VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorSetLayout::Binding>& outBindingInfo)
+    VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs)
     {
         std::vector<char> spirvText = Helpers::ReadFile(fileName);
         VkPipelineShaderStageCreateInfo shaderStage = {};
@@ -739,29 +583,35 @@ namespace plumbus::vk
         PL_ASSERT(shaderStage.module != VK_NULL_HANDLE);
         m_ShaderModules.push_back(shaderStage.module);
 
-        std::vector<uint32_t> spirvBinary = read_spirv_file(fileName.c_str());
-        spirv_cross::Compiler spirv(std::move(spirvBinary));
-
+        spirv_cross::Compiler spirv(reinterpret_cast<uint32_t*>(spirvText.data()), spirvText.size() / (sizeof(uint32_t) / sizeof(char)));
         spirv_cross::ShaderResources resources = spirv.get_shader_resources();
 
         for (auto &resource : resources.sampled_images)
         {
-            DescriptorSetLayout::Binding binding;
+            DescriptorBinding binding;
 
+            binding.m_Name = resource.name;
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
-            binding.m_Type = DescriptorSetLayout::BindingType::ImageSampler;
-            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorSetLayout::BindingUsage::VertexShader : DescriptorSetLayout::BindingUsage::FragmentShader; 
+            binding.m_Type = DescriptorBindingType::ImageSampler;
+            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader; 
             outBindingInfo.push_back(binding);
         }
 
         for (auto &resource : resources.uniform_buffers)
         {
-            DescriptorSetLayout::Binding binding;
+            DescriptorBinding binding;
 
+            binding.m_Name = resource.name;
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
-            binding.m_Type = DescriptorSetLayout::BindingType::UniformBuffer;
-            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorSetLayout::BindingUsage::VertexShader : DescriptorSetLayout::BindingUsage::FragmentShader;
+            binding.m_Type = DescriptorBindingType::UniformBuffer;
+            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader;
             outBindingInfo.push_back(binding);
+        }
+
+        //get outputs for material
+        for (auto& resource : resources.stage_outputs)
+        {
+            numOutputs++;
         }
 
         return shaderStage;

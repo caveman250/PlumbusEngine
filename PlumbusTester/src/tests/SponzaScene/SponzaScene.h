@@ -1,14 +1,10 @@
 #pragma once
 
+#include "renderer/vk/vk_types_fwd.h"
 #include "tests/Test.h"
 
 namespace plumbus
 {
-	namespace base
-	{
-		class Material;
-	}
-
 	namespace tester::tests
 	{
 		class SponzaScene : public Test
@@ -22,7 +18,7 @@ namespace plumbus
 			void OnGui() override;
 		private:
 
-			MaterialRef m_DeferredLightMaterial;
+			vk::MaterialRef m_DeferredLightMaterial;
 		};
 	}
 }

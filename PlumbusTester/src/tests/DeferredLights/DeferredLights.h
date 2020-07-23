@@ -28,7 +28,7 @@ namespace plumbus
 			float m_LightRadius;
 			float m_LightsDistanceFromCenter;
 
-			MaterialRef m_DeferredLightMaterial;
+			vk::MaterialRef m_DeferredLightMaterial;
 
 #if VULKAN_RENDERER
 			vk::DescriptorSetRef m_AlbedoTextureDescSet;

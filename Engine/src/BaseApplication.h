@@ -2,9 +2,9 @@
 
 #include "plumbus.h"
 
-namespace plumbus::base
+namespace plumbus::vk
 {
-	class Renderer;
+	class VulkanRenderer;
 }
 
 namespace plumbus
@@ -25,7 +25,7 @@ namespace plumbus
 		void SetScene(Scene* scene);
 
 		Scene* GetScene() { return m_Scene; }
-		base::Renderer* GetRenderer() { return m_Renderer; }
+		vk::VulkanRenderer* GetRenderer() { return m_Renderer; }
 		void MainLoop();
 		virtual void Cleanup();
 
@@ -43,7 +43,7 @@ namespace plumbus
 		double m_DeltaTime = 0;
 		double m_lastUpdateTime;
 
-		base::Renderer* m_Renderer;
+		vk::VulkanRenderer* m_Renderer;
 	};
 
 	template <typename T>

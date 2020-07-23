@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if (UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result")
 else (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /IGNORE:C4100")
+	ADD_COMPILE_OPTIONS(/IGNORE:C4100) 
 endif (UNIX)
 
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
@@ -66,7 +66,7 @@ target_link_libraries(${NAME} glfw ${GLFW_LIBRARIES})
 target_link_libraries(${NAME} assimp)
 link_libraries(${ASSIMP_LIBRARIES})
 
-target_link_libraries(${NAME} spirv-cross-cpp)
+target_link_libraries(${NAME} spirv-cross-core)
 
 if (UNIX)
 	FIND_PACKAGE(PkgConfig REQUIRED)

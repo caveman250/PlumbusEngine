@@ -63,7 +63,7 @@ namespace plumbus::vk
 
 	void SwapChain::Recreate()
 	{
-		Window* window = VulkanRenderer::Get()->GetVulkanWindow();
+		Window* window = VulkanRenderer::Get()->GetWindow();
 		DeviceRef device = VulkanRenderer::Get()->GetDevice();
 
 		if (window->GetWidth() == 0 || window->GetHeight() == 0)
@@ -98,7 +98,7 @@ namespace plumbus::vk
 
 		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = renderer->GetVulkanWindow()->GetSurface();
+		createInfo.surface = renderer->GetWindow()->GetSurface();
 		createInfo.minImageCount = imageCount;
 		createInfo.imageFormat = surfaceFormat.format;
 		createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -194,7 +194,7 @@ namespace plumbus::vk
 
 	VkExtent2D SwapChain::ChooseExtents(const VkSurfaceCapabilitiesKHR& capabilities)
 	{
-		Window* window = VulkanRenderer::Get()->GetVulkanWindow();
+		Window* window = VulkanRenderer::Get()->GetWindow();
 
 		VkExtent2D actualExtent = { window->GetWidth(), window->GetHeight() };
 

@@ -1,10 +1,11 @@
 #include "plumbus.h"
 #include "Scene.h"
-#include "renderer/base/Mesh.h"
+#include "renderer/vk/Mesh.h"
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
 #include "GameObject.h"
 #include "BaseApplication.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 namespace plumbus
 {

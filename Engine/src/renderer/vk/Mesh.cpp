@@ -13,21 +13,13 @@
 #include "renderer/vk/VulkanRenderer.h"
 #include "renderer/vk/CommandBuffer.h"
 #include "DescriptorSet.h"
+#include "PipelineLayout.h"
+#include "MaterialInstance.h"
 
 namespace plumbus::vk
 {
 	Mesh::Mesh()
-		: base::Mesh()
 	{
-		m_VertexLayout = VertexLayout(
-		{
-			VERTEX_COMPONENT_POSITION,
-			VERTEX_COMPONENT_UV,
-			VERTEX_COMPONENT_COLOR,
-			VERTEX_COMPONENT_NORMAL,
-			VERTEX_COMPONENT_TANGENT,
-		});
-
 		m_ColourMap = new vk::Texture();
 		m_NormalMap = new vk::Texture();
 	}
@@ -41,10 +33,10 @@ namespace plumbus::vk
 		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 		VkDevice device = renderer->GetDevice()->GetVulkanDevice();
 
-		uint32_t vBufferSize = static_cast<uint32_t>(m_VertexBuffer.size()) * sizeof(float);
-		uint32_t iBufferSize = static_cast<uint32_t>(m_IndexBuffer.size()) * sizeof(uint32_t);
+		uint32_t vBufferSize = static_cast<uint32_t>(m_StagingVertexBuffer.size()) * sizeof(float);
+		uint32_t iBufferSize = static_cast<uint32_t>(m_StagingIndexBuffer.size()) * sizeof(uint32_t);
 
-		m_IndexSize = (uint32_t)m_IndexBuffer.size();
+		m_IndexSize = (uint32_t)m_StagingIndexBuffer.size();
 
 		Buffer vertexStaging, indexStaging;
 
@@ -54,7 +46,7 @@ namespace plumbus::vk
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&vertexStaging,
 			vBufferSize,
-			m_VertexBuffer.data()) != VK_SUCCESS)
+			m_StagingVertexBuffer.data()) != VK_SUCCESS)
 			Log::Fatal("failed to create vertex staging buffer");
 
 		// Index buffer staging
@@ -63,7 +55,7 @@ namespace plumbus::vk
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&indexStaging,
 			iBufferSize,
-			m_IndexBuffer.data()) != VK_SUCCESS)
+			m_StagingIndexBuffer.data()) != VK_SUCCESS)
 			Log::Fatal("failed to create index staging buffer");
 		// Create device local target buffers
 		// Vertex buffer
@@ -117,12 +109,11 @@ namespace plumbus::vk
 
 	void Mesh::Setup()
 	{
-		if (PLUMBUS_VERIFY(m_Material != nullptr))
+		if (PL_VERIFY(m_MaterialInstance))
 		{
 			vk::VulkanRenderer* vkRenderer = VulkanRenderer::Get();
-			m_Material->Setup(&m_VertexLayout);
 			CreateUniformBuffer(vkRenderer->GetDevice().get());
-			CreateDescriptorSet();
+			SetupUniforms();
 
 			m_CommandBuffer = vkRenderer->GetOffscreenCommandBuffer();
 		}
@@ -144,24 +135,19 @@ namespace plumbus::vk
 		CHECK_VK_RESULT(m_UniformBuffer.Map());
 	}
 
-	void Mesh::CreateDescriptorSet()
+	void Mesh::SetupUniforms()
 	{
 		vk::Texture* vkColourMap = static_cast<vk::Texture*>(m_ColourMap);
 		vk::Texture* vkNormalMap = static_cast<vk::Texture*>(m_NormalMap);
 
-		m_DescriptorSet = DescriptorSet::CreateDescriptorSet(VulkanRenderer::Get()->GetDescriptorPool(), static_cast<vk::Material*>(m_Material.get())->GetLayout());
-		m_DescriptorSet->AddBuffer(&m_UniformBuffer, DescriptorSet::BindingUsage::VertexShader);
-		m_DescriptorSet->AddTexture(vkColourMap->m_TextureSampler, vkColourMap->m_ImageView, DescriptorSet::BindingUsage::FragmentShader);
-		m_DescriptorSet->AddTexture(vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView, DescriptorSet::BindingUsage::FragmentShader);
-		m_DescriptorSet->Build();
+		m_MaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
+		m_MaterialInstance->SetTextureUniform("samplerColor", vkColourMap->m_TextureSampler, vkColourMap->m_ImageView);
+		m_MaterialInstance->SetTextureUniform("samplerNormalMap", vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView);
 	}
 
 	void Mesh::Render()
 	{
-		Material* material = GetVkMaterial();
-
-		m_CommandBuffer->BindPipeline(material->GetPipeline());
-		m_CommandBuffer->BindDescriptorSet(material->GetPipelineLayout(), m_DescriptorSet);
+		m_MaterialInstance->Bind(m_CommandBuffer);
 		m_CommandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
 		m_CommandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
 		m_CommandBuffer->RecordDraw(m_IndexSize);
@@ -184,8 +170,190 @@ namespace plumbus::vk
 
 	void Mesh::SetMaterial(MaterialRef material)
 	{
-		PL_ASSERT(dynamic_cast<vk::Material*>(material.get()) != nullptr);
-		m_Material = material;
+		PL_ASSERT(material);
+		m_MaterialInstance = MaterialInstance::CreateMaterialInstance(material);
+	}
+
+	std::vector<vk::Mesh*> Mesh::LoadFromFile(const std::string& fileName,
+                        std::vector<VertexLayoutComponent> vertLayoutComponents,
+		                std::string defaultDiffuseTexture,
+		                std::string defaultNormalTexture)
+    {
+        std::vector<vk::Mesh*> meshes;
+
+        const int flags = aiProcess_FlipWindingOrder | aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals;
+        
+        Assimp::Importer Importer;
+        const aiScene* scene;
+        
+        scene = Importer.ReadFile(fileName.c_str(), flags);
+        if (!scene)
+        {
+            Log::Error(Importer.GetErrorString());
+        }
+        
+        std::vector<ModelPart> parts;
+        
+        if (scene)
+        {
+            parts.clear();
+            parts.resize(scene->mNumMeshes);
+            
+            glm::vec3 scale(1.0f);
+            glm::vec2 uvscale(1.0f);
+			glm::vec3 center(0.0f);
+
+            int vertexCount = 0;
+            int indexCount = 0;
+            
+            for (unsigned int i = 0; i < scene->mNumMeshes; i++)
+            {
+                const aiMesh* paiMesh = scene->mMeshes[i];
+
+				aiString diffusePath;
+				scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_DIFFUSE, 0, diffusePath);
+				aiString normalPath;
+				scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_NORMALS, 0, normalPath);
+
+				if (diffusePath.length == 0)
+				{
+                    Log::Warn("No diffuse texture defined for submesh: %i, in file: %s", i, fileName.c_str());
+					diffusePath = defaultDiffuseTexture;
+				}
+
+				if (normalPath.length == 0)
+				{
+                    Log::Warn("No normal texture defined for submesh: %i, in file: %s", i, fileName.c_str());
+                    normalPath = defaultNormalTexture;
+				}
+
+                vk::Mesh* newModel = new vk::Mesh();
+
+                meshes.push_back(newModel);
+
+                parts[i] = ModelPart();
+                parts[i].m_VertexBase = vertexCount;
+                parts[i].m_IndexBase = indexCount;
+                
+                vertexCount += scene->mMeshes[i]->mNumVertices;
+
+				aiColor3D pColor(0.f, 0.f, 0.f);
+				scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
+                
+                meshes.back()->GetColourMap()->LoadTexture(std::string("textures/") + diffusePath.C_Str());
+			    meshes.back()->GetNormalMap()->LoadTexture(std::string("textures/") + normalPath.C_Str());
+
+                const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
+                
+                Dimension dim;
+                
+                VertexLayout layout = VertexLayout(vertLayoutComponents);
+                
+                for (unsigned int j = 0; j < paiMesh->mNumVertices; j++)
+                {
+                    const aiVector3D* pPos = &(paiMesh->mVertices[j]);
+                    const aiVector3D* pNormal = &(paiMesh->mNormals[j]);
+                    const aiVector3D* pTexCoord = (paiMesh->HasTextureCoords(0)) ? &(paiMesh->mTextureCoords[0][j]) : &Zero3D;
+                    const aiVector3D* pTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mTangents[j]) : &Zero3D;
+                    const aiVector3D* pBiTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mBitangents[j]) : &Zero3D;
+                    
+                    for (auto& component : layout.components)
+                    {
+                        switch (component)
+                        {
+                            case VertexLayoutComponent::Position:
+                                meshes.back()->GetStagingVertexBuffer().push_back(pPos->x * scale.x + center.x);
+                                meshes.back()->GetStagingVertexBuffer().push_back(-pPos->y * scale.y + center.y);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pPos->z * scale.z + center.z);
+                                break;
+                            case VertexLayoutComponent::Normal:
+                                meshes.back()->GetStagingVertexBuffer().push_back(pNormal->x);
+                                meshes.back()->GetStagingVertexBuffer().push_back(-pNormal->y);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pNormal->z);
+                                break;
+                            case VertexLayoutComponent::UV:
+                                meshes.back()->GetStagingVertexBuffer().push_back(pTexCoord->x * uvscale.s);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pTexCoord->y * uvscale.t);
+                                break;
+                            case VertexLayoutComponent::Colour:
+                                meshes.back()->GetStagingVertexBuffer().push_back(pColor.r);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pColor.g);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pColor.b);
+                                break;
+                            case VertexLayoutComponent::Tangent:
+                                meshes.back()->GetStagingVertexBuffer().push_back(pTangent->x);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pTangent->y);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pTangent->z);
+                                break;
+                            case VertexLayoutComponent::Bitangent:
+                                meshes.back()->GetStagingVertexBuffer().push_back(pBiTangent->x);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pBiTangent->y);
+                                meshes.back()->GetStagingVertexBuffer().push_back(pBiTangent->z);
+                                break;
+                            case VertexLayoutComponent::DummyFloat:
+                                meshes.back()->GetStagingVertexBuffer().push_back(1.0f);
+                                break;
+                            case VertexLayoutComponent::DummyVec4:
+                                meshes.back()->GetStagingVertexBuffer().push_back(0.0f);
+                                meshes.back()->GetStagingVertexBuffer().push_back(0.0f);
+                                meshes.back()->GetStagingVertexBuffer().push_back(0.0f);
+                                meshes.back()->GetStagingVertexBuffer().push_back(0.0f);
+                                break;
+                        };
+                    }
+                    
+                    dim.max.x = fmax(pPos->x, dim.max.x);
+                    dim.max.y = fmax(pPos->y, dim.max.y);
+                    dim.max.z = fmax(pPos->z, dim.max.z);
+                    
+                    dim.min.x = fmin(pPos->x, dim.min.x);
+                    dim.min.y = fmin(pPos->y, dim.min.y);
+                    dim.min.z = fmin(pPos->z, dim.min.z);
+                }
+                
+                dim.size = dim.max - dim.min;
+                
+                parts[i].m_VertexCount = paiMesh->mNumVertices;
+                
+                uint32_t indexBase = static_cast<uint32_t>(meshes.back()->GetStagingIndexBuffer().size());
+                for (unsigned int j = 0; j < paiMesh->mNumFaces; j++)
+                {
+                    const aiFace& Face = paiMesh->mFaces[j];
+                    if (Face.mNumIndices != 3)
+                        continue;
+                    meshes.back()->GetStagingIndexBuffer().push_back(indexBase + Face.mIndices[0]);
+                    meshes.back()->GetStagingIndexBuffer().push_back(indexBase + Face.mIndices[1]);
+                    meshes.back()->GetStagingIndexBuffer().push_back(indexBase + Face.mIndices[2]);
+                    parts[i].m_IndexCount += 3;
+                    indexCount += 3;
+                }
+            }
+        }
+        else
+        {
+            Log::Error("Error loading model");
+        }
+
+        return meshes;
+    }
+
+	std::vector<Mesh*> Mesh::LoadModel(const std::string& fileName, std::string defaultTexturePath, std::string defaultNormalPath)
+	{
+		std::vector<VertexLayoutComponent> vertLayoutComponents;
+		vertLayoutComponents.push_back(VertexLayoutComponent::Position);
+		vertLayoutComponents.push_back(VertexLayoutComponent::UV);
+		vertLayoutComponents.push_back(VertexLayoutComponent::Colour);
+		vertLayoutComponents.push_back(VertexLayoutComponent::Normal);
+		vertLayoutComponents.push_back(VertexLayoutComponent::Tangent);
+
+        std::vector<Mesh*> models = LoadFromFile(fileName, vertLayoutComponents, defaultTexturePath, defaultNormalPath);
+
+        for (Mesh* model : models)
+        {
+            model->PostLoad();
+        }
+
+        return models;
 	}
 
 }

@@ -11,13 +11,7 @@
 #include "Scene.h"
 #include "components/LightComponent.h"
 
-#include "renderer/base/Renderer.h"
-
-#if VULKAN_RENDERER
-    #include "renderer/vk/VulkanRenderer.h"
-#elif METAL_RENDERER
-    #include "renderer/mtl/MetalRenderer.h"
-#endif
+#include "renderer/vk/VulkanRenderer.h"
 
 namespace plumbus
 {

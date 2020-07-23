@@ -15,7 +15,7 @@ namespace plumbus::vk
 
 	Device::Device()
 	{
-		m_Surface = VulkanRenderer::Get()->GetVulkanWindow()->GetSurface();
+		m_Surface = VulkanRenderer::Get()->GetWindow()->GetSurface();
 		PickPhysicalDevice();
 		CreateLogicalDevice(VulkanRenderer::Get()->GetRequiredDeviceExtensions(), VulkanRenderer::Get()->GetRequiredValidationLayers(), true);
 		vkGetDeviceQueue(m_Device, GetQueueFamilyIndices().m_GraphicsFamily, 0, &m_GraphicsQueue);

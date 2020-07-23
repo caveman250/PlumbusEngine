@@ -5,14 +5,8 @@
 #include "TranslationComponent.h"
 #include "Helpers.h"
 #include "GameObject.h"
-#include "renderer/base/Mesh.h"
 #include "Scene.h"
-
-#if METAL_RENDERER
-#include "renderer/mtl/Mesh.h"
-#elif VULKAN_RENDERER
 #include "renderer/vk/Mesh.h"
-#endif
 
 namespace plumbus
 {
@@ -27,7 +21,7 @@ namespace plumbus
 		
 	}
 
-	ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, base::Material* material)
+	ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, vk::MaterialRef material)
 		: GameComponent()
 		, m_ModelPath(modelPath)
 		, m_TexturePath(texturePath)
@@ -43,18 +37,18 @@ namespace plumbus
 
 	}
 
-	std::vector<base::Mesh*> ModelComponent::GetModels()
+	std::vector<vk::Mesh*> ModelComponent::GetModels()
 	{
 		return m_Models;
 	}
 
 	void ModelComponent::LoadModel()
 	{
-		m_Models = base::Mesh::LoadModel(m_ModelPath, m_TexturePath, m_NormalPath);
+		m_Models = vk::Mesh::LoadModel(m_ModelPath, m_TexturePath, m_NormalPath);
 
 		if (m_Material)
 		{
-			for (base::Mesh* model : m_Models)
+			for (vk::Mesh* model : m_Models)
 			{
 				model->SetMaterial(m_Material);
 				model->Setup();
@@ -62,12 +56,12 @@ namespace plumbus
 		}
 	}
 
-	void ModelComponent::SetMaterial(MaterialRef material)
+	void ModelComponent::SetMaterial(vk::MaterialRef material)
 	{
 		if (m_Material != material)
 		{
 			m_Material = material;
-			for (base::Mesh* model : m_Models)
+			for (vk::Mesh* model : m_Models)
 			{
 				model->SetMaterial(material);
 			}
@@ -81,7 +75,7 @@ namespace plumbus
 
 	void ModelComponent::Cleanup()
 	{
-		for (base::Mesh* model : m_Models)
+		for (vk::Mesh* model : m_Models)
 		{
 			model->Cleanup();
 			delete model;
@@ -91,7 +85,7 @@ namespace plumbus
 
 	void ModelComponent::UpdateUniformBuffer(Scene* scene)
 	{
-		for (base::Mesh* model : m_Models)
+		for (vk::Mesh* model : m_Models)
 		{
 			m_UniformBufferObject.m_Proj = scene->GetCamera()->GetProjectionMatrix();
 			m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();

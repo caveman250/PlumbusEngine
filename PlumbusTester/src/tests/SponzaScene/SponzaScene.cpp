@@ -1,8 +1,7 @@
 #include "plumbus.h"
 #include "tests/SponzaScene/SponzaScene.h"
 #include "BaseApplication.h"
-#include "renderer/base/Window.h"
-#include "renderer/base/Renderer.h"
+#include "renderer/vk/Window.h"
 #include "components/ModelComponent.h"
 #include "components/TranslationComponent.h"
 #include "components/LightComponent.h"
@@ -10,11 +9,8 @@
 
 #include "Application.h"
 #include "TesterScene.h"
-#include "renderer/base/Material.h"
-#if VULKAN_RENDERER// see TODO in constructor
 #include "renderer/vk/Material.h"
 #include "renderer/vk/VulkanRenderer.h"
-#endif
 
 
 
@@ -23,11 +19,18 @@ namespace plumbus::tester::tests
 	
 	SponzaScene::SponzaScene()
 		: Test()
-#if VULKAN_RENDERER //TODO there should probably me some kind of manager that just returns the correct type of material
 		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
-#endif
 	{
+		vk::VertexLayout layout = vk::VertexLayout(
+		{
+			vk::VertexLayoutComponent::Position,
+			vk::VertexLayoutComponent::UV,
+			vk::VertexLayoutComponent::Colour,
+			vk::VertexLayoutComponent::Normal,
+			vk::VertexLayoutComponent::Tangent,
+		});
 
+		m_DeferredLightMaterial->Setup(layout);
 	}
 
 	SponzaScene::~SponzaScene()
@@ -75,7 +78,7 @@ namespace plumbus::tester::tests
 		BaseApplication::Get().GetScene()->ClearObjects();
 		BaseApplication::Get().GetRenderer()->OnModelRemovedFromScene();
 
-		m_DeferredLightMaterial->Destroy();
+		m_DeferredLightMaterial.reset();
 	}
 
 	void SponzaScene::OnGui()

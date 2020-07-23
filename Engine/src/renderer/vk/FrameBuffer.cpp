@@ -26,19 +26,19 @@ namespace plumbus::vk
 				if (attachment.m_ImageView != VK_NULL_HANDLE)
 				{
 					vkDestroyImageView(device, attachment.m_ImageView, nullptr);
-					attachment.m_ImageView == VK_NULL_HANDLE;
+					attachment.m_ImageView = VK_NULL_HANDLE;
 				}
 
 				if (attachment.m_Image != VK_NULL_HANDLE)
 				{
 					vkDestroyImage(device, attachment.m_Image, nullptr);
-					attachment.m_Image == VK_NULL_HANDLE;
+					attachment.m_Image = VK_NULL_HANDLE;
 				}
 
 				if (attachment.m_Memory != VK_NULL_HANDLE)
 				{
 					vkFreeMemory(device, attachment.m_Memory, nullptr);
-					attachment.m_Memory == VK_NULL_HANDLE;
+					attachment.m_Memory = VK_NULL_HANDLE;
 				}
 			}
 
@@ -133,7 +133,7 @@ namespace plumbus::vk
 		frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frameBufferCreateInfo.pNext = NULL;
 		frameBufferCreateInfo.renderPass = renderPass;
-		frameBufferCreateInfo.attachmentCount = attachments.size();
+		frameBufferCreateInfo.attachmentCount = (uint32_t)attachments.size();
 		frameBufferCreateInfo.pAttachments = attachments.data();
 		frameBufferCreateInfo.width = width;
 		frameBufferCreateInfo.height = height;

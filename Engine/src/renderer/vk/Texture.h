@@ -1,15 +1,14 @@
 #pragma once
 #include "plumbus.h"
 #include "vulkan/vulkan.h"
-#include "renderer/base/Texture.h"
 
 namespace plumbus::vk
 {
-	class Texture : public base::Texture
+	class Texture
 	{
 	public:
-		void LoadTexture(std::string filename) override;
-		void Cleanup() override;
+		void LoadTexture(std::string filename);
+		void Cleanup();
 
 		void CreateTextureSampler();
 

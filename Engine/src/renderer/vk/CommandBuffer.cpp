@@ -2,6 +2,8 @@
 #include "Helpers.h"
 #include "VulkanRenderer.h"
 #include "DescriptorSet.h"
+#include "PipelineLayout.h"
+#include "Pipeline.h"
 
 namespace plumbus::vk
 {
@@ -72,14 +74,14 @@ namespace plumbus::vk
 		vkCmdSetScissor(m_CommandBuffer, 0, 1, &scissor);
 	}
 
-	void CommandBuffer::BindPipeline(const VkPipeline piepline) const
+	void CommandBuffer::BindPipeline(const PipelineRef& pipeline) const
 	{
-		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, piepline);
+		vkCmdBindPipeline(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVulkanPipeline());
 	}
 
-	void CommandBuffer::BindDescriptorSet(const VkPipelineLayout layout, const DescriptorSetRef& descriptorSet) const
+	void CommandBuffer::BindDescriptorSet(const PipelineLayoutRef& layout, const DescriptorSetRef& descriptorSet) const
 	{
-		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descriptorSet->GetVulkanDescriptorSet(), 0, NULL);
+		vkCmdBindDescriptorSets(m_CommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout->GetVulkanPipelineLayout(), 0, 1, &descriptorSet->GetVulkanDescriptorSet(), 0, NULL);
 	}
 
 	void CommandBuffer::BindVertexBuffer(const vk::Buffer& buffer) const
@@ -125,7 +127,7 @@ namespace plumbus::vk
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = m_FrameBuffer->GetWidth();
 		renderPassBeginInfo.renderArea.extent.height = m_FrameBuffer->GetHeight();
-		renderPassBeginInfo.clearValueCount = clearValues.size();
+		renderPassBeginInfo.clearValueCount = (uint32_t)clearValues.size();
 		renderPassBeginInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(m_CommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);

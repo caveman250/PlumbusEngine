@@ -1,25 +1,23 @@
 #pragma once
 #include "plumbus.h"
 
-#include "renderer/base/Window.h"
-
 namespace plumbus::vk
 {
-	class Window : public base::Window
+	class Window
 	{
 	public:
 		Window() {}
 		~Window() {}
 
-		void Init(uint32_t& width, uint32_t& height) override;
+		void Init(uint32_t& width, uint32_t& height);
 		void CreateSurface();
-		void Destroy() override;
+		void Destroy();
 
-		glm::vec2 GetMousePos() override;
-		bool IsKeyDown(const int key) override;
+		glm::vec2 GetMousePos();
+		bool IsKeyDown(const int key);
 
-		uint32_t GetWidth() override;
-		uint32_t GetHeight() override;
+		uint32_t GetWidth();
+		uint32_t GetHeight();
 		bool ShouldClose();
 
 		GLFWwindow* GetWindow() { return m_Window; }

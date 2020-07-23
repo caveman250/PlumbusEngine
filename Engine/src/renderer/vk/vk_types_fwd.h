@@ -26,4 +26,19 @@ namespace plumbus::vk
 
     class DescriptorSetLayout;
     typedef std::shared_ptr<DescriptorSetLayout> DescriptorSetLayoutRef;
+
+	class PipelineCache;
+	typedef std::shared_ptr<PipelineCache> PipelineCacheRef;
+
+    class PipelineLayout;
+    typedef std::shared_ptr<PipelineLayout> PipelineLayoutRef;
+
+    class Pipeline;
+    typedef std::shared_ptr<Pipeline> PipelineRef;
+
+    class Material;
+    typedef std::shared_ptr<Material> MaterialRef;
+
+    class MaterialInstance;
+    typedef std::shared_ptr<MaterialInstance> MaterialInstanceRef;
 }

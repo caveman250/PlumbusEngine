@@ -68,9 +68,9 @@ namespace plumbus
 
 		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
-		glfwSetScrollCallback(renderer->GetWindow(), OnMouseScolled);
-		glfwSetKeyCallback(renderer->GetWindow(), OnKeyDown);
-		glfwSetCharCallback(renderer->GetWindow(), OnChar);
+		glfwSetScrollCallback(renderer->GetWindow()->GetWindow(), OnMouseScolled);
+		glfwSetKeyCallback(renderer->GetWindow()->GetWindow(), OnKeyDown);
+		glfwSetCharCallback(renderer->GetWindow()->GetWindow(), OnChar);
 	}
 
 	void ImGUIImpl::InitResources(VkRenderPass renderPass, VkQueue copyQueue)
@@ -194,11 +194,11 @@ namespace plumbus
 		m_DescriptorPool = vk::DescriptorPool::CreateDescriptorPool(0, 5, 5);
 
 		m_DescriptorSetLayout = vk::DescriptorSetLayout::CreateDescriptorSetLayout();
-		m_DescriptorSetLayout->AddBinding(vk::DescriptorSetLayout::BindingUsage::FragmentShader, vk::DescriptorSetLayout::BindingType::ImageSampler, 0);
+		m_DescriptorSetLayout->AddBinding(vk::DescriptorBindingUsage::FragmentShader, vk::DescriptorBindingType::ImageSampler, 0, "fontSampler");
 		m_DescriptorSetLayout->Build();
 
 		m_DescriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
-		m_DescriptorSet->AddTexture(m_Sampler, m_FontView, vk::DescriptorSet::BindingUsage::FragmentShader);
+		m_DescriptorSet->SetTextureUniform("fontSampler", m_Sampler, m_FontView);
 		m_DescriptorSet->Build();
 
 		// Pipeline cache
@@ -350,9 +350,10 @@ namespace plumbus
 
 		pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-		std::vector<vk::DescriptorSetLayout::Binding> bindingInfo;
-		shaderStages[0] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, bindingInfo);
-		shaderStages[1] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo);
+		std::vector<vk::DescriptorBinding> bindingInfo;
+		int numOutputs = 0;
+		shaderStages[0] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, bindingInfo, numOutputs);
+		shaderStages[1] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo, numOutputs);
 
 		io.Fonts->TexID = (void*)m_DescriptorSet->GetVulkanDescriptorSet();
 
@@ -373,10 +374,10 @@ namespace plumbus
 		io.DeltaTime = (float)BaseApplication::Get().GetDeltaTime();
 
 		double xpos, ypos;
-		glfwGetCursorPos(renderer->GetWindow(), &xpos, &ypos);
+		glfwGetCursorPos(renderer->GetWindow()->GetWindow(), &xpos, &ypos);
 		io.MousePos = ImVec2((float)xpos, (float)ypos);
-		io.MouseDown[0] = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_1);
-		io.MouseDown[1] = glfwGetMouseButton(renderer->GetWindow(), GLFW_MOUSE_BUTTON_2);
+		io.MouseDown[0] = glfwGetMouseButton(renderer->GetWindow()->GetWindow(), GLFW_MOUSE_BUTTON_1);
+		io.MouseDown[1] = glfwGetMouseButton(renderer->GetWindow()->GetWindow(), GLFW_MOUSE_BUTTON_2);
 
 		ImGui::NewFrame();
 
@@ -591,7 +592,6 @@ namespace plumbus
 				VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->TextureId };
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, desc_set, 0, nullptr);
 
-
 				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
 				indexOffset += pcmd->ElemCount;
 			}
@@ -602,7 +602,7 @@ namespace plumbus
 	vk::DescriptorSetRef ImGUIImpl::AddTexture(VkSampler sampler, VkImageView image_view)
 	{
 		vk::DescriptorSetRef descriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
-		descriptorSet->AddTexture(sampler, image_view, vk::DescriptorSet::BindingUsage::FragmentShader);
+		descriptorSet->SetTextureUniform("fontSampler", sampler, image_view);
 		descriptorSet->Build();
 		return descriptorSet;
 	}

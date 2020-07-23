@@ -1,7 +1,6 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
-#include "renderer/base/Renderer.h"
 #include "renderer/vk/Mesh.h"
 #include "renderer/vk/Device.h"
 #include "renderer/vk/FrameBuffer.h"
@@ -18,31 +17,29 @@ namespace plumbus
 		class Mesh;
 		class Instance;
 
-		class VulkanRenderer : public base::Renderer
+		class VulkanRenderer
 		{
 		public:
 			static VulkanRenderer* Get();
 
-			virtual void Init() override;
-			virtual void Cleanup() override;
+			virtual void Init();
+			virtual void Cleanup();
 
-			virtual void DrawFrame() override;
-			virtual bool WindowShouldClose() override;
+			virtual void DrawFrame();
+			virtual bool WindowShouldClose();
 
-			virtual void AwaitIdle() override;
+			virtual void AwaitIdle();
 
-			virtual void OnModelAddedToScene() override;
-			virtual void OnModelRemovedFromScene() override;
+			virtual void OnModelAddedToScene();
+			virtual void OnModelRemovedFromScene();
 
 			InstanceRef GetInstance() { return m_Instance; }
 			DeviceRef GetDevice() { return m_Device; }
 			SwapChainRef GetSwapChain() { return m_SwapChain; }
 
-			vk::Window* GetVulkanWindow() { return static_cast<vk::Window*>(m_Window); }
+			Window* GetWindow() { return m_Window; }
 
-			GLFWwindow* GetWindow() { return static_cast<vk::Window*>(m_Window)->GetWindow(); }
-
-			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorSetLayout::Binding>& outBindingInfo);
+			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs);
 
 			std::vector<const char*> GetRequiredDeviceExtensions();
 			std::vector<const char*> GetRequiredInstanceExtensions();
@@ -56,7 +53,7 @@ namespace plumbus
 			//TODO: this shouldnt be a big global thing, create pools where relavnt.
 			const DescriptorPoolRef& GetDescriptorPool() { return m_DescriptorPool; }
 
-			VkPipelineCache& GetPipelineCache() { return m_PipelineCache; }
+			const PipelineCacheRef& GetPipelineCache() { return m_PipelineCache; }
 
 			VkFormat FindDepthFormat();
 
@@ -65,16 +62,13 @@ namespace plumbus
 		private:
 			void InitVulkan();
 			void SetupDebugCallback();
-			void CreatePipelineCache();
 			void GenerateQuads();
 			
 			void CreateUniformBuffers();
 			void InitLightsVBO();
-			void CreatePipelines();
-			void CreateDescriptorSet();
 			void BuildImguiCommandBuffer(int index);
 			void BuildDefferedCommandBuffer();
-			void BuildOutputFrameBuffer();
+			void BuildOutputCommandBuffer();
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
 			void SetupImGui();
@@ -85,6 +79,8 @@ namespace plumbus
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
+			Window* m_Window;
+
 			InstanceRef m_Instance;
 			VkDebugReportCallbackEXT m_Callback;
 			DeviceRef m_Device;
@@ -92,13 +88,14 @@ namespace plumbus
 			
 			DescriptorPoolRef m_DescriptorPool;
 
-			DescriptorSetRef m_OutputDescriptorSet;
-			DescriptorSetLayoutRef m_OutputDescriptorSetLayout;
-			VkPipelineLayout m_DeferredPipelineLayout;
-			VkPipelineLayout m_OffscreenPipelineLayout;
-			VkPipeline m_DeferredPipeline;
-			VkPipeline m_OffscreenPipeline;
-			VkPipeline m_OutputPipeline;
+			PipelineLayoutRef m_DeferredPipelineLayout;
+			PipelineLayoutRef m_OffscreenPipelineLayout;
+			PipelineRef m_DeferredPipeline;
+			PipelineRef m_OffscreenPipeline;
+
+			MaterialRef m_OutputMaterial;
+			MaterialInstanceRef m_OutputMaterialInstance;
+			PipelineRef m_OutputPipeline;
 
 			VkSemaphore m_OffscreenSemaphore;
 			VkSemaphore m_OutputSemaphore;
@@ -107,8 +104,7 @@ namespace plumbus
 			FrameBufferRef m_OutputFrameBuffer;
 			vk::Buffer m_FragLights;
 			
-
-			VkPipelineCache m_PipelineCache;
+			PipelineCacheRef m_PipelineCache;
 			CommandBufferRef m_OffScreenCmdBuffer;
 			CommandBufferRef m_OutputCmdBuffer;
 

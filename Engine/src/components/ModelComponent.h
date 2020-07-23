@@ -4,11 +4,10 @@
 
 #include "GameComponent.h"
 
-namespace plumbus::base
+namespace plumbus::vk
 {
 	class Mesh;
 	class Material;
-	class MaterialRef;
 }
 namespace plumbus
 {
@@ -25,11 +24,11 @@ namespace plumbus
 		};
 
 		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath);
-		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, base::Material* material);
+		ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath, vk::MaterialRef material);
 		~ModelComponent();
-		std::vector<base::Mesh*> GetModels();
+		std::vector<vk::Mesh*> GetModels();
 		void LoadModel();
-		void SetMaterial(MaterialRef material);
+		void SetMaterial(vk::MaterialRef material);
 
 		void OnUpdate(Scene* scene) override;
 		void Cleanup();
@@ -45,8 +44,8 @@ namespace plumbus
 
 		UniformBufferObject m_UniformBufferObject;
 
-		std::vector<base::Mesh*> m_Models;
-		MaterialRef m_Material;
+		std::vector<vk::Mesh*> m_Models;
+		vk::MaterialRef m_Material;
 
 		std::string m_ModelPath;
 		std::string m_TexturePath;

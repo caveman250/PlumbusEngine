@@ -18,17 +18,18 @@ namespace plumbus::vk
         vkDestroyDescriptorSetLayout(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), m_Layout, nullptr);
     }
 
-    void DescriptorSetLayout::AddBinding(Binding binding)
+    void DescriptorSetLayout::AddBinding(DescriptorBinding binding)
     {
         m_PendingBindings.push_back(binding);
     }
 
-    void DescriptorSetLayout::AddBinding(BindingUsage usage, BindingType type, int location)
+    void DescriptorSetLayout::AddBinding(DescriptorBindingUsage usage, DescriptorBindingType type, int location, std::string name)
     {
-        Binding binding = {};
+        DescriptorBinding binding = {};
         binding.m_Usage = usage;
         binding.m_Type = type;
         binding.m_Location = location;
+		binding.m_Name = name;
         m_PendingBindings.push_back(binding);
     }
 
@@ -38,26 +39,26 @@ namespace plumbus::vk
 
 		std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
-		for (const Binding& binding : m_PendingBindings)
+		for (const DescriptorBinding& binding : m_PendingBindings)
 		{
 			switch (binding.m_Type)
 			{
-				case BindingType::ImageSampler:
+				case DescriptorBindingType::ImageSampler:
 				{
 					VkDescriptorSetLayoutBinding layoutBinding{};
 					layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					layoutBinding.stageFlags = binding.m_Usage == BindingUsage::VertexShader ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+					layoutBinding.stageFlags = binding.m_Usage == DescriptorBindingUsage::VertexShader ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
 					layoutBinding.binding = binding.m_Location;
 					layoutBinding.descriptorCount = 1;
 
 					layoutBindings.push_back(layoutBinding);
 					break;
 				}
-				case BindingType::UniformBuffer:
+				case DescriptorBindingType::UniformBuffer:
 				{
 					VkDescriptorSetLayoutBinding layoutBinding{};
 					layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					layoutBinding.stageFlags = binding.m_Usage == BindingUsage::VertexShader ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+					layoutBinding.stageFlags = binding.m_Usage == DescriptorBindingUsage::VertexShader ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
 					layoutBinding.binding = binding.m_Location;
 					layoutBinding.descriptorCount = 1;
 

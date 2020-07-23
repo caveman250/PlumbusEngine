@@ -33,8 +33,6 @@
 #include <gtk/gtk.h>
 #endif
 
-#include "plumbus_fwd.h"
-
 namespace plumbus
 {
 #if PLUMBUS_PLATFORM_WINDOWS
@@ -101,7 +99,7 @@ namespace plumbus
 	} while (0)
 #endif
 
-#define PLUMBUS_VERIFY(expr, ...) (!(expr) ? (::std::invoke([&](bool result) -> bool  { PL_ASSERT(expr, __VA_ARGS__); return result; }, !!(expr))), false : true)
+#define PL_VERIFY(expr, ...) (!(expr) ? (::std::invoke([&](bool result) -> bool  { PL_ASSERT(expr, __VA_ARGS__); return result; }, !!(expr))), false : true)
 
 #define PLUMBUS_CAT_III(_, expr) expr
 #define PLUMBUS_CAT_II(a, b) PLUMBUS_CAT_III(~, a ## b)
