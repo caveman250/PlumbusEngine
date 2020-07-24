@@ -228,10 +228,10 @@ namespace plumbus::vk
         vkDeviceWaitIdle(m_Device->GetVulkanDevice());
     }
 
-    void VulkanRenderer::Init()
+    void VulkanRenderer::Init(std::string appName)
     {
 		m_Window = new vk::Window();
-		m_Window->Init(s_Width, s_Height);
+		m_Window->Init(s_Width, s_Height, appName);
 #if PL_PLATFORM_LINUX
         gtk_init(&::app_argc, &::app_argv);
 #endif

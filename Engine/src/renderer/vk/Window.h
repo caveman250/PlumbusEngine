@@ -9,7 +9,7 @@ namespace plumbus::vk
 		Window() {}
 		~Window() {}
 
-		void Init(uint32_t& width, uint32_t& height);
+		void Init(uint32_t& width, uint32_t& height, std::string name);
 		void CreateSurface();
 		void Destroy();
 

@@ -7,7 +7,7 @@
 
 namespace plumbus::vk
 {
-	void Window::Init(uint32_t& width, uint32_t& height)
+	void Window::Init(uint32_t& width, uint32_t& height, std::string name)
 	{
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -17,7 +17,7 @@ namespace plumbus::vk
 		width = (uint32_t)(mode->width * 0.5f);
 		height = (uint32_t)(mode->height * 0.5f);
 
-		m_Window = glfwCreateWindow(width, height, "VulkanRenderer", nullptr, nullptr);
+		m_Window = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
 
 		glfwSetWindowUserPointer(m_Window, this);
 	}

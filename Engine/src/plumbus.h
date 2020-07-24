@@ -1,10 +1,8 @@
 #pragma once
 
-#if VULKAN_RENDERER
 #include "vulkan/vulkan.h"
 #define GLFW_INCLUDE_VULKAN
 #include "renderer/vk/vk_types_fwd.h"
-#endif
 
 #include <vector>
 #include <array>

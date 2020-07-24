@@ -21,18 +21,15 @@ namespace plumbus
 	BaseApplication::BaseApplication() 
 		: m_Scene(nullptr)
 		, m_lastUpdateTime(glfwGetTime())
+		, m_Renderer(new vk::VulkanRenderer())
+		, m_AppName("PlumbusEngine")
 	{
-#if VULKAN_RENDERER
-		m_Renderer = new vk::VulkanRenderer();
-#elif METAL_RENDERER
-		m_Renderer = new mtl::MetalRenderer();
-#endif
 
 	}
 
 	void BaseApplication::Run()
 	{
-		m_Renderer->Init();
+		m_Renderer->Init(m_AppName);
 
 		PL_ASSERT(m_Scene != nullptr);
 

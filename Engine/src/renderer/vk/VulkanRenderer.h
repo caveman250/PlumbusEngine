@@ -22,7 +22,7 @@ namespace plumbus
 		public:
 			static VulkanRenderer* Get();
 
-			void Init();
+			void Init(std::string appName);
 			void Cleanup();
 
 			void DrawFrame();

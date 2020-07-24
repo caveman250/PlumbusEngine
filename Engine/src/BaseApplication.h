@@ -31,6 +31,8 @@ namespace plumbus
 
 		virtual void OnGui();
 
+		void SetAppName(std::string name) { m_AppName = name; }
+
 		bool m_GameWindowFocused = false;
 
 	protected:
@@ -44,6 +46,7 @@ namespace plumbus
 		double m_lastUpdateTime;
 
 		vk::VulkanRenderer* m_Renderer;
+		std::string m_AppName;
 	};
 
 	template <typename T>

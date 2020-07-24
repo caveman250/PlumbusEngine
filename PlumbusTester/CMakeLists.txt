@@ -50,7 +50,6 @@ file(GLOB_RECURSE SOURCE src/*.cpp src/*.h)
 source_group("src" FILES ${SOURCE})
 
 add_executable(${NAME} src/PlumbusTester.cpp ${SOURCE})
-target_compile_definitions(${NAME} PUBLIC METAL_RENDERER=0 VULKAN_RENDERER=1)
 
 target_link_libraries(${NAME} PlumbusEngine)
 link_libraries(PlumbusEngine)

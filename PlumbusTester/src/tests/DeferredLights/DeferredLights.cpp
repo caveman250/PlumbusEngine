@@ -96,7 +96,7 @@ namespace plumbus::tester::tests
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 
-#if VULKAN_RENDERER && !PL_DIST
+#if !PL_DIST
 		vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
 		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour").m_ImageView);
 		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal").m_ImageView);
@@ -163,7 +163,7 @@ namespace plumbus::tester::tests
 		ImGui::DragFloat("Light Height", &m_LightHeight, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Radius", &m_LightRadius, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Distance From Center", &m_LightsDistanceFromCenter, 0.01f, 0.f, 20.f);
-#if VULKAN_RENDERER && !PL_DIST
+#if !PL_DIST
 		ImGui::Image(m_AlbedoTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
 		ImGui::Image(m_NormalsTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
 		ImGui::Image(m_WorldPosTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);

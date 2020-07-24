@@ -7,6 +7,7 @@ namespace plumbus::tester
 	Application::Application()
 		: BaseApplication()
 	{
+		SetAppName("PlumbusTester");
 	}
 
 	void Application::OnGui()
