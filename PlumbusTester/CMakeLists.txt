@@ -9,8 +9,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result")
-else (UNIX)
-	ADD_COMPILE_OPTIONS(/IGNORE:C4100) 
 endif (UNIX)
 
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
@@ -28,18 +26,6 @@ ELSE()
 options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
 RelWithDebInfo MinSizeRel.")
 ENDIF()
-
-IF(CMAKE_BUILD_TYPE MATCHES Debug)
-	add_compile_definitions(PL_DEBUG=1)
-ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
-
-IF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-	add_compile_definitions(PL_RELEASE=1)
-ENDIF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-
-IF(CMAKE_BUILD_TYPE MATCHES Release)
-	add_compile_definitions(PL_DIST=1)
-ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
 
 project(${NAME})
 
@@ -87,5 +73,10 @@ if (UNIX)
 	ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 	TARGET_LINK_LIBRARIES(${NAME} ${GTK3_LIBRARIES})
 endif(UNIX)
+
+if(WIN32)
+	set_property(TARGET ${NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "..\\..\\PlumbusTester")
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../ PROPERTY VS_STARTUP_PROJECT ${NAME})
+endif(WIN32)
 
 

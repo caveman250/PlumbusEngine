@@ -27,18 +27,6 @@ options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release
 RelWithDebInfo MinSizeRel.")
 ENDIF()
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-	add_compile_definitions(PL_DEBUG=1)
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-
-IF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-	add_compile_definitions(PL_RELEASE=1)
-ENDIF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-
-IF(CMAKE_BUILD_TYPE MATCHES Release)
-	add_compile_definitions(PL_DIST=1)
-ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
-
 project(${NAME})
 
 include_directories(../third_party)

@@ -58,7 +58,9 @@ namespace plumbus
 
 		private:
 			void InitVulkan();
+#if !PL_DIST
 			void SetupDebugCallback();
+#endif
 			void GenerateFullscreenQuad();
 			void CreateLightsUniformBuffers();
 			void BuildPresentCommandBuffer(int index);

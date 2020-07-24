@@ -29,6 +29,7 @@
 
 static uint32_t s_Width, s_Height;
 
+#if !PL_DIST
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugReportFlagsEXT flags,
     VkDebugReportObjectTypeEXT objType,
@@ -65,6 +66,7 @@ void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT
         func(instance, callback, pAllocator);
     }
 }
+#endif
 
 extern int app_argc;
 extern char** app_argv;
@@ -126,6 +128,7 @@ namespace plumbus::vk
 #endif
     }
 
+#if !PL_DIST
     void VulkanRenderer::SetupDebugCallback()
     {
         VkDebugReportCallbackCreateInfoEXT createInfo = {};
@@ -135,6 +138,7 @@ namespace plumbus::vk
 
         CHECK_VK_RESULT(CreateDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), &createInfo, nullptr, &m_Callback));
     }
+#endif
 
     void VulkanRenderer::DrawFrame()
     {
@@ -280,7 +284,9 @@ namespace plumbus::vk
 
         m_Device.reset();
 
+#if !PL_DIST
         DestroyDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), m_Callback, nullptr);
+#endif
         vkDestroySurfaceKHR(m_Instance->GetVulkanInstance(), m_Window->GetSurface(), nullptr);
         
         m_Instance->Destroy();

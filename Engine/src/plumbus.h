@@ -36,7 +36,7 @@
 namespace plumbus
 {
 #if PL_PLATFORM_WINDOWS
-#if NDEBUG
+#if PL_RELEASE
 #define PL_ASSERT(expr, ...) \
 	do { \
 			if (!(expr))\
@@ -48,7 +48,7 @@ namespace plumbus
 				fprintf(stderr, "\033[0;37;41mAssertion failed: %s - at %s:%i\033[0m\n\n", (const char*)&buf, __FILE__, __LINE__);\
 			}\
 	} while (0)
-#else
+#elif PL_DEBUG
 #define PL_ASSERT(expr, ...) \
 	do { \
 			if (!(expr))\
@@ -69,6 +69,8 @@ namespace plumbus
 				}\
 			}\
 	} while (0)
+#else
+#define PL_ASSERT(...) do {} while(0)
 #endif
 #else
 #define PL_ASSERT(expr, ...) \
@@ -98,8 +100,12 @@ namespace plumbus
 		}\
 	} while (0)
 #endif
+#define PL_VERIFY(expr, ...) (!!(expr))
+#if PL_DIST
 
+#else
 #define PL_VERIFY(expr, ...) (!(expr) ? (::std::invoke([&](bool result) -> bool  { PL_ASSERT(expr, __VA_ARGS__); return result; }, !!(expr))), false : true)
+#endif
 
 #define PLUMBUS_CAT_III(_, expr) expr
 #define PLUMBUS_CAT_II(a, b) PLUMBUS_CAT_III(~, a ## b)

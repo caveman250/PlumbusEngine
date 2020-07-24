@@ -3,8 +3,51 @@ cmake_policy(VERSION 2.8)
 
 project(PlumbusEngine)
 
+if (WIN32)
+    #fix for assimp on windows
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4100")
+
+    if(CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_CONFIGURATION_TYPES Debug Release Distribution)
+        set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
+            "Reset the configurations to what we need"
+            FORCE)
+        
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+        set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELWITHDEBINFO}")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
+
+        set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+        set(CMAKE_C_FLAGS_DISTRIBUTION "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+        set(CMAKE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_LINKER_FLAGS_RELWITHDEBINFO}")
+        set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
+
+	    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
+            $<$<CONFIG:Debug>:PL_DEBUG=1>
+            $<$<CONFIG:Release>:PL_RELEASE=1>
+            $<$<CONFIG:Distribution>:PL_DIST=1>)
+    endif()
+endif(WIN32)
+
+
+IF(UNIX)
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+    add_compile_definitions(PL_DEBUG=1)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+
+IF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+    add_compile_definitions(PL_RELEASE=1)
+ENDIF(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+
+IF(CMAKE_BUILD_TYPE MATCHES Release)
+    add_compile_definitions(PL_DIST=1)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Release)
+ENDIF(UNIX)
+
+add_subdirectory(PlumbusTester)
+add_subdirectory(Engine)
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/assimp)
 add_subdirectory(third_party/SPIRV-Cross)
-add_subdirectory(PlumbusTester)
-add_subdirectory(Engine)
+
