@@ -61,14 +61,23 @@ source_group("src\\platform\\windows" FILES ${PLATFORM})
 
 add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
 
+if (UNIX AND NOT APPLE)
+    FIND_PACKAGE(PkgConfig REQUIRED)
+    PKG_CHECK_MODULES(GTK3 REQUIRED gtk+-3.0)
+    INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
+endif (UNIX AND NOT APPLE)
+
 if (WIN32)
 	add_compile_definitions(PL_PLATFORM_WINDOWS=1)
-else (WIN32)
-	add_compile_definitions(PL_PLATFORM_LINUX=1)
-	FIND_PACKAGE(PkgConfig REQUIRED)
-	PKG_CHECK_MODULES(GTK3 REQUIRED gtk+-3.0)
-	INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
 endif(WIN32)
+
+if (UNIX)
+	if(APPLE)
+		add_compile_definitions(PL_PLATFORM_OSX=1)
+	else(APPLE)
+		add_compile_definitions(PL_PLATFORM_LINUX=1)
+	endif(APPLE)
+endif(UNIX)
 
 target_precompile_headers(${NAME} PUBLIC "src/plumbus.h")
 

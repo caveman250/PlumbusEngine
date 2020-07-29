@@ -353,11 +353,11 @@ namespace plumbus::vk
 
 		VkPhysicalDeviceFeatures deviceFeatures;
 		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-		if (!deviceFeatures.geometryShader)
-		{
-			Log::Info("Device: %s Invalid! no geometry shader support.", deviceProperties.deviceName);
-			return false;
-		}
+		// if (!deviceFeatures.geometryShader)
+		// {
+		// 	Log::Info("Device: %s Invalid! no geometry shader support.", deviceProperties.deviceName);
+		// 	return false;
+		// }
 
 		if (!CheckDeviceExtensionSupport(device))
 		{

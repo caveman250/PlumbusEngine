@@ -52,10 +52,12 @@ namespace plumbus
 		//style.Colors[ImGuiCol_CheckMark] = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 		//style.Colors[ImGuiCol_WindowBg] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
 		//style.Colors[ImGuiCol_Button] = ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        vk::Window* window = vk::VulkanRenderer::Get()->GetWindow();
+        
 		// Dimensions
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2(width, height);
-		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+        io.DisplayFramebufferScale = ImVec2(window->GetContentScaleX(), window->GetContentScaleY());
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		InitGLFWCallbacks();
@@ -560,10 +562,10 @@ namespace plumbus
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.m_Buffer, offsets);
 		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
-
+        
 		VkViewport viewport{};
-		viewport.width = ImGui::GetIO().DisplaySize.x;
-		viewport.height = ImGui::GetIO().DisplaySize.y;
+        viewport.width = io.DisplaySize.x * io.DisplayFramebufferScale.x;
+		viewport.height = io.DisplaySize.y * io.DisplayFramebufferScale.y;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -588,6 +590,12 @@ namespace plumbus
 				scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
 				scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
 				scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
+                
+                scissorRect.offset.x*= io.DisplayFramebufferScale.x;
+                scissorRect.offset.y*= io.DisplayFramebufferScale.y;
+                scissorRect.extent.width*=io.DisplayFramebufferScale.x;
+                scissorRect.extent.height=scissorRect.extent.height*io.DisplayFramebufferScale.y+1;// FIXME: Why +1 here?
+                
 				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
 
 				VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->TextureId };

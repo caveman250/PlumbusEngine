@@ -18,6 +18,8 @@ namespace plumbus::vk
 		height = (uint32_t)(mode->height * 0.5f);
 
 		m_Window = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
+        
+        glfwGetWindowContentScale(m_Window, &m_ContentScaleX, &m_ContentScaleY);
 
 		glfwSetWindowUserPointer(m_Window, this);
 	}
@@ -41,21 +43,21 @@ namespace plumbus::vk
 		double xpos, ypos;
 		glfwGetCursorPos(m_Window, &xpos, &ypos);
 
-		return glm::vec2(xpos, ypos);
+		return glm::vec2(xpos * m_ContentScaleX, ypos * m_ContentScaleY);
 	}
 
 	uint32_t Window::GetWidth()
 	{
 		int width;
 		glfwGetWindowSize(m_Window, &width, nullptr);
-		return width;
+		return width * m_ContentScaleX;
 	}
 
 	uint32_t Window::GetHeight()
 	{
 		int height;
 		glfwGetWindowSize(m_Window, nullptr, &height);
-		return height;
+		return height * m_ContentScaleY;
 	}
 
 	bool Window::ShouldClose()

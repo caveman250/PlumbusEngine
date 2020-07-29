@@ -70,7 +70,7 @@ namespace plumbus
 #else
 #define PL_ASSERT(...) do {} while(0)
 #endif
-#else
+#elif PL_PLATFORM_LINUX
 #define PL_ASSERT(expr, ...) \
 	do { \
 		if (!(expr))\ 
@@ -97,6 +97,8 @@ namespace plumbus
 			gtk_widget_destroy(GTK_WIDGET(dialog));\
 		}\
 	} while (0)
+#else 
+	#define PL_ASSERT(expr, ...) if(!(expr)) { assert(false); } //TODO
 #endif
 #define PL_VERIFY(expr, ...) (!!(expr))
 #if PL_DIST

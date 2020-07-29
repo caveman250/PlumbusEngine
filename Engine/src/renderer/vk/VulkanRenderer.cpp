@@ -614,7 +614,7 @@ namespace plumbus::vk
 		return 		
 		{
 			"VK_LAYER_KHRONOS_validation",
-			"VK_LAYER_RENDERDOC_Capture"
+			//"VK_LAYER_RENDERDOC_Capture"
 		};
 #else   
         return {};
@@ -629,7 +629,7 @@ namespace plumbus::vk
 
 #if !PL_DIST
 		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChain->GetExtents().width), static_cast<float>(m_SwapChain->GetExtents().height));
+		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChain->GetExtents().width / m_Window->GetContentScaleX()), static_cast<float>(m_SwapChain->GetExtents().height / m_Window->GetContentScaleY()));
 #endif
 	}
 

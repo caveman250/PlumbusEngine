@@ -4,9 +4,11 @@ cmake_policy(VERSION 2.8)
 project(PlumbusEngine)
 
 if (WIN32)
-    #fix for assimp on windows
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4100")
+#fix for assimp on windows
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4100")
+endif (WIN32)
 
+if (WIN32 OR APPLE)
     if(CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_CONFIGURATION_TYPES Debug Release Distribution)
         set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
@@ -28,7 +30,7 @@ if (WIN32)
             $<$<CONFIG:Release>:PL_RELEASE=1>
             $<$<CONFIG:Distribution>:PL_DIST=1>)
     endif()
-endif(WIN32)
+endif(WIN32 OR APPLE)
 
 
 IF(UNIX)
