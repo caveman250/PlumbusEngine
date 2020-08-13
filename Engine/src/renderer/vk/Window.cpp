@@ -14,8 +14,8 @@ namespace plumbus::vk
 
 		GLFWmonitor* monitor =  glfwGetPrimaryMonitor();
    		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-		width = (uint32_t)(mode->width * 0.5f);
-		height = (uint32_t)(mode->height * 0.5f);
+		width = (uint32_t)(mode->width) / 2;
+		height = (uint32_t)(mode->height) / 2;
 
 		m_Window = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
         

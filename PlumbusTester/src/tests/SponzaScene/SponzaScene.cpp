@@ -76,7 +76,6 @@ namespace plumbus::tester::tests
 		}
 
 		BaseApplication::Get().GetScene()->ClearObjects();
-		BaseApplication::Get().GetRenderer()->OnModelRemovedFromScene();
 
 		m_DeferredLightMaterial.reset();
 	}

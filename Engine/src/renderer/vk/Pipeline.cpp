@@ -73,7 +73,7 @@ namespace plumbus::vk
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineCreateInfo.layout = pipelineLayout->GetVulkanPipelineLayout();
-		pipelineCreateInfo.renderPass = renderPass != VK_NULL_HANDLE ? renderPass : VulkanRenderer::Get()->GetDeferredFramebuffer()->GetRenderPass();
+		pipelineCreateInfo.renderPass = renderPass != VK_NULL_HANDLE ? renderPass : VulkanRenderer::Get()->GetDeferredFramebuffer(0)->GetRenderPass();
 		pipelineCreateInfo.flags = 0;
 		pipelineCreateInfo.basePipelineIndex = -1;
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;

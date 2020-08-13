@@ -93,7 +93,19 @@ namespace plumbus::vk
             FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
             FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), true, "depth")
         };
-        m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
+
+        m_DeferredFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            if (i == 0)
+            {
+                m_DeferredFrameBuffers[i] = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
+            }
+            else
+            {
+                m_DeferredFrameBuffers[i] = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo, m_DeferredFrameBuffers[0]->GetRenderPass());
+            }
+        }
 
 #if !PL_DIST
 		std::vector<FrameBuffer::FrameBufferAttachmentInfo> outputAttachmentInfo =
@@ -101,30 +113,47 @@ namespace plumbus::vk
 			FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
 			FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), true, "depth")
 		};
-		m_DeferredOutputFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo);
+        
+        m_DeferredOutputFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            if (i == 0)
+            {
+                m_DeferredOutputFrameBuffers[i] = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo);
+            }
+            else
+            {
+                m_DeferredOutputFrameBuffers[i] = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo, m_DeferredOutputFrameBuffers[0]->GetRenderPass());
+            }
+        }
 #endif
 
         CreateLightsUniformBuffers();
         m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
 
 #if !PL_DIST
-        m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_DeferredOutputFrameBuffer->GetRenderPass());
+            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_DeferredOutputFrameBuffers[0]->GetRenderPass());
 #else
-        m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_SwapChain->GetRenderPass());
+            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_SwapChain->GetRenderPass());
 #endif
-        m_DeferredOutputMaterial->Setup(VertexLayout());
+            m_DeferredOutputMaterial->Setup(VertexLayout());
 
-        m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
-        const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position").m_ImageView);
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView);
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView);
-        m_DeferredOutputMaterialInstance->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
+        m_DeferredOutputMaterialInstances.resize(MAX_FRAMES_IN_FLIGHT);
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            m_DeferredOutputMaterialInstances[i] = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
+            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerposition", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("position").m_ImageView);
+            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerNormal", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("normal").m_ImageView);
+            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("colour").m_ImageView);
+            m_DeferredOutputMaterialInstances[i]->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
+        }
 
-        BuildDefferedCommandBuffer();
 #if !PL_DIST
         SetupImGui();
-        BuildDeferredOutputCommandBuffer();
+        for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            BuildDeferredOutputCommandBuffer(i);
+        }
 #endif
     }
 
@@ -140,10 +169,16 @@ namespace plumbus::vk
     }
 #endif
 
-    void VulkanRenderer::DrawFrame()
+    void VulkanRenderer::AquireSwapChainImage(uint32_t& imageIndex, int currFrame) 
     {
-        uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_SwapChain->GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_SwapChain->GetImageAvailableSemaphore(currFrame), VK_NULL_HANDLE, &imageIndex);
+
+        if (m_SwapChain->GetImageInFlightFence(imageIndex) != VK_NULL_HANDLE) 
+        {
+            vkWaitForFences(m_Device->GetVulkanDevice(), 1, &m_SwapChain->GetImageInFlightFence(imageIndex), VK_TRUE, UINT64_MAX);
+        }
+
+        m_SwapChain->SetImageInFlightFence(imageIndex, m_SwapChain->GetFence(currFrame));
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -154,47 +189,85 @@ namespace plumbus::vk
         {
             Log::Fatal("failed to acquire swap chain image!");
         }
-
-        BuildPresentCommandBuffer(imageIndex);
-
+        
+    }
+    
+    void VulkanRenderer::DrawDeferred(uint32_t imageIndex, int currFrame) 
+    {
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { m_SwapChain->GetImageAvailableSemaphore() };
+        VkSemaphore waitSemaphores[] = { m_SwapChain->GetImageAvailableSemaphore(currFrame) };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &m_DeferredCommandBuffer->GetVulkanCommandBuffer();
+        submitInfo.pCommandBuffers = &m_DeferredCommandBuffers[imageIndex]->GetVulkanCommandBuffer();
 
-        VkSemaphore signalSemaphores[] = { m_DeferredSemaphore };
+        VkSemaphore signalSemaphores[] = { m_DeferredSemaphores[currFrame] };
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
-
+    }
+    
 #if !PL_DIST
-        submitInfo.pWaitSemaphores = &m_DeferredSemaphore;
-        submitInfo.pSignalSemaphores = &m_DeferredOutputSemaphore;
+    void VulkanRenderer::DrawDeferredOutput(uint32_t imageIndex, int currFrame) 
+    {
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        submitInfo.pCommandBuffers = &m_DeferredOutputCommandBuffer->GetVulkanCommandBuffer();
+        VkSemaphore waitSemaphores[] = { m_DeferredSemaphores[currFrame] };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &m_DeferredOutputCommandBuffers[imageIndex]->GetVulkanCommandBuffer();
+
+        VkSemaphore signalSemaphores[] = { m_DeferredOutputSemaphores[currFrame] };
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
-
-        submitInfo.pWaitSemaphores = &m_DeferredOutputSemaphore;
-#else
-        submitInfo.pWaitSemaphores = &m_DeferredSemaphore;
+    }
 #endif
-        submitInfo.pSignalSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
 
+    void VulkanRenderer::DrawOutput(uint32_t imageIndex, int currFrame) 
+    {
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        submitInfo.waitSemaphoreCount = 1;
+#if !PL_DIST
+        submitInfo.pWaitSemaphores = &m_DeferredOutputSemaphores[currFrame];
+#else
+        submitInfo.pWaitSemaphores = &m_DeferredSemaphores[currFrame];
+#endif
+        submitInfo.pWaitDstStageMask = waitStages;
+
+        submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_SwapChain->GetCommandBuffer(imageIndex)->GetVulkanCommandBuffer();
-        CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
+        VkSemaphore signalSemaphores[] = { m_SwapChain->GetRenderFinishedSemaphore(currFrame) };
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        vkResetFences(m_Device->GetVulkanDevice(), 1, &m_SwapChain->GetFence(currFrame));
+
+        CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, m_SwapChain->GetFence(currFrame)));
+    }
+    
+    void VulkanRenderer::Present(uint32_t& imageIndex, int currFrame) 
+    {
         VkPresentInfoKHR presentInfo = {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
+        presentInfo.pWaitSemaphores = &m_SwapChain->GetRenderFinishedSemaphore(currFrame);
 
         VkSwapchainKHR swapChains[] = { m_SwapChain->GetVulkanSwapChain() };
         presentInfo.swapchainCount = 1;
@@ -202,7 +275,7 @@ namespace plumbus::vk
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr; // Optional
 
-        result = vkQueuePresentKHR(GetDevice()->GetPresentQueue(), &presentInfo);
+        VkResult result = vkQueuePresentKHR(GetDevice()->GetPresentQueue(), &presentInfo);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
         {
@@ -212,10 +285,32 @@ namespace plumbus::vk
         {
             Log::Fatal("failed to present swap chain image!");
         }
+    }
 
-		vkQueueWaitIdle(GetDevice()->GetPresentQueue());
+    void VulkanRenderer::DrawFrame()
+    {
+        static uint32_t currFrame = 0;
+
+        vkWaitForFences(m_Device->GetVulkanDevice(), 1, &m_SwapChain->GetFence(currFrame), VK_TRUE, UINT64_MAX);
+
+        uint32_t imageIndex;
+        AquireSwapChainImage(imageIndex, currFrame);
+        BuildDefferedCommandBuffer(imageIndex);
+        BuildPresentCommandBuffer(imageIndex, currFrame);
+
+        DrawDeferred(imageIndex, currFrame);
+#if !PL_DIST
+        DrawDeferredOutput(imageIndex, currFrame);
+#endif
+        DrawOutput(imageIndex, currFrame);
+
+        Present(imageIndex, currFrame);
+
+		//vkQueueWaitIdle(GetDevice()->GetPresentQueue());
 
         UpdateLightsUniformBuffer();
+
+        currFrame = (currFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     bool VulkanRenderer::WindowShouldClose()
@@ -240,9 +335,9 @@ namespace plumbus::vk
 
     void VulkanRenderer::Cleanup()
     {
-        m_DeferredFrameBuffer.reset();
+        m_DeferredFrameBuffers.clear();
 #if !PL_DIST
-        m_DeferredOutputFrameBuffer.reset();
+        m_DeferredOutputFrameBuffers.clear();
 #endif
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -255,16 +350,16 @@ namespace plumbus::vk
         m_FullscreenQuad.Cleanup();
         m_LightsVulkanBuffer.Cleanup();
 
-        m_DeferredCommandBuffer.reset();
+        m_DeferredCommandBuffers.clear();
 #if !PL_DIST
         delete m_ImGui;
-        m_DeferredOutputCommandBuffer.reset();
+        m_DeferredOutputCommandBuffers.clear();
 #endif
 
         m_SwapChain->Cleanup();
         m_SwapChain.reset();
 
-        m_DeferredOutputMaterialInstance.reset();
+        m_DeferredOutputMaterialInstances.clear();
         m_DeferredOutputMaterial.reset();
 
         m_DescriptorPool.reset();
@@ -277,9 +372,15 @@ namespace plumbus::vk
         m_PipelineCache.reset();
         vkDestroyCommandPool(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), nullptr);
 
-        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_DeferredSemaphore, nullptr);
+        for(VkSemaphore& semaphore : m_DeferredSemaphores)
+        {
+            vkDestroySemaphore(m_Device->GetVulkanDevice(), semaphore, nullptr);
+        }
 #if !PL_DIST
-        vkDestroySemaphore(m_Device->GetVulkanDevice(), m_DeferredOutputSemaphore, nullptr);
+        for(VkSemaphore& semaphore : m_DeferredOutputSemaphores)
+        {
+            vkDestroySemaphore(m_Device->GetVulkanDevice(), semaphore, nullptr);
+        }
 #endif
 
         m_Device.reset();
@@ -386,11 +487,11 @@ namespace plumbus::vk
         UpdateLightsUniformBuffer();
     }
 
-    void VulkanRenderer::BuildPresentCommandBuffer(int index)
+    void VulkanRenderer::BuildPresentCommandBuffer(uint32_t index, int currFrame)
     {
 #if !PL_DIST 
-        m_ImGui->NewFrame();
-        m_ImGui->UpdateBuffers();
+        m_ImGui->NewFrame(index);
+        m_ImGui->UpdateBuffers(currFrame);
 #endif
 
         // Set target frame buffer
@@ -398,12 +499,12 @@ namespace plumbus::vk
         m_SwapChain->GetCommandBuffer(index)->BeginRenderPass();
 
 #if !PL_DIST
-        m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(index)->GetVulkanCommandBuffer());
+        m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(index)->GetVulkanCommandBuffer(), currFrame);
 #else
         m_SwapChain->GetCommandBuffer(index)->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
         m_SwapChain->GetCommandBuffer(index)->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
 
-        m_DeferredOutputMaterialInstance->Bind(m_SwapChain->GetCommandBuffer(index));
+        m_DeferredOutputMaterialInstances[index]->Bind(m_SwapChain->GetCommandBuffer(index));
         m_SwapChain->GetCommandBuffer(index)->BindVertexBuffer(m_FullscreenQuad.GetVertexBuffer());
         m_SwapChain->GetCommandBuffer(index)->BindIndexBuffer(m_FullscreenQuad.GetIndexBuffer());
         m_SwapChain->GetCommandBuffer(index)->RecordDraw(6);
@@ -412,26 +513,35 @@ namespace plumbus::vk
         m_SwapChain->GetCommandBuffer(index)->EndRecording();
     }
 
-    void VulkanRenderer::BuildDefferedCommandBuffer()
+    void VulkanRenderer::BuildDefferedCommandBuffer(uint32_t imageIndex)
     {
-        if (!m_DeferredCommandBuffer)
+        if (m_DeferredCommandBuffers.empty())
         {
-            m_DeferredCommandBuffer = CommandBuffer::CreateCommandBuffer();
-            m_DeferredCommandBuffer->SetFrameBuffer(m_DeferredFrameBuffer);
+            m_DeferredCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+            for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+            {
+                m_DeferredCommandBuffers[i] = CommandBuffer::CreateCommandBuffer();
+                m_DeferredCommandBuffers[i]->SetFrameBuffer(m_DeferredFrameBuffers[i]);
+            }
         }
 
-        if(m_DeferredSemaphore == VK_NULL_HANDLE)
+        if (m_DeferredSemaphores.empty())
         {
-            // Create a semaphore used to synchronize offscreen rendering and usage
-            VkSemaphoreCreateInfo semaphoreCreateInfo{};
-            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_DeferredSemaphore));
+            m_DeferredSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+
+            for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+            {
+                VkSemaphoreCreateInfo semaphoreCreateInfo{};
+                semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+                CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_DeferredSemaphores[i]));
+            }
         }
 
-        m_DeferredCommandBuffer->BeginRecording();
-        m_DeferredCommandBuffer->BeginRenderPass();
-        m_DeferredCommandBuffer->SetViewport((float)m_DeferredFrameBuffer->GetWidth(), (float)m_DeferredFrameBuffer->GetHeight(), 0.f, 1.f);
-        m_DeferredCommandBuffer->SetScissor(m_DeferredFrameBuffer->GetWidth(), m_DeferredFrameBuffer->GetHeight(), 0, 0);
+        m_DeferredCommandBuffers[imageIndex]->BeginRecording();
+        m_DeferredCommandBuffers[imageIndex]->BeginRenderPass();
+        m_DeferredCommandBuffers[imageIndex]->SetViewport((float)m_DeferredFrameBuffers[imageIndex]->GetWidth(), (float)m_DeferredFrameBuffers[imageIndex]->GetHeight(), 0.f, 1.f);
+        m_DeferredCommandBuffers[imageIndex]->SetScissor(m_DeferredFrameBuffers[imageIndex]->GetWidth(), m_DeferredFrameBuffers[imageIndex]->GetHeight(), 0, 0);
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
@@ -439,40 +549,52 @@ namespace plumbus::vk
             {
 				for (Mesh* model : comp->GetModels())
 				{
-                    model->Render();
+                    model->Render(m_DeferredCommandBuffers[imageIndex]);
 				}
             }
         }
 
-        m_DeferredCommandBuffer->EndRenderPass();
-        m_DeferredCommandBuffer->EndRecording();
+        m_DeferredCommandBuffers[imageIndex]->EndRenderPass();
+        m_DeferredCommandBuffers[imageIndex]->EndRecording();
     }
 
 #if !PL_DIST
-    void VulkanRenderer::BuildDeferredOutputCommandBuffer()
+    void VulkanRenderer::BuildDeferredOutputCommandBuffer(uint32_t imageIndex)
     {
-        if (!m_DeferredOutputCommandBuffer)
+        if (m_DeferredOutputCommandBuffers.empty())
         {
-            m_DeferredOutputCommandBuffer = CommandBuffer::CreateCommandBuffer();
-            m_DeferredOutputCommandBuffer->SetFrameBuffer(m_DeferredOutputFrameBuffer);
+            m_DeferredOutputCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+            for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+            {
+                m_DeferredOutputCommandBuffers[i] = CommandBuffer::CreateCommandBuffer();
+                m_DeferredOutputCommandBuffers[i]->SetFrameBuffer(m_DeferredOutputFrameBuffers[i]);
+            }
         }
 
-        // Create a semaphore used to synchronize offscreen rendering and usage
-        VkSemaphoreCreateInfo semaphoreCreateInfo{};
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_DeferredOutputSemaphore));
+        if (m_DeferredOutputSemaphores.empty())
+        {
+            m_DeferredOutputSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 
-        m_DeferredOutputCommandBuffer->BeginRecording();
-        m_DeferredOutputCommandBuffer->BeginRenderPass();
-        m_DeferredOutputCommandBuffer->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
-        m_DeferredOutputCommandBuffer->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
+            for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+            {
+                VkSemaphoreCreateInfo semaphoreCreateInfo{};
+                semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+                CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_DeferredOutputSemaphores[i]));
+            }
+        }
 
-        m_DeferredOutputMaterialInstance->Bind(m_DeferredOutputCommandBuffer);
-        m_DeferredOutputCommandBuffer->BindVertexBuffer(m_FullscreenQuad.GetVertexBuffer());
-        m_DeferredOutputCommandBuffer->BindIndexBuffer(m_FullscreenQuad.GetIndexBuffer());
-        m_DeferredOutputCommandBuffer->RecordDraw(6);
-        m_DeferredOutputCommandBuffer->EndRenderPass();
-        m_DeferredOutputCommandBuffer->EndRecording();
+        m_DeferredOutputCommandBuffers[imageIndex]->BeginRecording();
+        m_DeferredOutputCommandBuffers[imageIndex]->BeginRenderPass();
+        m_DeferredOutputCommandBuffers[imageIndex]->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
+        m_DeferredOutputCommandBuffers[imageIndex]->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
+
+        m_DeferredOutputMaterialInstances[imageIndex]->Bind(m_DeferredOutputCommandBuffers[imageIndex]);
+        m_DeferredOutputCommandBuffers[imageIndex]->BindVertexBuffer(m_FullscreenQuad.GetVertexBuffer());
+        m_DeferredOutputCommandBuffers[imageIndex]->BindIndexBuffer(m_FullscreenQuad.GetIndexBuffer());
+        m_DeferredOutputCommandBuffers[imageIndex]->RecordDraw(6);
+        m_DeferredOutputCommandBuffers[imageIndex]->EndRenderPass();
+        m_DeferredOutputCommandBuffers[imageIndex]->EndRecording();
     }
 #endif
 
@@ -588,16 +710,6 @@ namespace plumbus::vk
 		return shaderModule;
 	}
 
-	void VulkanRenderer::OnModelAddedToScene()
-	{
-		BuildDefferedCommandBuffer();
-	}
-
-	void VulkanRenderer::OnModelRemovedFromScene()
-	{
-		BuildDefferedCommandBuffer();
-	}
-
 	std::vector<const char*> VulkanRenderer::GetRequiredDeviceExtensions()
 	{
         return { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
@@ -614,10 +726,12 @@ namespace plumbus::vk
 		return 		
 		{
 			"VK_LAYER_KHRONOS_validation",
-			//"VK_LAYER_RENDERDOC_Capture"
+			"VK_LAYER_RENDERDOC_Capture"
 		};
 #else   
-        return {};
+        return 		
+		{
+		};
 #endif
 	}
 

@@ -161,7 +161,6 @@ VulkanRenderer.xcodeproj/project.xcworkspace/xcuserdata/jasonwood.xcuserdatad/Us
 VulkanRenderer.xcodeproj/project.xcworkspace/xcuserdata/jasonwood.xcuserdatad/WorkspaceSettings.xcsettings
 VulkanRenderer.xcodeproj/xcuserdata/jasonwood.xcuserdatad/xcdebugger/Breakpoints_v2.xcbkptlist
 VulkanRenderer.xcodeproj/xcuserdata/jasonwood.xcuserdatad/xcschemes/xcschememanagement.plist
-include/glfw-3.2.1/CMakeFiles/Export/lib/cmake/glfw3/glfw3Targets.cmake
 lib/Debug/*
 Debug/*
 Debug/VulkanRenderer.lib
@@ -184,7 +183,7 @@ lib/libassimpd.a
 AssimpLog.txt
 imgui.ini
 Release/*
-Debug/*
 gmon.out
 PlumbusTester/CMakeFiles/*
 vs_project/*
+/perf.data

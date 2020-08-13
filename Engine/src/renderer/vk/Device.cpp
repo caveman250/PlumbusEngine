@@ -359,6 +359,11 @@ namespace plumbus::vk
 		// 	return false;
 		// }
 
+		if(deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		{
+			return false;
+		}
+
 		if (!CheckDeviceExtensionSupport(device))
 		{
 			Log::Info("Device: %s Invalid! missing required extension support", deviceProperties.deviceName);

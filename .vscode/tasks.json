@@ -54,6 +54,20 @@
         },
         {
             "type": "shell",
+            "label": "Profile Debug",
+            "command": "sh ${workspaceFolder}/PlumbusTester/scripts/profile_debug.sh",
+            "args": [
+            ],
+            "options": {
+                "cwd":"${workspaceFolder}/PlumbusTester/scripts/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
             "label": "Build Release",
             "command": "cmake",
             "args": [
@@ -103,6 +117,20 @@
         },
         {
             "type": "shell",
+            "label": "Profile Release",
+            "command": "sh ${workspaceFolder}/PlumbusTester/scripts/profile_release.sh",
+            "args": [
+            ],
+            "options": {
+                "cwd":"${workspaceFolder}/PlumbusTester/scripts/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
             "label": "Build Dist",
             "command": "cmake",
             "args": [
@@ -144,6 +172,20 @@
             ],
             "options": {
                 "cwd": "${workspaceFolder}/bin/Dist/"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build"
+        },
+        {
+            "type": "shell",
+            "label": "Profile Dist",
+            "command": "sh ${workspaceFolder}/PlumbusTester/scripts/profile_dist.sh",
+            "args": [
+            ],
+            "options": {
+                "cwd":"${workspaceFolder}/PlumbusTester/scripts/"
             },
             "problemMatcher": [
                 "$gcc"

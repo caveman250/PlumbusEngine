@@ -56,7 +56,5 @@ namespace plumbus
 				component->LoadModel();
 			}
 		}
-
-		BaseApplication::Get().GetRenderer()->OnModelAddedToScene();
 	}
 }

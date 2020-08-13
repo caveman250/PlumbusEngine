@@ -17,6 +17,8 @@ namespace plumbus
 		class Mesh;
 		class Instance;
 
+		static constexpr size_t MAX_FRAMES_IN_FLIGHT = 3;
+
 		class VulkanRenderer
 		{
 		public:
@@ -30,9 +32,6 @@ namespace plumbus
 
 			bool WindowShouldClose();
 
-			void OnModelAddedToScene();
-			void OnModelRemovedFromScene();
-
 			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs);
 
 			InstanceRef GetInstance() { return m_Instance; }
@@ -43,11 +42,11 @@ namespace plumbus
 			const PipelineCacheRef& GetPipelineCache() { return m_PipelineCache; }
 			VkFormat GetDepthFormat();
 
-			FrameBufferRef GetDeferredFramebuffer() { return m_DeferredFrameBuffer; }
-			const CommandBufferRef& GetDeferredCommandBuffer() { return m_DeferredCommandBuffer; }
+			FrameBufferRef GetDeferredFramebuffer(uint32_t imageIndex) { return m_DeferredFrameBuffers[imageIndex]; }
+			const CommandBufferRef& GetDeferredCommandBuffer(uint32_t imageIndex) { return m_DeferredCommandBuffers[imageIndex]; }
 #if !PL_DIST
-			FrameBufferRef GetDeferredOutputFramebuffer() { return m_DeferredOutputFrameBuffer; }
-			const CommandBufferRef& GetDeferredOutputCommandBuffer() { return m_DeferredOutputCommandBuffer; }
+			FrameBufferRef GetDeferredOutputFramebuffer(uint32_t imageIndex) { return m_DeferredOutputFrameBuffers[imageIndex]; }
+			const CommandBufferRef& GetDeferredOutputCommandBuffer(uint32_t imageIndex) { return m_DeferredOutputCommandBuffers[imageIndex]; }
 
 			ImGUIImpl* GetImGui() { return m_ImGui; }
 #endif
@@ -63,14 +62,23 @@ namespace plumbus
 #endif
 			void GenerateFullscreenQuad();
 			void CreateLightsUniformBuffers();
-			void BuildPresentCommandBuffer(int index);
-			void BuildDefferedCommandBuffer();
+			void BuildPresentCommandBuffer(uint32_t imageIndex, int currFrame);
+			void BuildDefferedCommandBuffer(uint32_t imageIndex);
 #if !PL_DIST
 			void SetupImGui();
-			void BuildDeferredOutputCommandBuffer();
+			void BuildDeferredOutputCommandBuffer(uint32_t imageIndex);
 #endif
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
+
+			void AquireSwapChainImage(uint32_t& imageIndex, int currFrame);
+			void DrawDeferred(uint32_t imageIndex, int currFrame);
+#if !PL_DIST
+			void DrawDeferredOutput(uint32_t imageIndex, int currFrame);
+#endif
+			void DrawOutput(uint32_t imageIndex, int currFrame);
+			void Present(uint32_t& imageIndex, int currFrame);
+
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
@@ -88,16 +96,16 @@ namespace plumbus
 			PipelineCacheRef m_PipelineCache;
 
 			MaterialRef m_DeferredOutputMaterial;
-			MaterialInstanceRef m_DeferredOutputMaterialInstance;
+			std::vector<MaterialInstanceRef> m_DeferredOutputMaterialInstances;
 
-			VkSemaphore m_DeferredSemaphore;
-			CommandBufferRef m_DeferredCommandBuffer;
-			FrameBufferRef m_DeferredFrameBuffer;
+			std::vector<VkSemaphore> m_DeferredSemaphores;
+			std::vector<CommandBufferRef> m_DeferredCommandBuffers;
+			std::vector<FrameBufferRef> m_DeferredFrameBuffers;
 			
 #if !PL_DIST
-			VkSemaphore m_DeferredOutputSemaphore;
-			CommandBufferRef m_DeferredOutputCommandBuffer;
-			FrameBufferRef m_DeferredOutputFrameBuffer;
+			std::vector<VkSemaphore> m_DeferredOutputSemaphores;
+			std::vector<CommandBufferRef> m_DeferredOutputCommandBuffers;
+			std::vector<FrameBufferRef> m_DeferredOutputFrameBuffers;
 #endif
 
 			std::vector<VkShaderModule> m_ShaderModules;

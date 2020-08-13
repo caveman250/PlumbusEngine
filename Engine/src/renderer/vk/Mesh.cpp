@@ -114,8 +114,6 @@ namespace plumbus::vk
 			vk::VulkanRenderer* vkRenderer = VulkanRenderer::Get();
 			CreateUniformBuffer(vkRenderer->GetDevice().get());
 			SetupUniforms();
-
-			m_CommandBuffer = vkRenderer->GetDeferredCommandBuffer();
 		}
 	}
 
@@ -145,12 +143,12 @@ namespace plumbus::vk
 		m_MaterialInstance->SetTextureUniform("samplerNormalMap", vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView);
 	}
 
-	void Mesh::Render()
+	void Mesh::Render(CommandBufferRef commandBuffer)
 	{
-		m_MaterialInstance->Bind(m_CommandBuffer);
-		m_CommandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
-		m_CommandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
-		m_CommandBuffer->RecordDraw(m_IndexSize);
+		m_MaterialInstance->Bind(commandBuffer);
+		commandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
+		commandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
+		commandBuffer->RecordDraw(m_IndexSize);
 	}
 
 	Buffer& Mesh::GetVertexBuffer()
