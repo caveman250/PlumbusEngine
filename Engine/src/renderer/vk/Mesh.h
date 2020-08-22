@@ -26,7 +26,7 @@ namespace plumbus::vk
 
 		void CreateUniformBuffer(Device* vulkanDevice);
 		void SetupUniforms();
-		void Render(CommandBufferRef commandBuffer);
+		void Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial = nullptr);
 
 		void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo);
 
@@ -40,6 +40,10 @@ namespace plumbus::vk
 		void SetIndexSize(uint32_t indexSize); 
 		Texture* GetColourMap() { return m_ColourMap; }
 		Texture* GetNormalMap() { return m_NormalMap; }
+
+		//TODO the material system needs to be able to handle having any vertex layout thrown at it.
+		static const VertexLayout s_VertexLayout;
+
 private:
         static std::vector<vk::Mesh*> LoadFromFile(const std::string& fileName,
                         std::vector<VertexLayoutComponent> vertLayoutComponents,

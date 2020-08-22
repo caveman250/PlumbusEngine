@@ -72,7 +72,7 @@ namespace plumbus
 			void UpdateLightsUniformBuffer();
 
 			void AquireSwapChainImage(uint32_t& imageIndex, int currFrame);
-			void DrawDeferred(uint32_t imageIndex, int currFrame);
+			void DrawDeferred(uint32_t imageIndex, int currFrame, VkSemaphore waitSemaphore);
 #if !PL_DIST
 			void DrawDeferredOutput(uint32_t imageIndex, int currFrame);
 #endif
@@ -116,14 +116,16 @@ namespace plumbus
 			struct PointLightBufferInfo
 			{
 				glm::vec4 m_Position;
-				glm::vec3 m_Colour;
+				glm::vec4 m_Colour;
 				float m_Radius;
+				glm::vec3 dummyValue; //TODO why do i need this?
 			};
 
 			struct DirectionalLightBufferInfo
 			{
+				glm::vec4 m_Direction;
 				glm::vec4 m_Colour;
-				glm::vec3 m_Direction;
+				glm::mat4 m_Mvp;
 			};
 
 			static constexpr size_t MAX_POINT_LIGHTS = 6;

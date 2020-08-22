@@ -209,7 +209,7 @@ namespace plumbus
 		m_DescriptorSetLayout->Build();
 
 		m_DescriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
-		m_DescriptorSet->SetTextureUniform("fontSampler", m_Sampler, m_FontView);
+		m_DescriptorSet->SetTextureUniform("fontSampler", m_Sampler, m_FontView, false);
 		m_DescriptorSet->Build();
 
 		// Pipeline cache
@@ -478,9 +478,9 @@ namespace plumbus
 										ImGui::DragFloat3("Colour", (float*)&colour, 0.05f);
 										directionalLight->SetColour(colour);
 
-										glm::vec3 direction = directionalLight->GetDirection();
-										ImGui::DragFloat3("Direction", (float*)&direction, 0.005f, -1.f, 1.f);
-										directionalLight->SetDirection(direction);
+										glm::vec3 target = directionalLight->GetDirection();
+										ImGui::DragFloat3("Target", (float*)&target, 0.005f, -1.f, 1.f);
+										directionalLight->SetDirection(target);
 
 										ImGui::TreePop();
 									}
@@ -618,7 +618,7 @@ namespace plumbus
 	vk::DescriptorSetRef ImGUIImpl::AddTexture(VkSampler sampler, VkImageView image_view)
 	{
 		vk::DescriptorSetRef descriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
-		descriptorSet->SetTextureUniform("fontSampler", sampler, image_view);
+		descriptorSet->SetTextureUniform("fontSampler", sampler, image_view, false);
 		descriptorSet->Build();
 		return descriptorSet;
 	}

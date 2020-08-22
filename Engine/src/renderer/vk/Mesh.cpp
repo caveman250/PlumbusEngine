@@ -18,6 +18,15 @@
 
 namespace plumbus::vk
 {
+	const VertexLayout Mesh::s_VertexLayout = VertexLayout(
+	{
+		vk::VertexLayoutComponent::Position,
+		vk::VertexLayoutComponent::UV,
+		vk::VertexLayoutComponent::Colour,
+		vk::VertexLayoutComponent::Normal,
+		vk::VertexLayoutComponent::Tangent,
+	});
+
 	Mesh::Mesh()
 	{
 		m_ColourMap = new vk::Texture();
@@ -139,13 +148,14 @@ namespace plumbus::vk
 		vk::Texture* vkNormalMap = static_cast<vk::Texture*>(m_NormalMap);
 
 		m_MaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
-		m_MaterialInstance->SetTextureUniform("samplerColor", vkColourMap->m_TextureSampler, vkColourMap->m_ImageView);
-		m_MaterialInstance->SetTextureUniform("samplerNormalMap", vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView);
+		m_MaterialInstance->SetTextureUniform("samplerColor", vkColourMap->m_TextureSampler, vkColourMap->m_ImageView, false);
+		m_MaterialInstance->SetTextureUniform("samplerNormalMap", vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView, false);
 	}
 
-	void Mesh::Render(CommandBufferRef commandBuffer)
+	void Mesh::Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial)
 	{
-		m_MaterialInstance->Bind(commandBuffer);
+		MaterialInstanceRef material = overrideMaterial ? overrideMaterial : m_MaterialInstance;
+		material->Bind(commandBuffer);
 		commandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
 		commandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
 		commandBuffer->RecordDraw(m_IndexSize);

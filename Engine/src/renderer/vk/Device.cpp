@@ -135,7 +135,6 @@ namespace plumbus::vk
 		if (enableValidationLayers)
 		{
 			Log::Info("\tAdding validation layers to logical device");
-			//todo: is this always just validation layers?
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
 		}

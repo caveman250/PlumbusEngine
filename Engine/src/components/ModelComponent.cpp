@@ -89,24 +89,27 @@ namespace plumbus
 		{
 			m_UniformBufferObject.m_Proj = scene->GetCamera()->GetProjectionMatrix();
 			m_UniformBufferObject.m_View = scene->GetCamera()->GetViewMatrix();
-
-			::plumbus::TranslationComponent* transComp = GetOwner()->GetComponent< ::plumbus::TranslationComponent>();
-			glm::mat4 modelMat = glm::identity<glm::mat4>();
-
-			glm::vec3 translation = transComp->GetTranslation();
-			glm::vec3 rotation = transComp->GetRotation();
-			glm::vec3 scale = transComp->GetScale();
-
-			modelMat = glm::translate(modelMat, translation);
-			modelMat = glm::rotate(modelMat, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-			modelMat = glm::rotate(modelMat, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-			modelMat = glm::rotate(modelMat, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
-
-			modelMat = glm::scale(modelMat, scale);
-
-			m_UniformBufferObject.m_Model = modelMat;
+			m_UniformBufferObject.m_Model = GetModelMatrix();
 
 			model->UpdateUniformBuffer(m_UniformBufferObject);
 		}
+	}
+	
+	glm::mat4 ModelComponent::GetModelMatrix() 
+	{
+		::plumbus::TranslationComponent *transComp = GetOwner()->GetComponent<::plumbus::TranslationComponent>();
+		glm::mat4 modelMat = glm::identity<glm::mat4>();
+		glm::vec3 translation = transComp->GetTranslation();
+		glm::vec3 rotation = transComp->GetRotation();
+		glm::vec3 scale = transComp->GetScale();
+
+		modelMat = glm::translate(modelMat, translation);
+		modelMat = glm::rotate(modelMat, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+		modelMat = glm::rotate(modelMat, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+		modelMat = glm::rotate(modelMat, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+
+		modelMat = glm::scale(modelMat, scale);
+
+		return modelMat;
 	}
 }

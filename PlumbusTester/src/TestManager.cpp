@@ -4,6 +4,7 @@
 #include "tests/Test.h"
 #include "tests/DeferredLights/DeferredLights.h"
 #include "tests/SponzaScene/SponzaScene.h"
+#include "tests/Shadows/Shadows.h"
 
 namespace plumbus::tester
 {
@@ -39,7 +40,7 @@ namespace plumbus::tester
 #if PL_DIST
 		else
 		{
-			BeginTest<tests::DeferredLights>();
+			BeginTest<tests::Shadows>();
 		}
 #endif
 	}
@@ -58,6 +59,11 @@ namespace plumbus::tester
 				if (ImGui::Button("Sponza Scene"))
 				{
 					BeginTest<tests::SponzaScene>();
+				}
+
+				if (ImGui::Button("Shadows"))
+				{
+					BeginTest<tests::Shadows>();
 				}
 			}
 			else

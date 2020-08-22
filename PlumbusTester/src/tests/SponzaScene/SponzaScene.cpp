@@ -21,16 +21,7 @@ namespace plumbus::tester::tests
 		: Test()
 		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
 	{
-		vk::VertexLayout layout = vk::VertexLayout(
-		{
-			vk::VertexLayoutComponent::Position,
-			vk::VertexLayoutComponent::UV,
-			vk::VertexLayoutComponent::Colour,
-			vk::VertexLayoutComponent::Normal,
-			vk::VertexLayoutComponent::Tangent,
-		});
-
-		m_DeferredLightMaterial->Setup(layout);
+		 m_DeferredLightMaterial->Setup(vk::Mesh::s_VertexLayout);
 	}
 
 	SponzaScene::~SponzaScene()
@@ -55,7 +46,7 @@ namespace plumbus::tester::tests
 				AddComponent<TranslationComponent>(new TranslationComponent())->
 				AddComponent<LightComponent>(new LightComponent()));
 
-        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.5f, 1.f, 1.f));
+        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.3f, 1.f, 0.3), true);
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}

@@ -13,6 +13,9 @@
 
 #include "renderer/vk/VulkanRenderer.h"
 
+//REMOVE THIS
+#include "renderer/vk/shader_compiler/ShaderCompiler.h"
+
 namespace plumbus
 {
 
@@ -29,6 +32,9 @@ namespace plumbus
 
 	void BaseApplication::Run()
 	{
+		vk::shaders::ShaderCompiler compiler;
+		compiler.Compile("shaders/shader.vert");
+
 		m_Renderer->Init(m_AppName);
 
 		PL_ASSERT(m_Scene != nullptr);

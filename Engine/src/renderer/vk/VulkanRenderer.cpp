@@ -139,12 +139,31 @@ namespace plumbus::vk
             m_DeferredOutputMaterial->Setup(VertexLayout());
 
         m_DeferredOutputMaterialInstances.resize(MAX_FRAMES_IN_FLIGHT);
+
+
+        //HACK HACK find the first shadow
+        ShadowDirectionalRef shadow = nullptr;
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+        {
+            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+            {
+                for (Light* light : lightComp->GetLights())
+                {
+                    if (light->GetShadow() && light->GetType() == LightType::Directional)
+                    {
+                        shadow = std::static_pointer_cast<ShadowDirectional>(light->GetShadow());
+                    }
+                } 
+            }
+        }
+
+
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {
             m_DeferredOutputMaterialInstances[i] = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
-            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerposition", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("position").m_ImageView);
-            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerNormal", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("normal").m_ImageView);
-            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("colour").m_ImageView);
+            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerposition", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("position").m_ImageView, false);
+            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerNormal", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("normal").m_ImageView, false);
+            m_DeferredOutputMaterialInstances[i]->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffers[i]->GetSampler(), m_DeferredFrameBuffers[i]->GetAttachment("colour").m_ImageView, false);
             m_DeferredOutputMaterialInstances[i]->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
         }
 
@@ -192,12 +211,12 @@ namespace plumbus::vk
         
     }
     
-    void VulkanRenderer::DrawDeferred(uint32_t imageIndex, int currFrame) 
+    void VulkanRenderer::DrawDeferred(uint32_t imageIndex, int currFrame, VkSemaphore waitSemaphore) 
     {
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { m_SwapChain->GetImageAvailableSemaphore(currFrame) };
+        VkSemaphore waitSemaphores[] = { waitSemaphore };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
@@ -296,9 +315,55 @@ namespace plumbus::vk
         uint32_t imageIndex;
         AquireSwapChainImage(imageIndex, currFrame);
         BuildDefferedCommandBuffer(imageIndex);
+
+        //collect all shadows
+        std::vector<ShadowRef> shadows;
+        for(GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+        {
+            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+            {
+                for (Light* light : lightComp->GetLights())
+                {
+                    if (ShadowRef shadow = light->GetShadow())
+                    {
+                        shadows.push_back(shadow);
+                    }
+                }
+            }
+        }
+
+        for(int i = 0; i < shadows.size(); ++i)
+        {
+            shadows[i]->BuildCommandBuffer(imageIndex);
+            shadows[i]->Render(currFrame, i == 0 ? m_SwapChain->GetImageAvailableSemaphore(currFrame) : shadows[i - 1]->GetSemaphore(currFrame));
+        }
+
+        //HACK HACK find the first shadow
+        ShadowDirectionalRef shadow = nullptr;
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+        {
+            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+            {
+                for (Light* light : lightComp->GetLights())
+                {
+                    if (light->GetShadow() && light->GetType() == LightType::Directional)
+                    {
+                        shadow = std::static_pointer_cast<ShadowDirectional>(light->GetShadow());
+                    }
+                } 
+            }
+        }
+
+        if(shadow)
+        {
+            m_DeferredOutputMaterialInstances[imageIndex]->SetTextureUniform("samplerShadows", shadow->GetFrameBuffer(imageIndex)->GetSampler(), shadow->GetFrameBuffer(imageIndex)->GetAttachment("depth").m_ImageView, true);
+#if !PL_DIST
+            BuildDeferredOutputCommandBuffer(imageIndex);
+#endif
+        }
         BuildPresentCommandBuffer(imageIndex, currFrame);
 
-        DrawDeferred(imageIndex, currFrame);
+        DrawDeferred(imageIndex, currFrame, shadows.size() > 0 ? shadows.back()->GetSemaphore(currFrame) : m_SwapChain->GetImageAvailableSemaphore(currFrame));
 #if !PL_DIST
         DrawDeferredOutput(imageIndex, currFrame);
 #endif
@@ -382,6 +447,7 @@ namespace plumbus::vk
             vkDestroySemaphore(m_Device->GetVulkanDevice(), semaphore, nullptr);
         }
 #endif
+        ShadowDirectional::CleanupMaterial();
 
         m_Device.reset();
 
@@ -618,8 +684,8 @@ namespace plumbus::vk
                         PointLight* pointLight = static_cast<PointLight*>(light);
                         if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
                         {
-                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
-                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Colour = pointLight->GetColour();
+                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 1);
+                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Colour = glm::vec4(pointLight->GetColour(), 1);
                             m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Radius = pointLight->GetRadius();
                             pointLightIndex++;
                         }
@@ -627,8 +693,9 @@ namespace plumbus::vk
                     else if (light->GetType() == LightType::Directional)
                     {
                         DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
-                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Direction = directionalLight->GetDirection();
-						m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
+                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Direction = glm::vec4(directionalLight->GetDirection(), 1);
+                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
+                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Mvp = directionalLight->GetMVP();
                     }
                 }
             }

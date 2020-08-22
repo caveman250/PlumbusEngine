@@ -29,16 +29,7 @@ namespace plumbus::tester::tests
 		, m_LightsDistanceFromCenter(7.f)
 		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
 	{
-		vk::VertexLayout layout = vk::VertexLayout(
-		{
-			vk::VertexLayoutComponent::Position,
-			vk::VertexLayoutComponent::UV,
-			vk::VertexLayoutComponent::Colour,
-			vk::VertexLayoutComponent::Normal,
-			vk::VertexLayoutComponent::Tangent,
-		});
-
-		m_DeferredLightMaterial->Setup(layout);
+		m_DeferredLightMaterial->Setup(vk::Mesh::s_VertexLayout);
 	}
 
 	DeferredLights::~DeferredLights()
@@ -69,7 +60,7 @@ namespace plumbus::tester::tests
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
-		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, -2.1, 0));
+		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, -2.4f, 0));
 		knight->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0, -glm::half_pi<float>(), 0));
 		knight->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
@@ -141,6 +132,7 @@ namespace plumbus::tester::tests
 
 	void DeferredLights::Shutdown()
 	{
+		vkDeviceWaitIdle(vk::VulkanRenderer::Get()->GetDevice()->GetVulkanDevice());
 		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
 		{
 			if (ModelComponent* component = obj->GetComponent<ModelComponent>())

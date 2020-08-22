@@ -18,7 +18,25 @@ namespace plumbus::vk
 	{
 		for(DescriptorBinding& binding : m_Layout->GetBindings())
 		{
-			m_BindingValues[binding.m_Name] = nullptr;
+			switch (binding.m_Type)
+			{
+				case DescriptorBindingType::UniformBuffer:
+				{
+					BufferBindingValue* value = new BufferBindingValue(); 
+					value->buffer = nullptr;
+					m_BindingValues[binding.m_Name] = value;
+					break;
+				}
+				case DescriptorBindingType::ImageSampler:
+				{
+					TextureBindingValue* value = new TextureBindingValue(); 
+					value->imageView = VK_NULL_HANDLE;
+					value->sampler = VK_NULL_HANDLE;
+					value->isDepth = false;
+					m_BindingValues[binding.m_Name] = value;
+					break;
+				}
+			}
 		}
 	}
 
@@ -34,14 +52,14 @@ namespace plumbus::vk
 		m_BindingValues.clear();
 	}
 	
-	void DescriptorSet::SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView) 
+	void DescriptorSet::SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth) 
 	{
 		if (PL_VERIFY(m_BindingValues.count(name) > 0))
 		{
-			TextureBindingValue* bindingValue = new TextureBindingValue();
-			bindingValue->imageView = imageView;
-			bindingValue->sampler = sampler;
-			m_BindingValues[name] = bindingValue;
+			TextureBindingValue* textureBinding = static_cast<TextureBindingValue*>(m_BindingValues[name]);
+			textureBinding->imageView = imageView;
+			textureBinding->sampler = sampler;
+			textureBinding->isDepth = isDepth;
 		}
 	}
 	
@@ -49,7 +67,7 @@ namespace plumbus::vk
 	{
 		if (PL_VERIFY(m_BindingValues.count(name) > 0))
 		{
-			BufferBindingValue* bindingValue = new BufferBindingValue();
+			BufferBindingValue* bindingValue = static_cast<BufferBindingValue*>(m_BindingValues[name]);
 			bindingValue->buffer = buffer;
 			m_BindingValues[name] = bindingValue;
 		}
@@ -78,38 +96,44 @@ namespace plumbus::vk
 				{
 					const TextureBindingValue* textureBinding = static_cast<const TextureBindingValue*>(m_BindingValues[binding.m_Name]);
 					
-					VkDescriptorImageInfo& imageInfo = imageInfoList[imageIndex];
-					imageInfo.sampler = textureBinding->sampler;
-					imageInfo.imageView = textureBinding->imageView;
-					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					if(textureBinding->sampler != VK_NULL_HANDLE)
+					{
+						VkDescriptorImageInfo& imageInfo = imageInfoList[imageIndex];
+						imageInfo.sampler = textureBinding->sampler;
+						imageInfo.imageView = textureBinding->imageView;
+						imageInfo.imageLayout = textureBinding->isDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-					VkWriteDescriptorSet writeSet {};
-					writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					writeSet.dstSet = m_DescriptorSet;
-					writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					writeSet.dstBinding = binding.m_Location;
-					writeSet.pImageInfo = &imageInfoList[imageIndex];
-					writeSet.descriptorCount = 1;
+						VkWriteDescriptorSet writeSet {};
+						writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						writeSet.dstSet = m_DescriptorSet;
+						writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+						writeSet.dstBinding = binding.m_Location;
+						writeSet.pImageInfo = &imageInfoList[imageIndex];
+						writeSet.descriptorCount = 1;
 
-					writeSets.push_back(writeSet);
+						writeSets.push_back(writeSet);
+					}
 					imageIndex++;
 					break;
 				}
 				case DescriptorBindingType::UniformBuffer:
 				{
 					const BufferBindingValue* bufferBinding = static_cast<const BufferBindingValue*>(m_BindingValues[binding.m_Name]);
-					
-					VkDescriptorBufferInfo& bufferInfo = bufferBinding->buffer->m_Descriptor;
 
-					VkWriteDescriptorSet writeSet{};
-					writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					writeSet.dstSet = m_DescriptorSet;
-					writeSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					writeSet.dstBinding = binding.m_Location;
-					writeSet.pBufferInfo = &bufferInfo;
-					writeSet.descriptorCount = 1;
+					if(bufferBinding->buffer != nullptr)
+					{
+						VkDescriptorBufferInfo& bufferInfo = bufferBinding->buffer->m_Descriptor;
 
-					writeSets.push_back(writeSet);
+						VkWriteDescriptorSet writeSet{};
+						writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+						writeSet.dstSet = m_DescriptorSet;
+						writeSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+						writeSet.dstBinding = binding.m_Location;
+						writeSet.pBufferInfo = &bufferInfo;
+						writeSet.descriptorCount = 1;
+
+						writeSets.push_back(writeSet);
+					}
 					break;
 				}
 				default:

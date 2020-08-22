@@ -4,6 +4,25 @@
 
 namespace plumbus
 {
+	void DirectionalLight::AddShadow() 
+	{
+		m_Shadow = std::static_pointer_cast<vk::Shadow>(vk::ShadowDirectional::CreateShadowDirectional(this));
+	}
+	
+	glm::mat4 DirectionalLight::GetMVP() 
+	{
+		glm::mat4 proj = glm::ortho<float>(-10,10,-10,10,-10,20);
+        glm::mat4 view = glm::lookAt(GetDirection(), glm::vec3(0,0,0), glm::vec3(0, 1,0));
+        glm::mat4 model = glm::mat4(1.0f);
+
+		return proj * view * model;
+	}
+	
+	void PointLight::AddShadow() 
+	{
+		PL_ASSERT(false, "Point light shadows not implemented.");
+	}
+
 	LightComponent::LightComponent()
 		: GameComponent()
 	{
@@ -22,12 +41,17 @@ namespace plumbus
 
 	void LightComponent::AddPointLight(glm::vec3 colour, float radius)
 	{
-		m_Lights.push_back(new PointLight(colour, radius));
+		m_Lights.push_back(new PointLight(colour, radius, this));
 	}
 
-	void LightComponent::AddDirectionalLight(glm::vec3 colour, glm::vec3 direction)
+	void LightComponent::AddDirectionalLight(glm::vec3 colour, glm::vec3 target, bool shadow)
 	{
-		m_Lights.push_back(new DirectionalLight(colour, direction));
+		m_Lights.push_back(new DirectionalLight(colour, target, this));
+
+		if (shadow)
+		{
+			m_Lights.back()->AddShadow();
+		}
 	}
 
 	void LightComponent::OnUpdate(Scene* scene)

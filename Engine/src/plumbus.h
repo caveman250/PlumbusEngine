@@ -70,7 +70,7 @@ namespace plumbus
 #else
 #define PL_ASSERT(...) do {} while(0)
 #endif
-#elif PL_PLATFORM_LINUX
+#elif PL_PLATFORM_LINUX && 0
 #define PL_ASSERT(expr, ...) \
 	do { \
 		if (!(expr))\ 
@@ -98,11 +98,11 @@ namespace plumbus
 		}\
 	} while (0)
 #else 
-	#define PL_ASSERT(expr, ...) if(!(expr)) { assert(false); } //TODO
+	#define PL_ASSERT(expr, ...)  do {} while(0)
 #endif
-#define PL_VERIFY(expr, ...) (!!(expr))
-#if PL_DIST
 
+#if PL_DIST
+#define PL_VERIFY(expr, ...) (!!(expr))
 #else
 #define PL_VERIFY(expr, ...) (!(expr) ? (::std::invoke([&](bool result) -> bool  { PL_ASSERT(expr, __VA_ARGS__); return result; }, !!(expr))), false : true)
 #endif

@@ -6,6 +6,7 @@
 layout (binding = 0) uniform sampler2D samplerposition;
 layout (binding = 1) uniform sampler2D samplerNormal;
 layout (binding = 2) uniform sampler2D samplerAlbedo;
+layout (binding = 4) uniform sampler2D samplerShadows;
 
 layout (location = 0) in vec2 inUV;
 
@@ -13,13 +14,14 @@ layout (location = 0) out vec4 outFragcolor;
 
 struct PointLight {
 	vec4 position;
-	vec3 color;
+	vec4 color;
 	float radius;
 };
 
 struct DirectionalLight {
-	vec3 color;
-	vec3 direction;
+	vec4 direction;
+	vec4 color;
+	mat4 mvp;
 };
 
 const int MAX_POINT_LIGHTS = 6;
@@ -32,6 +34,31 @@ layout (binding = 3) uniform UBO
 	DirectionalLight directionalLights[MAX_DIRECTIONAL_LIGHTS];
 } ubo;
 
+float shadowProj(vec4 P, vec2 offset)
+{
+	float shadow = 1.0;
+	vec4 shadowCoord = P / P.w;
+	shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
+	
+	float dist = texture(samplerShadows, shadowCoord.st + offset).r;
+	if (shadowCoord.w > 0.0 && dist < shadowCoord.z) 
+	{
+		shadow = 0.25;
+	}
+
+	return shadow;
+}
+
+vec3 shadow(vec3 fragcolor, vec3 fragpos) 
+{
+	for(int i = 0; i < MAX_DIRECTIONAL_LIGHTS; ++i)
+	{
+		vec4 shadowClip	= ubo.directionalLights[i].mvp * vec4(fragpos, 1.0);
+		float shadowFactor = shadowProj(shadowClip, vec2(0.0));
+		fragcolor *= shadowFactor;
+	}
+	return fragcolor;
+}
 
 void main() 
 {
@@ -65,25 +92,27 @@ void main()
 		// Diffuse part
 		vec3 N = normalize(normal);
 		float NdotL = max(0.0, dot(N, L));
-		vec3 diff = ubo.pointLights[i].color * albedo.rgb * NdotL * atten;
+		vec3 diff = ubo.pointLights[i].color.xyz * albedo.rgb * NdotL * atten;
 
 		// Specular part
 		// Specular map values are stored in alpha of albedo mrt
 		vec3 R = reflect(-L, N);
 		float NdotR = max(0.0, dot(R, V));
-		vec3 spec = ubo.pointLights[i].color * albedo.a * pow(NdotR, 16.0) * atten;
+		vec3 spec = ubo.pointLights[i].color.xyz * albedo.a * pow(NdotR, 16.0) * atten;
 
 		fragcolor += diff + spec;	
 	}
 	
 	for (int i = 0; i < MAX_DIRECTIONAL_LIGHTS; ++i)
 	{
-		vec3 L = normalize(ubo.directionalLights[i].direction);
+		vec3 lightDir = ubo.directionalLights[i].direction.xyz;
+		lightDir.y = -lightDir.y;
+		vec3 L = normalize(lightDir);
 
 		// Diffuse part
 		vec3 N = normalize(normal);
 		float NdotL = max(0.0, dot(N, L));
-		vec3 diff = ubo.directionalLights[i].color * albedo.rgb * NdotL;
+		vec3 diff = ubo.directionalLights[i].color.xyz * albedo.rgb * NdotL;
 
 		// Specular part
 		// Specular map values are stored in alpha of albedo mrt
@@ -91,10 +120,19 @@ void main()
 		vec3 V = ubo.viewPos.xyz - fragPos;
 		V = normalize(V);
 		float NdotR = max(0.0, dot(R, V));
-		vec3 spec = ubo.directionalLights[i].color * albedo.a * pow(NdotR, 16.0);
+		vec3 spec = ubo.directionalLights[i].color.xyz * albedo.a * pow(NdotR, 16.0);
 
 		fragcolor += diff + spec;
 	}	
+
+	fragcolor = shadow(fragcolor, fragPos);
+
+	// vec4 shadowClip	= ubo.directionalLights[0].mvp * vec4(fragPos, 1.0);
+	// vec4 shadowCoord = shadowClip / shadowClip.w;
+	// shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
+	// float dist = texture(samplerShadows, shadowCoord.st).r;
+
+	// vec3 fragcolor = vec3(dist, dist, dist);
    
-  outFragcolor = vec4(fragcolor, 1.0);	
+  	outFragcolor = vec4(fragcolor, 1.0);	
 }

@@ -41,4 +41,10 @@ namespace plumbus::vk
 
     class MaterialInstance;
     typedef std::shared_ptr<MaterialInstance> MaterialInstanceRef;
+
+    class Shadow;
+    typedef std::shared_ptr<Shadow> ShadowRef;
+
+    class ShadowDirectional;
+    typedef std::shared_ptr<ShadowDirectional> ShadowDirectionalRef;
 }

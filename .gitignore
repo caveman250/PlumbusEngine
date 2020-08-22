@@ -187,3 +187,4 @@ gmon.out
 PlumbusTester/CMakeFiles/*
 vs_project/*
 /perf.data
+cmake-build*

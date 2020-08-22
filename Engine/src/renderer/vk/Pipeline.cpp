@@ -29,14 +29,8 @@ namespace plumbus::vk
 		rasterizationState.depthClampEnable = VK_FALSE;
 		rasterizationState.lineWidth = 1.0f;
 
-		VkPipelineColorBlendAttachmentState blendAttachmentState{};
-		blendAttachmentState.colorWriteMask = 0xf;
-		blendAttachmentState.blendEnable = VK_FALSE;
-
 		VkPipelineColorBlendStateCreateInfo colorBlendState{};
 		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendState.attachmentCount = 1;
-		colorBlendState.pAttachments = &blendAttachmentState;
 
 		VkPipelineDepthStencilStateCreateInfo depthStencilState{};
 		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;

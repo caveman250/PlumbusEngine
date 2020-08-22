@@ -19,7 +19,7 @@ namespace plumbus::vk
 		DescriptorSet(DescriptorPoolRef descPool, DescriptorSetLayoutRef layout);
 		~DescriptorSet();
 
-		void SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView);
+		void SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth);
 		void SetBufferUniform(std::string name, Buffer* buffer);
 
 		void Build();
@@ -38,6 +38,7 @@ namespace plumbus::vk
 		public:
 			VkSampler sampler;
 			VkImageView imageView;
+			bool isDepth;
 		};
 
 		class BufferBindingValue : public BindingValue 

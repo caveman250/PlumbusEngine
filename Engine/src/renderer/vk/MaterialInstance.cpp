@@ -11,6 +11,7 @@ namespace plumbus::vk
     }
     
     MaterialInstance::MaterialInstance(MaterialRef material) 
+        : m_UniformsDirty(true)
     {
         m_Material = material;
         m_DescriptorSet = DescriptorSet::CreateDescriptorSet(VulkanRenderer::Get()->GetDescriptorPool(), material->GetLayout());
@@ -22,9 +23,9 @@ namespace plumbus::vk
         m_DescriptorSet.reset();
     }
 
-    void MaterialInstance::SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView) 
+    void MaterialInstance::SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth) 
 	{
-        m_DescriptorSet->SetTextureUniform(name, sampler, imageView);
+        m_DescriptorSet->SetTextureUniform(name, sampler, imageView, isDepth);
         m_UniformsDirty = true;
 	}
 	

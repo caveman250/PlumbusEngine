@@ -4,5 +4,7 @@ glslangValidator -V deferred.vert -o deferred.vert.spv
 glslangValidator -V deferred.frag -o deferred.frag.spv
 glslangValidator -V shader.vert -o shader.vert.spv
 glslangValidator -V shader.frag -o shader.frag.spv
+glslangValidator -V shadow.vert -o shadow.vert.spv
+glslangValidator -V shadow.frag -o shadow.frag.spv
 
 

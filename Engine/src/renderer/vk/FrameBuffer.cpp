@@ -187,7 +187,7 @@ namespace plumbus::vk
 			{
 				depthIndex = i;
 				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			}
 			else
 			{

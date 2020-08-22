@@ -13,7 +13,7 @@ namespace plumbus::vk
 		MaterialInstance(MaterialRef material);
 		~MaterialInstance();
 
-        void SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView);
+        void SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth);
 		void SetBufferUniform(std::string name, Buffer* buffer);
 
         void Bind(CommandBufferRef commandBuffer);

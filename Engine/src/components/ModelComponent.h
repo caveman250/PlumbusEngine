@@ -40,6 +40,8 @@ namespace plumbus
 
 		static const ComponentType GetType() { return GameComponent::ModelComponent; }
 
+		glm::mat4 GetModelMatrix();
+
 	private:
 
 		UniformBufferObject m_UniformBufferObject;

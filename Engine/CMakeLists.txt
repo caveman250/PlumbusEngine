@@ -36,8 +36,6 @@ include_directories(../third_party/assimp/include/)
 include_directories(${CMAKE_BINARY_DIR}/third_party/assimp/include/)
 include_directories(../third_party/glfw/include/)
 include_directories(src)
-include_directories(src/vk)
-
 include_directories(src/components)
 
 find_package(Vulkan REQUIRED)
@@ -52,14 +50,20 @@ source_group("src\\components" FILES ${COMPONENTS})
 
 file(GLOB VK src/renderer/vk/*.cpp src/renderer/vk/*.h)
 source_group("src\\renderer\\vk" FILES ${VK})
+
+file(GLOB SHADER_COMPILER src/renderer/vk/shader_compiler/*.cpp src/renderer/vk/shader_compiler/*.h)
+source_group("src\\renderer\\vk\\shader_compiler" FILES ${SHADER_COMPILER})
+
 file(GLOB IMGUI src/imgui_impl/*.cpp src/imgui_impl/*.h)
 source_group("src\\imgui_impl" FILES ${IMGUI})
+
 file(GLOB IMGUIIMGUI ../third_party/imgui/*.cpp ../third_party/imgui/*.h)
 source_group("third_party\\imgui" FILES ${IMGUIIMGUI})
+
 file(GLOB PLATFORM src/platform/windows/*.cpp src/platform/windows/*.h)
 source_group("src\\platform\\windows" FILES ${PLATFORM})
 
-add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
+add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${SHADER_COMPILER} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
 
 if (UNIX AND NOT APPLE)
     FIND_PACKAGE(PkgConfig REQUIRED)
