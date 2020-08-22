@@ -22,9 +22,9 @@ namespace plumbus::vk::shaders
                     if (AttributeBuilder::IsAttributeLine(tokens, currIndex))
                     {
                         AttributeBuilder builder;
-                        if (Attribute* attribute = builder.BuildAttribute(tokens, currIndex))
+                        if (Node* attribute = builder.Build(tokens, currIndex))
                         {
-                            m_ShaderSegment.AddAttribute(attribute);
+                            m_ShaderSegment.AddAttribute(static_cast<Attribute*>(attribute));
                         }
                     }
                 }

@@ -54,6 +54,9 @@ source_group("src\\renderer\\vk" FILES ${VK})
 file(GLOB SHADER_COMPILER src/renderer/vk/shader_compiler/*.cpp src/renderer/vk/shader_compiler/*.h)
 source_group("src\\renderer\\vk\\shader_compiler" FILES ${SHADER_COMPILER})
 
+file(GLOB SHADER_COMPILER_BUILDERS src/renderer/vk/shader_compiler/builders/*.cpp src/renderer/vk/shader_compiler/builders/*.h)
+source_group("src\\renderer\\vk\\shader_compiler\\builders" FILES ${SHADER_COMPILER_BUILDERS})
+
 file(GLOB IMGUI src/imgui_impl/*.cpp src/imgui_impl/*.h)
 source_group("src\\imgui_impl" FILES ${IMGUI})
 
@@ -63,7 +66,7 @@ source_group("third_party\\imgui" FILES ${IMGUIIMGUI})
 file(GLOB PLATFORM src/platform/windows/*.cpp src/platform/windows/*.h)
 source_group("src\\platform\\windows" FILES ${PLATFORM})
 
-add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${SHADER_COMPILER} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
+add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${SHADER_COMPILER} ${SHADER_COMPILER_BUILDERS} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
 
 if (UNIX AND NOT APPLE)
     FIND_PACKAGE(PkgConfig REQUIRED)

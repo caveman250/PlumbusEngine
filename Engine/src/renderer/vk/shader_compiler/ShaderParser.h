@@ -3,7 +3,7 @@
 #include <vector>
 #include "Tokenizer.h"
 #include "ShaderSegment.h"
-#include "AttributeBuilder.h"
+#include "renderer/vk/shader_compiler/builders/AttributeBuilder.h"
 #include "UniformBuilder.h"
 
 namespace plumbus::vk::shaders
