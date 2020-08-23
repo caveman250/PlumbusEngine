@@ -11,17 +11,51 @@ namespace plumbus::vk::shaders
                     {"vec2", VariableType::vec2},
                     {"vec3", VariableType::vec3},
                     {"vec4", VariableType::vec4},
+                    {"mat3", VariableType::mat3},
+                    {"mat4", VariableType::mat4}
             };
 
     VariableType CommonTypes::GetVariableType(std::string typeString)
     {
-        if(s_TypeMap.count(typeString) > 0)
+        if (s_TypeMap.count(typeString) > 0)
         {
             return s_TypeMap[typeString];
         }
         else
         {
             return VariableType::Invalid;
+        }
+    }
+
+    std::string CommonTypes::GetVariableString(VariableType type)
+    {
+        switch (type)
+        {
+            case VariableType::vec2:
+                return "vec2";
+            case VariableType::vec3:
+                return "vec3";
+            case VariableType::vec4:
+                return "vec4";
+            case VariableType::mat3:
+                return "mat3";
+            case VariableType::mat4:
+                return "mat4";
+            case VariableType::Invalid:
+                return "Error-Type";
+        }
+    }
+
+    std::string CommonTypes::GetDirectionString(AttributeDirection direction)
+    {
+        switch (direction)
+        {
+            case AttributeDirection::In:
+                return "in";
+            case AttributeDirection::Out:
+                return "out";
+            case AttributeDirection::Unset:
+                return "Error-Type";
         }
     }
 }

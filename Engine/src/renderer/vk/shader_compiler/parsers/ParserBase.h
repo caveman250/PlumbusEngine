@@ -5,12 +5,12 @@
 
 namespace plumbus::vk::shaders
 {
-    class BuilderBase
+    class ParserBase
     {
     public:
-        virtual Node* Build(const std::vector<std::unique_ptr<Token>>& tokens, int& currIndex);
+        Node* Parse(const std::vector<std::unique_ptr<Token>>& tokens, int& currIndex);
     protected:
-        virtual Node* ValidateAndBuild(int lineNumber, int position) = 0;
+        virtual Node* ValidateAndFinalise(int lineNumber, int position) = 0;
         virtual void HandleCommentToken(CommentToken& token) = 0;
         virtual void HandleIdentifierToken(IdentifierToken& token) = 0;
         virtual void HandleNewlineToken(NewlineToken& token) = 0;
@@ -19,6 +19,12 @@ namespace plumbus::vk::shaders
         virtual void HandlePunctToken(PunctToken& token) = 0;
         virtual void HandleOperatorToken(OperatorToken& token) = 0;
         virtual void HandleNumberToken(NumberToken& token) = 0;
+
+        void LogIdentifierError(IdentifierToken& token);
+        void LogNewlineError(NewlineToken& token);
+        void LogPunctError(PunctToken& token);
+        void LogOperatorError(OperatorToken& token);
+        void LogNumberError(NumberToken& token);
 
         bool m_Finished = false;
         bool m_Error = false;

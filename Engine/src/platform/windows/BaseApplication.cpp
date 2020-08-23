@@ -33,7 +33,8 @@ namespace plumbus
 	void BaseApplication::Run()
 	{
 		vk::shaders::ShaderCompiler compiler;
-		compiler.Compile("shaders/shader.vert");
+		compiler.Compile("shaders/shader.frag");
+		return;
 
 		m_Renderer->Init(m_AppName);
 

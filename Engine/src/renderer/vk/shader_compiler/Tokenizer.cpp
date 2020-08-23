@@ -3,11 +3,10 @@
 
 namespace plumbus::vk::shaders
 {
-    Tokenizer::Tokenizer() 
-        : m_LineNumber(0)
-        , m_Position(0)
+    Tokenizer::Tokenizer()
+            : m_LineNumber(0), m_Position(0)
     {
-        
+
     }
 
     std::vector<std::unique_ptr<Token>> Tokenizer::TokenizeStream(std::ifstream& stream)
@@ -22,44 +21,44 @@ namespace plumbus::vk::shaders
         return tokens;
     }
 
-    bool Tokenizer::IsWhiteSpace(char c) 
+    bool Tokenizer::IsWhiteSpace(char c)
     {
         return std::isspace(c);
     }
-    
-    bool Tokenizer::IsPunct(char c) 
+
+    bool Tokenizer::IsPunct(char c)
     {
         return c == ','
-            || c == ';'
-            || c == '('
-            || c == ')'
-            || c == '{'
-            || c == '}'
-            || c == '['
-            || c == ']';
+               || c == ';'
+               || c == '('
+               || c == ')'
+               || c == '{'
+               || c == '}'
+               || c == '['
+               || c == ']';
     }
-    
-    bool Tokenizer::IsOperator(char c) 
+
+    bool Tokenizer::IsOperator(char c)
     {
         return c == '+'
-            || c == '-'
-            || c == '*'
-            || c == '/'
-            || c == '%'
-            || c == '='
-            || c == '&'
-            || c == '|'
-            || c == '<'
-            || c == '>'
-            || c == '!';
+               || c == '-'
+               || c == '*'
+               || c == '/'
+               || c == '%'
+               || c == '='
+               || c == '&'
+               || c == '|'
+               || c == '<'
+               || c == '>'
+               || c == '!';
     }
-    
-    std::string Tokenizer::ReadWhile(std::ifstream& stream, std::function<bool(int)> predicate) 
+
+    std::string Tokenizer::ReadWhile(std::ifstream& stream, std::function<bool(int)> predicate)
     {
         std::string ret;
 
         int peek = stream.peek();
-        while(peek != EOF && predicate(peek))
+        while (peek != EOF && predicate(peek))
         {
             if (peek == '\n')
             {
@@ -77,8 +76,8 @@ namespace plumbus::vk::shaders
 
         return ret;
     }
-    
-    char Tokenizer::Read(std::ifstream& stream) 
+
+    char Tokenizer::Read(std::ifstream& stream)
     {
         char ret = stream.get();
         if (ret == '\n')
@@ -90,11 +89,11 @@ namespace plumbus::vk::shaders
         {
             m_Position++;
         }
-        
+
         return ret;
     }
-    
-    std::string Tokenizer::ReadLine(std::ifstream& stream) 
+
+    std::string Tokenizer::ReadLine(std::ifstream& stream)
     {
         std::string retVal;
         m_LineNumber++;
@@ -104,7 +103,7 @@ namespace plumbus::vk::shaders
         return retVal;
 
     }
-    
+
     std::unique_ptr<Token> Tokenizer::ReadComment(std::ifstream& stream)
     {
         std::string comment = ReadLine(stream);
@@ -115,9 +114,9 @@ namespace plumbus::vk::shaders
         return token;
     }
 
-std::unique_ptr<Token> Tokenizer::ReadIdentifier(std::ifstream& stream)
+    std::unique_ptr<Token> Tokenizer::ReadIdentifier(std::ifstream& stream)
     {
-        std::string identifier = ReadWhile(stream, [this](int peek) 
+        std::string identifier = ReadWhile(stream, [this](int peek)
         {
             return !std::isspace(peek) && !IsPunct(peek);
         });
@@ -127,11 +126,11 @@ std::unique_ptr<Token> Tokenizer::ReadIdentifier(std::ifstream& stream)
         return token;
     }
 
-std::unique_ptr<Token> Tokenizer::ReadNumber(std::ifstream& stream)
+    std::unique_ptr<Token> Tokenizer::ReadNumber(std::ifstream& stream)
     {
         bool hasDecimal = false;
-        std::string numberString = ReadWhile(stream, [&hasDecimal](int peek) 
-        { 
+        std::string numberString = ReadWhile(stream, [&hasDecimal](int peek)
+        {
             if (peek == '.')
             {
                 hasDecimal = true;
@@ -147,7 +146,7 @@ std::unique_ptr<Token> Tokenizer::ReadNumber(std::ifstream& stream)
         return token;
     }
 
-std::unique_ptr<Token> Tokenizer::ReadPunct(std::ifstream& stream)
+    std::unique_ptr<Token> Tokenizer::ReadPunct(std::ifstream& stream)
     {
         char punct = Read(stream);
         std::unique_ptr<PunctToken> token = std::make_unique<PunctToken>(m_LineNumber, m_Position - 1);
@@ -155,7 +154,7 @@ std::unique_ptr<Token> Tokenizer::ReadPunct(std::ifstream& stream)
         return token;
     }
 
-std::unique_ptr<Token> Tokenizer::ReadOperator(std::ifstream& stream)
+    std::unique_ptr<Token> Tokenizer::ReadOperator(std::ifstream& stream)
     {
         char op = Read(stream);
         std::unique_ptr<OperatorToken> token = std::make_unique<OperatorToken>(m_LineNumber, m_Position - 1);
@@ -163,7 +162,7 @@ std::unique_ptr<Token> Tokenizer::ReadOperator(std::ifstream& stream)
         return token;
     }
 
-std::unique_ptr<Token> Tokenizer::ReadNext(std::ifstream& stream)
+    std::unique_ptr<Token> Tokenizer::ReadNext(std::ifstream& stream)
     {
         int peek = stream.peek();
 
@@ -171,27 +170,27 @@ std::unique_ptr<Token> Tokenizer::ReadNext(std::ifstream& stream)
         {
             return nullptr;
         }
-        
-        if(peek == ' ')
+
+        if (peek == ' ')
         {
             Read(stream);
             return std::make_unique<SpaceToken>(m_LineNumber, m_Position - 1);
         }
-        else if(peek == '\t')
+        else if (peek == '\t')
         {
             Read(stream);
             return std::make_unique<TabToken>(m_LineNumber, m_Position - 1);
         }
-        else if (peek == '#')
+        else if (peek == '#' || IsComment(peek, stream))
         {
             return ReadComment(stream);
         }
-        else if(peek == '\n')
+        else if (peek == '\n')
         {
             Read(stream);
             return std::make_unique<NewlineToken>(m_LineNumber - 1, m_Position - 1);
         }
-        else if(IsPunct(peek))
+        else if (IsPunct(peek))
         {
             return ReadPunct(stream);
         }
@@ -199,7 +198,7 @@ std::unique_ptr<Token> Tokenizer::ReadNext(std::ifstream& stream)
         {
             return ReadOperator(stream);
         }
-        else if(!std::isdigit(peek))
+        else if (!std::isdigit(peek))
         {
             return ReadIdentifier(stream);
         }
@@ -207,6 +206,21 @@ std::unique_ptr<Token> Tokenizer::ReadNext(std::ifstream& stream)
         {
             return ReadNumber(stream);
         }
+    }
+
+    bool Tokenizer::IsComment(char c, std::ifstream& stream)
+    {
+        if (c == '/')
+        {
+            char first = stream.get();
+            if (stream.peek() == '/')
+            {
+                stream.putback(first);
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

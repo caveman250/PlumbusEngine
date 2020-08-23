@@ -1,9 +1,9 @@
 #include "plumbus.h"
-#include "AttributeBuilder.h"
+#include "AttributeParser.h"
 
 namespace plumbus::vk::shaders
 {
-    AttributeBuilder::AttributeBuilder()
+    AttributeParser::AttributeParser()
             : m_State(State::None)
             , m_Location(-1)
             , m_Type(VariableType::Invalid)
@@ -13,7 +13,7 @@ namespace plumbus::vk::shaders
 
     }
 
-    bool AttributeBuilder::IsAttributeLine(const std::vector<std::unique_ptr<Token>>& tokens, int currIndex)
+    bool AttributeParser::IsAttributeLine(const std::vector<std::unique_ptr<Token>>& tokens, int currIndex)
     {
         bool hasOpenParenthesis = false;
         for (int i = currIndex + 1; i < tokens.size(); ++i)
@@ -60,7 +60,7 @@ namespace plumbus::vk::shaders
         return false;
     }
 
-    Node* AttributeBuilder::ValidateAndBuild(int lineNumber, int position)
+    Node* AttributeParser::ValidateAndFinalise(int lineNumber, int position)
     {
         if (m_Type != VariableType::Invalid &&
             m_Location > -1 &&
@@ -74,19 +74,18 @@ namespace plumbus::vk::shaders
         return nullptr;
     }
 
-    void AttributeBuilder::HandleCommentToken(CommentToken& token)
+    void AttributeParser::HandleCommentToken(CommentToken& token)
     {
 
     }
 
-    void AttributeBuilder::HandleIdentifierToken(IdentifierToken& token)
+    void AttributeParser::HandleIdentifierToken(IdentifierToken& token)
     {
         if (token.contents == "layout")
         {
             if (m_State != State::None)
             {
-                Log::Error("Shaders: unexpected identifier '%s', %i:%i", token.contents.c_str(), token.m_LineNumber, token.m_Position);
-                m_Error = true;
+                LogIdentifierError(token);
                 return;
             }
             m_State = State::FoundLayout;
@@ -96,8 +95,7 @@ namespace plumbus::vk::shaders
         {
             if (m_State != State::FoundOpenParentheses)
             {
-                Log::Error("Shaders: unexpected identifier '%s', %i:%i", token.contents.c_str(), token.m_LineNumber, token.m_Position);
-                m_Error = true;
+                LogIdentifierError(token);
                 return;
             }
 
@@ -108,9 +106,7 @@ namespace plumbus::vk::shaders
         {
             if (m_State != State::FoundCloseParentheses)
             {
-                Log::Error("Shaders: unexpected identifier '%s', %i:%i", token.contents.c_str(),
-                           token.m_LineNumber, token.m_Position);
-                m_Error = true;
+                LogIdentifierError(token);
                 return;
             }
 
@@ -122,9 +118,7 @@ namespace plumbus::vk::shaders
         {
             if (m_State != State::FoundCloseParentheses)
             {
-                Log::Error("Shaders: unexpected identifier '%s', %i:%i", token.contents.c_str(),
-                           token.m_LineNumber, token.m_Position);
-                m_Error = true;
+                LogIdentifierError(token);
                 return;
             }
 
@@ -149,33 +143,31 @@ namespace plumbus::vk::shaders
             }
         }
 
-        Log::Error("Shaders: unexpected identifier '%s', %i:%i", token.contents.c_str(), token.m_LineNumber, token.m_Position);
-        m_Error = true;
+        LogIdentifierError(token);
     }
 
-    void AttributeBuilder::HandleNewlineToken(NewlineToken& token)
+    void AttributeParser::HandleNewlineToken(NewlineToken& token)
     {
         //do nothing
     }
 
-    void AttributeBuilder::HandleSpaceToken(SpaceToken& token)
+    void AttributeParser::HandleSpaceToken(SpaceToken& token)
     {
         // do nothing
     }
 
-    void AttributeBuilder::HandleTabToken(TabToken& token)
+    void AttributeParser::HandleTabToken(TabToken& token)
     {
         // do nothing
     }
 
-    void AttributeBuilder::HandlePunctToken(PunctToken& token)
+    void AttributeParser::HandlePunctToken(PunctToken& token)
     {
         if (token.token == '(')
         {
             if (m_State != State::FoundLayout)
             {
-                Log::Error("Shaders: unexpected token '(', %i:%i", token.m_LineNumber, token.m_Position);
-                m_Error = true;
+                LogPunctError(token);
                 return;
             }
 
@@ -186,8 +178,7 @@ namespace plumbus::vk::shaders
         {
             if (m_State != State::FoundLocationValue)
             {
-                Log::Error("Shaders: unexpected token ')', %i:%i", token.m_LineNumber, token.m_Position);
-                m_Error = true;
+                LogPunctError(token);
                 return;
             }
 
@@ -200,7 +191,7 @@ namespace plumbus::vk::shaders
         }
     }
 
-    void AttributeBuilder::HandleOperatorToken(OperatorToken& token)
+    void AttributeParser::HandleOperatorToken(OperatorToken& token)
     {
         if (m_State == State::FoundLocationIdentifier && token.op == '=')
         {
@@ -208,13 +199,12 @@ namespace plumbus::vk::shaders
         }
         else
         {
-            Log::Error("Shaders: unexpected operator '%c', %i:%i", token.op, token.m_LineNumber, token.m_Position);
-            m_Error = true;
+            LogOperatorError(token);
             return;
         }
     }
 
-    void AttributeBuilder::HandleNumberToken(NumberToken& token)
+    void AttributeParser::HandleNumberToken(NumberToken& token)
     {
         if (m_State == State::FoundAssignment)
         {
@@ -223,16 +213,7 @@ namespace plumbus::vk::shaders
         }
         else
         {
-            if (token.hasDecimal)
-            {
-                Log::Error("Shaders: unexpected number '%f', %i:%i", token.contents, token.m_LineNumber, token.m_Position);
-            }
-            else
-            {
-                Log::Error("Shaders: unexpected number '%i', %i:%i", (int)token.contents, token.m_LineNumber, token.m_Position);
-            }
-
-            m_Error = true;
+            LogNumberError(token);
             return;
         }
     }

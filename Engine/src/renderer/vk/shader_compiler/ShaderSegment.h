@@ -12,10 +12,14 @@ namespace plumbus::vk::shaders
         ~ShaderSegment();
 
         void AddAttribute(Attribute* attribute);
-        void AddUniform(Uniform* uniform);
+        void AddSamplerUniform(Sampler2DUniform* uniform);
+        void AddBufferUniform(BufferUniform* uniform);
+
+        std::string ToGLSL();
 
     private:
-        std::vector<Uniform*> m_Uniforms;
+        std::vector<Sampler2DUniform*> m_SamplerUniforms;
+        std::vector<BufferUniform*> m_BufferUniforms;
         std::vector<Attribute*> m_Attributes;
     };
 }

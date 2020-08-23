@@ -118,6 +118,7 @@ namespace plumbus::vk::shaders
         bool IsWhiteSpace(char c);
         bool IsPunct(char c);
         bool IsOperator(char c);
+        bool IsComment(char c, std::ifstream& stream);
 
         int m_LineNumber;
         int m_Position;

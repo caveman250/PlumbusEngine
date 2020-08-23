@@ -3,8 +3,8 @@
 #include <vector>
 #include "Tokenizer.h"
 #include "ShaderSegment.h"
-#include "renderer/vk/shader_compiler/builders/AttributeBuilder.h"
-#include "UniformBuilder.h"
+#include "renderer/vk/shader_compiler/parsers/AttributeParser.h"
+#include "renderer/vk/shader_compiler/parsers/UniformParser.h"
 
 namespace plumbus::vk::shaders
 {
@@ -12,10 +12,10 @@ namespace plumbus::vk::shaders
     {
     public:
         ShaderParser();
-        void Parse(std::vector<std::unique_ptr<Token>>& tokens);
+        bool Parse(std::vector<std::unique_ptr<Token>>& tokens);
 
     private:
-        void TryStartNewNode(std::vector<std::unique_ptr<Token>>& tokens, int& currIndex);
+        bool TryStartNewNode(std::vector<std::unique_ptr<Token>>& tokens, int& currIndex);
 
         ShaderSegment m_ShaderSegment;
     };

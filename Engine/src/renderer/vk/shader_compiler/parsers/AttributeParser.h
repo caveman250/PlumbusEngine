@@ -1,18 +1,18 @@
-#include "BuilderBase.h"
+#include "ParserBase.h"
 #include "renderer/vk/shader_compiler/ShaderSegment.h"
 #include "renderer/vk/shader_compiler/CommonTypes.h"
 
 namespace plumbus::vk::shaders
 {
-    class AttributeBuilder : public BuilderBase
+    class AttributeParser : public ParserBase
     {
     public:
-        AttributeBuilder();
+        AttributeParser();
 
         static bool IsAttributeLine(const std::vector<std::unique_ptr<Token>>& tokens, int currIndex);
 
     private:
-        Node* ValidateAndBuild(int lineNumber, int position) override;
+        Node* ValidateAndFinalise(int lineNumber, int position) override;
         void HandleCommentToken(CommentToken& token) override;
         void HandleIdentifierToken(IdentifierToken& token) override;
         void HandleNewlineToken(NewlineToken& token) override;
@@ -21,7 +21,6 @@ namespace plumbus::vk::shaders
         void HandlePunctToken(PunctToken& token) override;
         void HandleOperatorToken(OperatorToken& token) override;
         void HandleNumberToken(NumberToken& token) override;
-
 
         enum class State
         {

@@ -3,7 +3,7 @@
 
 namespace plumbus::vk::shaders
 {
-    void ShaderCompiler::Compile(const char* shaderPath) 
+    void ShaderCompiler::Compile(const char* shaderPath)
     {
         std::ifstream stream;
         stream.open(shaderPath);
@@ -15,8 +15,9 @@ namespace plumbus::vk::shaders
             //token->PrintContents();
         }
 
-        m_Parser.Parse(tokens);
+        if (!m_Parser.Parse(tokens))
+        {
+            Log::Error("Shaders: Errors encountered while compiling: %s", shaderPath);
+        }
     }
-
-
 }

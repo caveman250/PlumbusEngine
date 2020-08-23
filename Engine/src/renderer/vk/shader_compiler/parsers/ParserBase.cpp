@@ -1,9 +1,9 @@
 #include "plumbus.h"
-#include "BuilderBase.h"
+#include "ParserBase.h"
 
 namespace plumbus::vk::shaders
 {
-    Node* BuilderBase::Build(const std::vector<std::unique_ptr<Token>>& tokens, int& currIndex)
+    Node* ParserBase::Parse(const std::vector<std::unique_ptr<Token>>& tokens, int& currIndex)
     {
         for (currIndex; currIndex < tokens.size(); ++currIndex)
         {
@@ -67,12 +67,50 @@ namespace plumbus::vk::shaders
 
         if (m_Finished)
         {
-            return ValidateAndBuild(tokens[currIndex - 1]->m_LineNumber, tokens[currIndex - 1]->m_Position);
+            return ValidateAndFinalise(tokens[currIndex - 1]->m_LineNumber, tokens[currIndex - 1]->m_Position);
         }
         else
         {
-            Log::Error("Shaders: Unexpected End of File");
+            Log::Error("Shaders: Unexpected end of file");
             return nullptr;
         }
+    }
+
+    void ParserBase::LogIdentifierError(IdentifierToken& token)
+    {
+        Log::Error("Shaders: unexpected token '%s', Line:%i:%i", token.contents.c_str(), token.m_LineNumber, token.m_Position);
+        m_Error = true;
+    }
+
+    void ParserBase::LogNewlineError(NewlineToken& token)
+    {
+        Log::Error("Shaders: unexpected newline, Line:%i:%i", token.m_LineNumber, token.m_Position);
+        m_Error = true;
+    }
+
+    void ParserBase::LogPunctError(PunctToken& token)
+    {
+        Log::Error("Shaders: unexpected token '%c', Line:%i:%i", token.token, token.m_LineNumber, token.m_Position);
+        m_Error = true;
+    }
+
+    void ParserBase::LogOperatorError(OperatorToken& token)
+    {
+        Log::Error("Shaders: unexpected token '%c', Line:%i:%i", token.op, token.m_LineNumber, token.m_Position);
+        m_Error = true;
+    }
+
+    void ParserBase::LogNumberError(NumberToken& token)
+    {
+        if(token.hasDecimal)
+        {
+            Log::Error("Shaders: unexpected token '%f', Line:%i:%i", token.contents, token.m_LineNumber, token.m_Position);
+        }
+        else
+        {
+            Log::Error("Shaders: unexpected token '%i', Line:%i:%i", token.contents, token.m_LineNumber, token.m_Position);
+        }
+
+        m_Error = true;
     }
 }
