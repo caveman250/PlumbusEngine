@@ -43,7 +43,14 @@ namespace plumbus::vk::shaders
                 return "mat4";
             case VariableType::Invalid:
                 return "Error-Type";
+            default:
+            {
+                PL_ASSERT(false, "CommonTypes::GetVariableString: Unknown VariableType");
+                return "";
+            }
         }
+
+
     }
 
     std::string CommonTypes::GetDirectionString(AttributeDirection direction)
@@ -56,6 +63,11 @@ namespace plumbus::vk::shaders
                 return "out";
             case AttributeDirection::Unset:
                 return "Error-Type";
+            default:
+            {
+                PL_ASSERT(false, "CommonTypes::GetDirectionString: Unknown AttributeDirection");
+                return "";
+            }
         }
     }
 }

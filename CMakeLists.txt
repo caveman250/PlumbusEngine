@@ -3,12 +3,17 @@ cmake_policy(VERSION 2.8)
 
 project(PlumbusEngine)
 
-if (WIN32)
+if (MSVC)
 #fix for assimp on windows
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4100")
-endif (WIN32)
+endif (MSVC)
 
-if (WIN32 OR APPLE)
+if(WIN32 AND NOT MSVC)
+    #fix for assimp under mingw
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas")
+endif(WIN32 AND NOT MSVC)
+
+if (MSVC OR APPLE)
     if(CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_CONFIGURATION_TYPES Debug Release Distribution)
         set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES}" CACHE STRING
@@ -30,10 +35,10 @@ if (WIN32 OR APPLE)
             $<$<CONFIG:Release>:PL_RELEASE=1>
             $<$<CONFIG:Distribution>:PL_DIST=1>)
     endif()
-endif(WIN32 OR APPLE)
+endif(MSVC OR APPLE)
 
 
-IF(UNIX)
+IF(UNIX OR NOT MSVC)
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
     add_compile_definitions(PL_DEBUG=1)
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -50,7 +55,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
 set(CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELWITHDEBINFO}")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
-ENDIF(UNIX)
+ENDIF(UNIX OR NOT MSVC)
 
 add_subdirectory(PlumbusTester)
 add_subdirectory(Engine)

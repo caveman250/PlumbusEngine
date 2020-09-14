@@ -35,42 +35,33 @@ namespace plumbus
 {
 #if PL_PLATFORM_WINDOWS
 #if PL_RELEASE
-#define PL_ASSERT(expr, ...) \
-	do { \
-			if (!(expr))\
-			{\
-				char msg_buf[1024]; \
-				PL_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
-				char buf[1024]; \
-				snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf); \
-				fprintf(stderr, "\033[0;37;41mAssertion failed: %s - at %s:%i\033[0m\n\n", (const char*)&buf, __FILE__, __LINE__);\
-			}\
-	} while (0)
+#define PL_ASSERT(expr, ...) do {} while (0)
 #elif PL_DEBUG
-#define PL_ASSERT(expr, ...) \
-	do { \
-			if (!(expr))\
-			{\
-				char msg_buf[1024]; \
-				PL_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
-				char buf[1024]; \
-				snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf); \
-				bool assertResult = _CrtDbgReport(_CRT_ASSERT, __FILE__, __LINE__, "Plumbus Application", buf); \
-				printf("\033[0;37;41mAssertion failed: %s - at %s:%i\033[0m\n\n", (const char*)&buf, __FILE__, __LINE__); \
-				if (assertResult == 0)\
-				{\
-					break; \
-				}\
-				else\
-				{\
-					__debugbreak(); \
-				}\
-			}\
-	} while (0)
+#define PL_ASSERT(expr, ...) do {} while(0)
+//#define PL_ASSERT(expr, ...) \
+//	do { \
+//			if (!(expr))\
+//			{\
+//				char msg_buf[1024]; \
+//				PL_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
+//				char buf[1024]; \
+//				snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf); \
+//				bool assertResult = _CrtDbgReport(_CRT_ASSERT, __FILE__, __LINE__, "Plumbus Application", buf); \
+//				printf("\033[0;37;41mAssertion failed: %s - at %s:%i\033[0m\n\n", (const char*)&buf, __FILE__, __LINE__); \
+//				if (assertResult == 0)\
+//				{\
+//					break; \
+//				}\
+//				else\
+//				{\
+//					__debugbreak(); \
+//				}\
+//			}\
+//	} while (0)
 #else
 #define PL_ASSERT(...) do {} while(0)
 #endif
-#elif PL_PLATFORM_LINUX && 0
+#elif PL_PLATFORM_LINUX
 #define PL_ASSERT(expr, ...) \
 	do { \
 		if (!(expr))\ 
