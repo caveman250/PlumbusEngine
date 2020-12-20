@@ -28,7 +28,7 @@ namespace plumbus::vk
 			VkFormat m_Format;
 		};
 
-		static FrameBufferRef CreateFrameBuffer(uint32_t width, uint32_t height, std::vector<FrameBufferAttachmentInfo> attachments, VkRenderPass renderPass = VK_NULL_HANDLE);
+		static FrameBufferRef CreateFrameBuffer(uint32_t width, uint32_t height, std::vector<FrameBufferAttachmentInfo> attachments);
 		static FrameBufferRef CreateFrameBuffer(uint32_t width, uint32_t height, VkRenderPass renderPass, std::vector<VkImageView> attachments, std::vector<VkFormat> attachmentFormats);
 
 		FrameBuffer(int32_t width, int32_t height, bool ownsResources);
@@ -46,7 +46,6 @@ namespace plumbus::vk
 		void SetSampler(VkSampler sampler) { m_ColourSampler = sampler; }
 		void SetVulkanFrameBuffer(VkFramebuffer frameBuffer) { m_FrameBuffer = frameBuffer; }
 		void SetRenderPass(VkRenderPass renderPass) { m_RenderPass = renderPass; }
-		void SetOwnsRenderPass(bool ownsRenderPass) { m_OwnsRenderPass = ownsRenderPass; }
 
 		void CreateAttachment(VkFormat format, VkImageUsageFlagBits usage, std::string id);
 		void AddAttachment(VkImageView imageView, VkFormat imageFormat, std::string id);
@@ -60,6 +59,5 @@ namespace plumbus::vk
 		VkSampler m_ColourSampler = VK_NULL_HANDLE;
 
 		bool m_OwnsResources;
-		bool m_OwnsRenderPass;
 	};
 }

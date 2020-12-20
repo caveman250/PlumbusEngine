@@ -40,7 +40,6 @@ namespace plumbus::vk
         if (m_UniformsDirty)
         {
             m_DescriptorSet->Build();
-            m_UniformsDirty = false;
         }
 
         commandBuffer->BindPipeline(m_Material->GetPipeline());

@@ -57,13 +57,8 @@ namespace plumbus::vk
 
 		vkDestroyRenderPass(device->GetVulkanDevice(), m_RenderPass, nullptr);
 
-		for(int i = 0; i < m_Images.size(); ++i)
-		{
-			vkDestroySemaphore(device->GetVulkanDevice(), m_RenderFinishedSemaphores[i], nullptr);
-			vkDestroySemaphore(device->GetVulkanDevice(), m_ImageAvailableSemaphores[i], nullptr);
-			vkDestroyFence(device->GetVulkanDevice(), m_Fences[i], nullptr); 
-			m_InFlightImages[i] = VK_NULL_HANDLE;
-		}
+		vkDestroySemaphore(device->GetVulkanDevice(), m_RenderFinishedSemaphore, nullptr);
+		vkDestroySemaphore(device->GetVulkanDevice(), m_ImageAvailableSemaphore, nullptr);
 	}
 
 	void SwapChain::Recreate()
@@ -94,9 +89,12 @@ namespace plumbus::vk
 		VkPresentModeKHR presentMode = ChoosePresentMode(swapChainSupport.m_PresentModes);
 		VkExtent2D extent = ChooseExtents(swapChainSupport.m_Capabilities);
 
-		PL_ASSERT(MAX_FRAMES_IN_FLIGHT >= swapChainSupport.m_Capabilities.minImageCount);
-		PL_ASSERT(MAX_FRAMES_IN_FLIGHT <= swapChainSupport.m_Capabilities.maxImageCount);
-		uint32_t imageCount = glm::clamp(swapChainSupport.m_Capabilities.maxImageCount, swapChainSupport.m_Capabilities.minImageCount, (unsigned int)MAX_FRAMES_IN_FLIGHT);
+		uint32_t imageCount = swapChainSupport.m_Capabilities.minImageCount + 1;
+		if (swapChainSupport.m_Capabilities.maxImageCount > 0 && imageCount > swapChainSupport.m_Capabilities.maxImageCount)
+		{
+			imageCount = swapChainSupport.m_Capabilities.maxImageCount;
+			Log::Info("Max image count: ", imageCount);
+		}
 
 		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -171,6 +169,8 @@ namespace plumbus::vk
 
 	VkPresentModeKHR SwapChain::ChoosePresentMode(const std::vector<VkPresentModeKHR> availablePresentModes)
 	{
+		return VK_PRESENT_MODE_IMMEDIATE_KHR;
+
 		//standard double buffering.
 		VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -297,24 +297,13 @@ namespace plumbus::vk
 		VkSemaphoreCreateInfo semaphoreInfo = {};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-		VkFenceCreateInfo fenceInfo{};
-    	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
 		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
 
-		m_ImageAvailableSemaphores.resize(m_Images.size());
-		m_RenderFinishedSemaphores.resize(m_Images.size());
-		m_Fences.resize(m_Images.size());
-		m_InFlightImages.resize(m_Images.size(), VK_NULL_HANDLE);
-		for(int i = 0; i < m_Images.size(); ++i)
+		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphore) != VK_SUCCESS ||
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphore) != VK_SUCCESS)
 		{
-			if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-				vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-				vkCreateFence(device, &fenceInfo, nullptr, &m_Fences[i]) != VK_SUCCESS)
-			{
-				Log::Fatal("failed to create semaphores!");
-			}
+
+			Log::Fatal("failed to create semaphores!");
 		}
 	}
 

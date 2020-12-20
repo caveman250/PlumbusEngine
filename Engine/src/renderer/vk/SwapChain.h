@@ -19,11 +19,8 @@ namespace plumbus::vk
 		VkExtent2D& GetExtents() { return m_Extents; }
 		VkSwapchainKHR GetVulkanSwapChain() { return m_SwapChain; }
 
-		const VkSemaphore& GetImageAvailableSemaphore(uint32_t imageIndex) const { return m_ImageAvailableSemaphores[imageIndex]; }
-		const VkSemaphore& GetRenderFinishedSemaphore(uint32_t imageIndex) const { return m_RenderFinishedSemaphores[imageIndex]; }
-		const VkFence& GetFence(uint32_t imageIndex) const { return m_Fences[imageIndex]; }
-		const VkFence& GetImageInFlightFence(uint32_t imageIndex) const { return m_InFlightImages[imageIndex]; }
-		void SetImageInFlightFence(uint32_t imageIndex, const VkFence& fence) { m_InFlightImages[imageIndex] = fence; }
+		const VkSemaphore& GetImageAvailableSemaphore() const { return m_ImageAvailableSemaphore; }
+		const VkSemaphore& GetRenderFinishedSemaphore() const { return m_RenderFinishedSemaphore; }
 
 		const CommandBufferRef& GetCommandBuffer(int index) const { return m_CommandBuffers[index]; }
 		const VkRenderPass& GetRenderPass() const { return m_RenderPass; }
@@ -56,10 +53,8 @@ namespace plumbus::vk
 		std::vector<CommandBufferRef> m_CommandBuffers;
 
 		VkRenderPass m_RenderPass;
-		std::vector<VkSemaphore> m_ImageAvailableSemaphores;
-		std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-		std::vector<VkFence> m_Fences;
-		std::vector<VkFence> m_InFlightImages;
+		VkSemaphore m_ImageAvailableSemaphore;
+		VkSemaphore m_RenderFinishedSemaphore;
 	};
 };
 

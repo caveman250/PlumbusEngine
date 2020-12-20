@@ -28,9 +28,9 @@ namespace plumbus
 		void Init(float width, float height);
 		void InitGLFWCallbacks();
 		void InitResources(VkRenderPass renderPass, VkQueue copyQueue);
-		void NewFrame(uint32_t imageIndex);
-		void UpdateBuffers(int currFrame);
-		void DrawFrame(VkCommandBuffer commandBuffer, int currFrame);
+		void NewFrame();
+		void UpdateBuffers();
+		void DrawFrame(VkCommandBuffer commandBuffer);
 
 		vk::DescriptorSetRef AddTexture(VkSampler sampler, VkImageView image_view);
 
@@ -39,10 +39,10 @@ namespace plumbus
 		static void OnChar(GLFWwindow*, unsigned int c);
 	private:
 		VkSampler m_Sampler;
-		std::vector<vk::Buffer> m_VertexBuffers;
-		std::vector<vk::Buffer> m_IndexBuffers;
-		std::vector<int32_t> m_VertexCounts;
-		std::vector<int32_t> m_IndexCounts;
+		vk::Buffer m_VertexBuffer;
+		vk::Buffer m_IndexBuffer;
+		int32_t m_VertexCount = 0;
+		int32_t m_IndexCount = 0;
 		VkDeviceMemory m_FontMemory = VK_NULL_HANDLE;
 		VkImage m_FontImage = VK_NULL_HANDLE;
 		VkImageView m_FontView = VK_NULL_HANDLE;

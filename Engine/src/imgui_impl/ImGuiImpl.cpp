@@ -15,11 +15,7 @@
 namespace plumbus
 {
 	ImGUIImpl::ImGUIImpl()
-	{	
-		m_VertexBuffers.resize(vk::MAX_FRAMES_IN_FLIGHT);
-		m_IndexBuffers.resize(vk::MAX_FRAMES_IN_FLIGHT);
-		m_VertexCounts.resize(vk::MAX_FRAMES_IN_FLIGHT);
-		m_IndexCounts.resize(vk::MAX_FRAMES_IN_FLIGHT);
+	{
 	}
 
 	ImGUIImpl::~ImGUIImpl()
@@ -27,12 +23,8 @@ namespace plumbus
 		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
 
 		// Release all Vulkan resources required for rendering imGui
-		PL_ASSERT(m_VertexBuffers.size() == m_IndexBuffers.size());
-		for (int i = 0; i < m_VertexBuffers.size(); ++i)
-		{
-			m_VertexBuffers[i].Cleanup();
-			m_IndexBuffers[i].Cleanup();
-		}
+		m_VertexBuffer.Cleanup();
+		m_IndexBuffer.Cleanup();
 		vkDestroyImage(device->GetVulkanDevice(), m_FontImage, nullptr);
 		vkDestroyImageView(device->GetVulkanDevice(), m_FontView, nullptr);
 		vkFreeMemory(device->GetVulkanDevice(), m_FontMemory, nullptr);
@@ -371,13 +363,13 @@ namespace plumbus
 		CHECK_VK_RESULT(vkCreateGraphicsPipelines(device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
 	}
 
-	void ImGUIImpl::NewFrame(uint32_t imageIndex)
+	void ImGUIImpl::NewFrame()
 	{
 		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
 		if (!m_GameViewTextureDescSet)
 		{
-			m_GameViewTextureDescSet = AddTexture(renderer->GetDeferredOutputFramebuffer(imageIndex)->GetSampler(), renderer->GetDeferredOutputFramebuffer(imageIndex)->GetAttachment("colour").m_ImageView);
+			m_GameViewTextureDescSet = AddTexture(renderer->GetDeferredOutputFramebuffer()->GetSampler(), renderer->GetDeferredOutputFramebuffer()->GetAttachment("colour").m_ImageView);
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -511,7 +503,7 @@ namespace plumbus
 		ImGui::Render();
 	}
 
-	void ImGUIImpl::UpdateBuffers(int currFrame)
+	void ImGUIImpl::UpdateBuffers()
 	{
 		std::shared_ptr<vk::Device> device = vk::VulkanRenderer::Get()->GetDevice();
 
@@ -524,27 +516,28 @@ namespace plumbus
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 
 		// Vertex buffer
-		if ((m_VertexBuffers[currFrame].m_Buffer == VK_NULL_HANDLE) || (m_VertexCounts[currFrame] != imDrawData->TotalVtxCount)) {
-			m_VertexBuffers[currFrame].Unmap();
-			m_VertexBuffers[currFrame].Cleanup();
-			CHECK_VK_RESULT(device->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_VertexBuffers[currFrame], vertexBufferSize));
-			m_VertexCounts[currFrame] = imDrawData->TotalVtxCount;
-			m_VertexBuffers[currFrame].Map();
+		if ((m_VertexBuffer.m_Buffer == VK_NULL_HANDLE) || (m_VertexCount != imDrawData->TotalVtxCount)) {
+			m_VertexBuffer.Unmap();
+			m_VertexBuffer.Cleanup();
+			CHECK_VK_RESULT(device->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_VertexBuffer, vertexBufferSize));
+			m_VertexCount = imDrawData->TotalVtxCount;
+			m_VertexBuffer.Unmap();
+			m_VertexBuffer.Map();
 		}
 
 		// Index buffer
 		VkDeviceSize indexSize = imDrawData->TotalIdxCount * sizeof(ImDrawIdx);
-		if ((m_IndexBuffers[currFrame].m_Buffer == VK_NULL_HANDLE) || (m_IndexCounts[currFrame] < imDrawData->TotalIdxCount)) {
-			m_IndexBuffers[currFrame].Unmap();
-			m_IndexBuffers[currFrame].Cleanup();
-			CHECK_VK_RESULT(device->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_IndexBuffers[currFrame], indexBufferSize));
-			m_IndexCounts[currFrame] = imDrawData->TotalIdxCount;
-			m_IndexBuffers[currFrame].Map();
+		if ((m_IndexBuffer.m_Buffer == VK_NULL_HANDLE) || (m_IndexCount < imDrawData->TotalIdxCount)) {
+			m_IndexBuffer.Unmap();
+			m_IndexBuffer.Cleanup();
+			CHECK_VK_RESULT(device->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &m_IndexBuffer, indexBufferSize));
+			m_IndexCount = imDrawData->TotalIdxCount;
+			m_IndexBuffer.Map();
 		}
 
 		// Upload data
-		ImDrawVert* vtxDst = (ImDrawVert*)m_VertexBuffers[currFrame].m_Mapped;
-		ImDrawIdx* idxDst = (ImDrawIdx*)m_IndexBuffers[currFrame].m_Mapped;
+		ImDrawVert* vtxDst = (ImDrawVert*)m_VertexBuffer.m_Mapped;
+		ImDrawIdx* idxDst = (ImDrawIdx*)m_IndexBuffer.m_Mapped;
 
 		for (int n = 0; n < imDrawData->CmdListsCount; n++) {
 			const ImDrawList* cmd_list = imDrawData->CmdLists[n];
@@ -555,11 +548,11 @@ namespace plumbus
 		}
 
 		// Flush to make writes visible to GPU
-		m_VertexBuffers[currFrame].Flush();
-		m_IndexBuffers[currFrame].Flush();
+		m_VertexBuffer.Flush();
+		m_IndexBuffer.Flush();
 	}
 
-	void ImGUIImpl::DrawFrame(VkCommandBuffer commandBuffer, int currFrame)
+	void ImGUIImpl::DrawFrame(VkCommandBuffer commandBuffer)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -567,8 +560,8 @@ namespace plumbus
 
 		// Bind vertex and index buffer
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffers[currFrame].m_Buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffers[currFrame].m_Buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.m_Buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
         
 		VkViewport viewport{};
         viewport.width = io.DisplaySize.x * io.DisplayFramebufferScale.x;

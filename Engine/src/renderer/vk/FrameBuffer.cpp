@@ -11,7 +11,6 @@ namespace plumbus::vk
 		: m_Width(width)
 		, m_Height(height)
 		, m_OwnsResources(ownsResources)
-		, m_OwnsRenderPass(false)
 	{
 
 	}
@@ -48,10 +47,7 @@ namespace plumbus::vk
 				vkDestroySampler(device, m_ColourSampler, nullptr);
 			}
 
-			if (m_OwnsRenderPass)
-			{
-				vkDestroyRenderPass(device, m_RenderPass, nullptr);
-			}
+			vkDestroyRenderPass(device, m_RenderPass, nullptr);
 		}
 
 		vkDestroyFramebuffer(device, m_FrameBuffer, nullptr);
@@ -156,7 +152,7 @@ namespace plumbus::vk
 		return fb;
 	}
 
-	plumbus::vk::FrameBufferRef FrameBuffer::CreateFrameBuffer(uint32_t width, uint32_t height, std::vector<FrameBufferAttachmentInfo> attachments, VkRenderPass renderPass)
+	plumbus::vk::FrameBufferRef FrameBuffer::CreateFrameBuffer(uint32_t width, uint32_t height, std::vector<FrameBufferAttachmentInfo> attachments)
 	{
 		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 		std::shared_ptr<vk::Device> device = renderer->GetDevice();
@@ -202,52 +198,49 @@ namespace plumbus::vk
 			attachmentImageViews[i] = fb->GetAttachment(attachments[i].attachmentName).m_ImageView;
 		}
 
-		if(renderPass == VK_NULL_HANDLE)
-		{
-			//CREATE RENDER PASS
-			VkAttachmentReference depthReference = {};
-			depthReference.attachment = depthIndex;
-			depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		//CREATE RENDER PASS
+		VkAttachmentReference depthReference = {};
+		depthReference.attachment = depthIndex;
+		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-			VkSubpassDescription subpass = {};
-			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpass.pColorAttachments = colorReferences.data();
-			subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
-			subpass.pDepthStencilAttachment = &depthReference;
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.pColorAttachments = colorReferences.data();
+		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
+		subpass.pDepthStencilAttachment = &depthReference;
 
-			// Use subpass dependencies for attachment layput transitions
-			std::array<VkSubpassDependency, 2> dependencies;
+		// Use subpass dependencies for attachment layput transitions
+		std::array<VkSubpassDependency, 2> dependencies;
 
-			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[0].dstSubpass = 0;
-			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-			dependencies[1].srcSubpass = 0;
-			dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-			VkRenderPassCreateInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassInfo.pAttachments = attachmentDescs.data();
-			renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
-			renderPassInfo.subpassCount = 1;
-			renderPassInfo.pSubpasses = &subpass;
-			renderPassInfo.dependencyCount = 2;
-			renderPassInfo.pDependencies = dependencies.data();
+		VkRenderPassCreateInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.pAttachments = attachmentDescs.data();
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 2;
+		renderPassInfo.pDependencies = dependencies.data();
 
-			CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &renderPass));
-			fb->SetOwnsRenderPass(true);
-		}
-
+		VkRenderPass renderPass;
+		CHECK_VK_RESULT(vkCreateRenderPass(device->GetVulkanDevice(), &renderPassInfo, nullptr, &renderPass));
 		fb->SetRenderPass(renderPass);
+
 
 		//CREATE FRAMEBUFFER
 		VkFramebufferCreateInfo fbCreateInfo = {};

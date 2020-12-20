@@ -19,14 +19,14 @@ namespace plumbus::vk
             virtual void Render(uint32_t imageIndex, VkSemaphore waitSemaphore) = 0;
             virtual void CreateMaterialInstance() = 0;
             
-            FrameBufferRef GetFrameBuffer(int index) { return m_FrameBuffers[index]; }
-            VkSemaphore GetSemaphore(int index) { return m_Semaphores[index]; }
-            CommandBufferRef GetCommandBuffer(int index) { return m_CommandBuffers[index]; }
+            FrameBufferRef GetFrameBuffer() { return m_FrameBuffer; }
+            VkSemaphore GetSemaphore() { return m_Semaphore; }
+            CommandBufferRef GetCommandBuffer() { return m_CommandBuffer; }
 
     protected:
-            std::vector<FrameBufferRef> m_FrameBuffers;
-            std::vector<VkSemaphore> m_Semaphores; 
-            std::vector<CommandBufferRef> m_CommandBuffers;
+            FrameBufferRef m_FrameBuffer = VK_NULL_HANDLE;
+            VkSemaphore m_Semaphore = VK_NULL_HANDLE; 
+            CommandBufferRef m_CommandBuffer = VK_NULL_HANDLE;
             Light* m_Light;
     };
 }

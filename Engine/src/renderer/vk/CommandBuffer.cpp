@@ -36,7 +36,6 @@ namespace plumbus::vk
 	{
 		VkCommandBufferBeginInfo cmdBufInfo{};
 		cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
         CHECK_VK_RESULT(vkBeginCommandBuffer(m_CommandBuffer, &cmdBufInfo));
 	}
 

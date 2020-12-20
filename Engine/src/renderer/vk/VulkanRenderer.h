@@ -42,11 +42,11 @@ namespace plumbus
 			const PipelineCacheRef& GetPipelineCache() { return m_PipelineCache; }
 			VkFormat GetDepthFormat();
 
-			FrameBufferRef GetDeferredFramebuffer(uint32_t imageIndex) { return m_DeferredFrameBuffers[imageIndex]; }
-			const CommandBufferRef& GetDeferredCommandBuffer(uint32_t imageIndex) { return m_DeferredCommandBuffers[imageIndex]; }
+			FrameBufferRef GetDeferredFramebuffer() { return m_DeferredFrameBuffer; }
+			const CommandBufferRef& GetDeferredCommandBuffer() { return m_DeferredCommandBuffer; }
 #if !PL_DIST
-			FrameBufferRef GetDeferredOutputFramebuffer(uint32_t imageIndex) { return m_DeferredOutputFrameBuffers[imageIndex]; }
-			const CommandBufferRef& GetDeferredOutputCommandBuffer(uint32_t imageIndex) { return m_DeferredOutputCommandBuffers[imageIndex]; }
+			FrameBufferRef GetDeferredOutputFramebuffer() { return m_DeferredOutputFrameBuffer; }
+			const CommandBufferRef& GetDeferredOutputCommandBuffer() { return m_DeferredOutputCommandBuffer; }
 
 			ImGUIImpl* GetImGui() { return m_ImGui; }
 #endif
@@ -62,23 +62,14 @@ namespace plumbus
 #endif
 			void GenerateFullscreenQuad();
 			void CreateLightsUniformBuffers();
-			void BuildPresentCommandBuffer(uint32_t imageIndex, int currFrame);
-			void BuildDefferedCommandBuffer(uint32_t imageIndex);
+			void BuildPresentCommandBuffer(uint32_t imageIndex);
+			void BuildDefferedCommandBuffer();
 #if !PL_DIST
 			void SetupImGui();
-			void BuildDeferredOutputCommandBuffer(uint32_t imageIndex);
+			void BuildDeferredOutputCommandBuffer();
 #endif
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
-
-			void AquireSwapChainImage(uint32_t& imageIndex, int currFrame);
-			void DrawDeferred(uint32_t imageIndex, int currFrame, VkSemaphore waitSemaphore);
-#if !PL_DIST
-			void DrawDeferredOutput(uint32_t imageIndex, int currFrame);
-#endif
-			void DrawOutput(uint32_t imageIndex, int currFrame);
-			void Present(uint32_t& imageIndex, int currFrame);
-
 
 			VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
@@ -96,16 +87,16 @@ namespace plumbus
 			PipelineCacheRef m_PipelineCache;
 
 			MaterialRef m_DeferredOutputMaterial;
-			std::vector<MaterialInstanceRef> m_DeferredOutputMaterialInstances;
+			MaterialInstanceRef m_DeferredOutputMaterialInstance;
 
-			std::vector<VkSemaphore> m_DeferredSemaphores;
-			std::vector<CommandBufferRef> m_DeferredCommandBuffers;
-			std::vector<FrameBufferRef> m_DeferredFrameBuffers;
+			VkSemaphore m_DeferredSemaphore;
+			CommandBufferRef m_DeferredCommandBuffer;
+			FrameBufferRef m_DeferredFrameBuffer;
 			
 #if !PL_DIST
-			std::vector<VkSemaphore> m_DeferredOutputSemaphores;
-			std::vector<CommandBufferRef> m_DeferredOutputCommandBuffers;
-			std::vector<FrameBufferRef> m_DeferredOutputFrameBuffers;
+			VkSemaphore m_DeferredOutputSemaphore;
+			CommandBufferRef m_DeferredOutputCommandBuffer;
+			FrameBufferRef m_DeferredOutputFrameBuffer;
 #endif
 
 			std::vector<VkShaderModule> m_ShaderModules;
