@@ -121,7 +121,11 @@ namespace plumbus::vk
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
+#if PL_PLATFORM_ANDROID
+		deviceFeatures.textureCompressionASTC_LDR = VK_TRUE;
+#else
 		deviceFeatures.textureCompressionBC = VK_TRUE;
+#endif
 
 		VkDeviceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -340,29 +344,22 @@ namespace plumbus::vk
 		}
 	}
 
-	bool Device::IsDeviceSuitable(VkPhysicalDevice device)
-	{
-		VkPhysicalDeviceProperties deviceProperties;
-		vkGetPhysicalDeviceProperties(device, &deviceProperties);
-		if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-		{
-			Log::Info("Device: %s Invalid! type is not a discrete gpu.", deviceProperties.deviceName);
-			return false;
-		}
+    bool Device::IsDeviceSuitable(VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
-		VkPhysicalDeviceFeatures deviceFeatures;
-		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-		// if (!deviceFeatures.geometryShader)
-		// {
-		// 	Log::Info("Device: %s Invalid! no geometry shader support.", deviceProperties.deviceName);
-		// 	return false;
-		// }
+        if (deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceProperties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+        {
+            Log::Info("Device: %s Invalid! Expected VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU but found %s", deviceProperties.deviceName, DeviceTypeString(deviceProperties.deviceType).c_str());
+            return false;
+        }
 
-		if (!CheckDeviceExtensionSupport(device))
-		{
-			Log::Info("Device: %s Invalid! missing required extension support", deviceProperties.deviceName);
-			return false;
-		}
+        if (!CheckDeviceExtensionSupport(device))
+        {
+            Log::Info("Device: %s Invalid! missing required extension support", deviceProperties.deviceName);
+            return false;
+        }
 
 		SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(device);
 		if (swapChainSupport.m_Formats.empty() || swapChainSupport.m_PresentModes.empty())

@@ -1,6 +1,9 @@
 #include "plumbus.h"
 #include "imgui_impl/Log.h"
 #include "BaseApplication.h"
+#if PL_PLATFORM_ANDROID
+#include <android/log.h>
+#endif
 
 #define BEGIN_YELLOW printf("\033[0;33m");
 #define BEGIN_WHITE printf("\033[0;37m");
@@ -45,9 +48,14 @@ namespace plumbus
 	{
 		char buffer[1024];
 		va_list args;
-		va_start(args, fmt);
+        va_start(args, fmt);
 		vsnprintf(buffer, 1024, fmt, args);
+#if PL_PLATFORM_ANDROID
+		((void)__android_log_print(ANDROID_LOG_INFO, "PlumbusEngine", "%s", buffer));
+#else
 		printf("%s", buffer);
+		fflush(stdout);
+#endif
 		s_Buffer[s_LogEntryIndex] = ImGuiLogEntry{ (const char*)&buffer, GetImGuiTerminalColour(level) };
 		s_LogEntryIndex = ++s_LogEntryIndex % s_NumLogMessagesToStore;
 
@@ -109,7 +117,7 @@ namespace plumbus
 		END_COLOUR
 
 		va_end(args);
-#if PL_PLATFORM_LINUX
+#if PL_PLATFORM_LINUX || PL_PLATFORM_ANDROID
 		raise(SIGINT);
 #elif PL_PLATFORM_WINDOWS
 		__debugbreak();

@@ -34,13 +34,17 @@ namespace plumbus::tester::tests
 
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(10.f, 3.f, 0.f));
-			camera->SetRotation(glm::vec3(0.f, 90.f, 0.f));
+			camera->SetPosition(glm::vec3(10.f, 3.f, -20.f));
+			camera->SetRotation(glm::vec3(0.f, 90.f, 90.f));
 		}
 
 		GameObject* plane = new GameObject("plane");
 		scene->AddGameObject(plane->
-			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx"))->
+#if PL_PLATFORM_ANDROID
+			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color.astc", "stonefloor_normal.astc"))->
+#else
+             AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx"))->
+#endif
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
@@ -48,7 +52,11 @@ namespace plumbus::tester::tests
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
-			AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
+#if PL_PLATFORM_ANDROID
+         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color.astc", "normal.astc"))->
+#else
+         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
+#endif
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
@@ -68,7 +76,6 @@ namespace plumbus::tester::tests
 
 	void Shadows::Update()
 	{
-
 	}
 
 	void Shadows::Shutdown()

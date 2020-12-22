@@ -96,6 +96,11 @@ namespace plumbus::vk
 			Log::Info("Max image count: ", imageCount);
 		}
 
+		if( swapChainSupport.m_Capabilities.currentTransform == VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR || swapChainSupport.m_Capabilities.currentTransform == VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)
+		{
+			std::swap(extent.width, extent.height);
+		}
+
 		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfo.surface = renderer->GetWindow()->GetSurface();
@@ -104,6 +109,7 @@ namespace plumbus::vk
 		createInfo.imageColorSpace = surfaceFormat.colorSpace;
 		createInfo.imageExtent = extent;
 		createInfo.imageArrayLayers = 1;
+		createInfo.preTransform = swapChainSupport.m_Capabilities.currentTransform;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		vk::Device::QueueFamilyIndices indices = device->GetQueueFamilyIndices();
@@ -123,7 +129,11 @@ namespace plumbus::vk
 		}
 
 		createInfo.preTransform = swapChainSupport.m_Capabilities.currentTransform;
-		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+#if PL_PLATFORM_ANDROID
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+#else
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+#endif
 		createInfo.presentMode = presentMode;
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
@@ -169,8 +179,6 @@ namespace plumbus::vk
 
 	VkPresentModeKHR SwapChain::ChoosePresentMode(const std::vector<VkPresentModeKHR> availablePresentModes)
 	{
-		return VK_PRESENT_MODE_IMMEDIATE_KHR;
-
 		//standard double buffering.
 		VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 

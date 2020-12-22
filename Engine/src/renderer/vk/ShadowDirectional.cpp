@@ -79,10 +79,6 @@ namespace plumbus::vk
         {
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
-                if(obj->GetID() == "plane")
-                {
-                    continue;
-                }
                 DirectionalLight *dirLight = static_cast<DirectionalLight *>(m_Light);
                 m_UniformBufferObject.m_Proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
                 m_UniformBufferObject.m_View = glm::lookAt(dirLight->GetDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
@@ -91,6 +87,8 @@ namespace plumbus::vk
                 memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));
 
                 m_ShadowDirectionalMaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
+
+                vkDeviceWaitIdle(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice());
 
 				for (Mesh* model : comp->GetModels())
 				{

@@ -43,7 +43,7 @@ namespace plumbus
 		static BaseApplication* s_Instance;
 		Scene* m_Scene;
 		double m_DeltaTime = 0;
-		double m_lastUpdateTime;
+		double m_LastUpdateTime;
 
 		vk::VulkanRenderer* m_Renderer;
 		std::string m_AppName;

@@ -23,7 +23,20 @@ namespace plumbus::vk::shaders
 
     bool Tokenizer::IsWhiteSpace(char c)
     {
+#if PL_PLATFORM_WINDOWS
+        return isspace(c);
+#else
         return std::isspace(c);
+#endif
+    }
+
+    bool Tokenizer::IsDigit(char c)
+    {
+#if PL_PLATFORM_WINDOWS
+        return isdigit(c);
+#else
+        return std::isdigit(c);
+#endif
     }
 
     bool Tokenizer::IsPunct(char c)
@@ -118,7 +131,7 @@ namespace plumbus::vk::shaders
     {
         std::string identifier = ReadWhile(stream, [this](int peek)
         {
-            return !std::isspace(peek) && !IsPunct(peek);
+            return !IsWhiteSpace(peek) && !IsPunct(peek);
         });
 
         std::unique_ptr<IdentifierToken> token = std::make_unique<IdentifierToken>(m_LineNumber, m_Position - identifier.length());
@@ -136,7 +149,7 @@ namespace plumbus::vk::shaders
                 hasDecimal = true;
             }
 
-            return std::isdigit(peek) || peek == '.';
+            return IsDigit(peek) || peek == '.';
         });
         float number = stof(numberString);
 
@@ -198,7 +211,7 @@ namespace plumbus::vk::shaders
         {
             return ReadOperator(stream);
         }
-        else if (!std::isdigit(peek))
+        else if (!IsDigit(peek))
         {
             return ReadIdentifier(stream);
         }

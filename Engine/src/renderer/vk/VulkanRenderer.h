@@ -17,6 +17,8 @@ namespace plumbus
 		class Mesh;
 		class Instance;
 
+#define ENABLE_IMGUI !PL_PLATFORM_ANDROID && !PL_DIST
+
 		static constexpr size_t MAX_FRAMES_IN_FLIGHT = 3;
 
 		class VulkanRenderer
@@ -44,7 +46,7 @@ namespace plumbus
 
 			FrameBufferRef GetDeferredFramebuffer() { return m_DeferredFrameBuffer; }
 			const CommandBufferRef& GetDeferredCommandBuffer() { return m_DeferredCommandBuffer; }
-#if !PL_DIST
+#if ENABLE_IMGUI
 			FrameBufferRef GetDeferredOutputFramebuffer() { return m_DeferredOutputFrameBuffer; }
 			const CommandBufferRef& GetDeferredOutputCommandBuffer() { return m_DeferredOutputCommandBuffer; }
 
@@ -64,7 +66,7 @@ namespace plumbus
 			void CreateLightsUniformBuffers();
 			void BuildPresentCommandBuffer(uint32_t imageIndex);
 			void BuildDefferedCommandBuffer();
-#if !PL_DIST
+#if ENABLE_IMGUI
 			void SetupImGui();
 			void BuildDeferredOutputCommandBuffer();
 #endif

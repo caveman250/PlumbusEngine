@@ -15,6 +15,11 @@
 #include "DescriptorSet.h"
 #include "PipelineLayout.h"
 #include "MaterialInstance.h"
+#if PL_PLATFORM_WINDOWS
+#include "platform/windows/Platform.h"
+#else
+#include "platform/android/Platform.h"
+#endif
 
 namespace plumbus::vk
 {
@@ -193,8 +198,9 @@ namespace plumbus::vk
         
         Assimp::Importer Importer;
         const aiScene* scene;
-        
-        scene = Importer.ReadFile(fileName.c_str(), flags);
+
+        std::vector<char> fileContents = Helpers::ReadFile(fileName.c_str());
+        scene = Importer.ReadFileFromMemory(fileContents.data(), fileContents.size(), flags);
         if (!scene)
         {
             Log::Error(Importer.GetErrorString());
@@ -248,8 +254,8 @@ namespace plumbus::vk
 				aiColor3D pColor(0.f, 0.f, 0.f);
 				scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
                 
-                meshes.back()->GetColourMap()->LoadTexture(std::string("textures/") + diffusePath.C_Str());
-			    meshes.back()->GetNormalMap()->LoadTexture(std::string("textures/") + normalPath.C_Str());
+                meshes.back()->GetColourMap()->LoadTexture(Platform::GetTextureDirPath() + diffusePath.C_Str() + Platform::GetTextureExtension());
+			    meshes.back()->GetNormalMap()->LoadTexture(Platform::GetTextureDirPath() + normalPath.C_Str() + Platform::GetTextureExtension());
 
                 const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
                 

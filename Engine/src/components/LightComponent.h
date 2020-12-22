@@ -18,7 +18,7 @@ namespace plumbus
 	{
 	public:
 		Light(glm::vec3 colour, LightComponent* parent) : m_Colour(colour), m_Shadow(nullptr), m_LightComponent(parent) {}
-		~Light() {}
+		virtual ~Light() {}
 		glm::vec3 GetColour() { return m_Colour; }
 		void SetColour(glm::vec3 colour) { m_Colour = colour; }
 		LightType GetType() { return m_Type; }

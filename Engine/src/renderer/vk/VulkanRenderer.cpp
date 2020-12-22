@@ -97,7 +97,7 @@ namespace plumbus::vk
         m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
 
 
-#if !PL_DIST
+#if ENABLE_IMGUI
 		std::vector<FrameBuffer::FrameBufferAttachmentInfo> outputAttachmentInfo =
 		{
 			FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
@@ -110,7 +110,7 @@ namespace plumbus::vk
         CreateLightsUniformBuffers();
         m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
 
-#if !PL_DIST
+#if ENABLE_IMGUI
             m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_DeferredOutputFrameBuffer->GetRenderPass());
 #else
             m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_SwapChain->GetRenderPass());
@@ -141,7 +141,7 @@ namespace plumbus::vk
         }
 
         BuildDefferedCommandBuffer();
-#if !PL_DIST
+#if ENABLE_IMGUI
         SetupImGui();
         BuildDeferredOutputCommandBuffer();
 #endif
@@ -158,7 +158,7 @@ namespace plumbus::vk
         CHECK_VK_RESULT(CreateDebugReportCallbackEXT(m_Instance->GetVulkanInstance(), &createInfo, nullptr, &m_Callback));
     }
 #endif
-   
+
 
     bool VulkanRenderer::WindowShouldClose()
     {
@@ -182,7 +182,9 @@ namespace plumbus::vk
 
         BuildPresentCommandBuffer(imageIndex);
         BuildDefferedCommandBuffer();
+#if ENABLE_IMGUI
         BuildDeferredOutputCommandBuffer();
+#endif
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -202,7 +204,7 @@ namespace plumbus::vk
 
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
-#if !PL_DIST
+#if ENABLE_IMGUI
         submitInfo.pWaitSemaphores = &m_DeferredSemaphore;
         submitInfo.pSignalSemaphores = &m_DeferredOutputSemaphore;
 
@@ -263,7 +265,7 @@ namespace plumbus::vk
     void VulkanRenderer::Cleanup()
     {
         m_DeferredFrameBuffer.reset();
-#if !PL_DIST
+#if ENABLE_IMGUI
         m_DeferredOutputFrameBuffer.reset();
 #endif
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
@@ -278,7 +280,7 @@ namespace plumbus::vk
         m_LightsVulkanBuffer.Cleanup();
 
         m_DeferredCommandBuffer.reset();
-#if !PL_DIST
+#if ENABLE_IMGUI
         delete m_ImGui;
         m_DeferredOutputCommandBuffer.reset();
 #endif
@@ -299,11 +301,11 @@ namespace plumbus::vk
         m_PipelineCache.reset();
         vkDestroyCommandPool(m_Device->GetVulkanDevice(), m_Device->GetCommandPool(), nullptr);
 
-        
+
             vkDestroySemaphore(m_Device->GetVulkanDevice(), m_DeferredSemaphore, nullptr);
-        
-#if !PL_DIST
-        
+
+#if ENABLE_IMGUI
+
             vkDestroySemaphore(m_Device->GetVulkanDevice(), m_DeferredOutputSemaphore, nullptr);
       #endif
 
@@ -348,12 +350,17 @@ namespace plumbus::vk
 
     std::vector<const char*> VulkanRenderer::GetRequiredInstanceExtensions()
     {
+#if PL_PLATFORM_ANDROID
+        std::vector<const char*> extensions;
+        extensions.push_back("VK_KHR_surface");
+        extensions.push_back("VK_KHR_android_surface");
+#else
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
+#endif
         extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
         return extensions;
@@ -413,7 +420,7 @@ namespace plumbus::vk
 
     void VulkanRenderer::BuildPresentCommandBuffer(uint32_t imageIndex)
     {
-#if !PL_DIST 
+#if ENABLE_IMGUI
         m_ImGui->NewFrame();
         m_ImGui->UpdateBuffers();
 #endif
@@ -422,16 +429,16 @@ namespace plumbus::vk
         m_SwapChain->GetCommandBuffer(imageIndex)->BeginRecording();
         m_SwapChain->GetCommandBuffer(imageIndex)->BeginRenderPass();
 
-#if !PL_DIST
+#if ENABLE_IMGUI
         m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(imageIndex)->GetVulkanCommandBuffer());
 #else
-        m_SwapChain->GetCommandBuffer(index)->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
-        m_SwapChain->GetCommandBuffer(index)->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
+        m_SwapChain->GetCommandBuffer(imageIndex)->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
+        m_SwapChain->GetCommandBuffer(imageIndex)->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
 
-        m_DeferredOutputMaterialInstances[index]->Bind(m_SwapChain->GetCommandBuffer(index));
-        m_SwapChain->GetCommandBuffer(index)->BindVertexBuffer(m_FullscreenQuad.GetVertexBuffer());
-        m_SwapChain->GetCommandBuffer(index)->BindIndexBuffer(m_FullscreenQuad.GetIndexBuffer());
-        m_SwapChain->GetCommandBuffer(index)->RecordDraw(6);
+        m_DeferredOutputMaterialInstance->Bind(m_SwapChain->GetCommandBuffer(imageIndex));
+        m_SwapChain->GetCommandBuffer(imageIndex)->BindVertexBuffer(m_FullscreenQuad.GetVertexBuffer());
+        m_SwapChain->GetCommandBuffer(imageIndex)->BindIndexBuffer(m_FullscreenQuad.GetIndexBuffer());
+        m_SwapChain->GetCommandBuffer(imageIndex)->RecordDraw(6);
 #endif
         m_SwapChain->GetCommandBuffer(imageIndex)->EndRenderPass();
         m_SwapChain->GetCommandBuffer(imageIndex)->EndRecording();
@@ -450,7 +457,7 @@ namespace plumbus::vk
             VkSemaphoreCreateInfo semaphoreCreateInfo{};
             semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
             CHECK_VK_RESULT(vkCreateSemaphore(m_Device->GetVulkanDevice(), &semaphoreCreateInfo, nullptr, &m_DeferredSemaphore));
-         
+
         }
 
         m_DeferredCommandBuffer->BeginRecording();
@@ -473,13 +480,13 @@ namespace plumbus::vk
         m_DeferredCommandBuffer->EndRecording();
     }
 
-#if !PL_DIST
+#if ENABLE_IMGUI
     void VulkanRenderer::BuildDeferredOutputCommandBuffer()
     {
         if (m_DeferredOutputCommandBuffer == VK_NULL_HANDLE)
         {
             m_DeferredOutputCommandBuffer = CommandBuffer::CreateCommandBuffer();
-            m_DeferredOutputCommandBuffer->SetFrameBuffer(m_DeferredOutputFrameBuffer);   
+            m_DeferredOutputCommandBuffer->SetFrameBuffer(m_DeferredOutputFrameBuffer);
         }
 
         if (m_DeferredOutputSemaphore == VK_NULL_HANDLE)
@@ -532,8 +539,9 @@ namespace plumbus::vk
                     else if (light->GetType() == LightType::Directional)
                     {
                         DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
-                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Direction = glm::vec4(directionalLight->GetDirection(), 1.0f);
-						m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
+                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Direction = glm::vec4(directionalLight->GetDirection(), 1);
+                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
+                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Mvp = directionalLight->GetMVP();
                     }
                 }
             }
@@ -545,7 +553,7 @@ namespace plumbus::vk
         memcpy(m_LightsVulkanBuffer.m_Mapped, &m_LightsUniformBuffer, sizeof(m_LightsUniformBuffer));
     }
 
-#if !PL_DIST
+#if ENABLE_IMGUI
     void VulkanRenderer::SetupImGui()
     {
         m_ImGui = new ImGUIImpl();
@@ -628,11 +636,18 @@ namespace plumbus::vk
 	std::vector<const char*> VulkanRenderer::GetRequiredValidationLayers()
 	{
 #if !PL_DIST
+#if PL_PLATFORM_ANDROID
+        return
+        {
+            "VK_LAYER_LUNARG_core_validation",
+        };
+#else
 		return 		
 		{
-			"VK_LAYER_KHRONOS_validation",
-			"VK_LAYER_RENDERDOC_Capture"
+		    "VK_LAYER_KHRONOS_validation",
+            "VK_LAYER_RENDERDOC_Capture"
 		};
+#endif
 #else   
         return 		
 		{
@@ -646,7 +661,7 @@ namespace plumbus::vk
 
         m_SwapChain->Recreate();
 
-#if !PL_DIST
+#if ENABLE_IMGUI
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2(static_cast<float>(m_SwapChain->GetExtents().width / m_Window->GetContentScaleX()), static_cast<float>(m_SwapChain->GetExtents().height / m_Window->GetContentScaleY()));
 #endif

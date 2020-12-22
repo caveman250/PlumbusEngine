@@ -37,12 +37,10 @@ namespace plumbus::tester
 		{
 			m_ActiveTest->Update();
 		}
-#if PL_DIST
 		else
 		{
-			BeginTest<tests::Shadows>();
+			BeginTest<tests::DeferredLights>();
 		}
-#endif
 	}
 
 	void TestManager::OnGui()

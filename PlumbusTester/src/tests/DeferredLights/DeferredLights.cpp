@@ -42,13 +42,13 @@ namespace plumbus::tester::tests
 
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(10.f, 3.f, 0.f));
-			camera->SetRotation(glm::vec3(0.f, 90.f, 0.f));
+			camera->SetPosition(glm::vec3(20.f, 6.f, 0.f));
+			camera->SetRotation(glm::vec3(0.f, 90.f, -10.f));
 		}
 
 		GameObject* plane = new GameObject("plane");
 		scene->AddGameObject(plane->
-			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx"))->
+			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
@@ -56,7 +56,7 @@ namespace plumbus::tester::tests
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
-			AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
+			AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color", "normal"))->
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
@@ -87,7 +87,7 @@ namespace plumbus::tester::tests
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 
-#if !PL_DIST
+#if ENABLE_IMGUI
 		vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
 		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour").m_ImageView);
 		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal").m_ImageView);

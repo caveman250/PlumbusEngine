@@ -11,7 +11,7 @@
 #include "renderer/vk/DescriptorPool.h"
 #include "renderer/vk/DescriptorSet.h"
 
-#if !PL_DIST
+#if ENABLE_IMGUI
 namespace plumbus
 {
 	ImGUIImpl::ImGUIImpl()

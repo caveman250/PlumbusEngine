@@ -20,6 +20,7 @@ namespace plumbus::vk::shaders
     struct Token
     {
         Token(TokenType tokenType, int lineNumber, int linePosition) : m_Type(tokenType), m_LineNumber(lineNumber), m_Position(linePosition) {}
+        virtual ~Token() {}
         TokenType m_Type;
         int m_LineNumber;
         int m_Position;
@@ -115,10 +116,11 @@ namespace plumbus::vk::shaders
         std::unique_ptr<Token> ReadPunct(std::ifstream& stream);
         std::unique_ptr<Token> ReadOperator(std::ifstream& stream);
 
-        bool IsWhiteSpace(char c);
-        bool IsPunct(char c);
-        bool IsOperator(char c);
-        bool IsComment(char c, std::ifstream& stream);
+        static bool IsWhiteSpace(char c);
+        static bool IsDigit(char c);
+        static bool IsPunct(char c);
+        static bool IsOperator(char c);
+        static bool IsComment(char c, std::ifstream& stream);
 
         int m_LineNumber;
         int m_Position;

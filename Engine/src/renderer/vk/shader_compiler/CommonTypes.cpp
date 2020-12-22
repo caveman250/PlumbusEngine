@@ -2,6 +2,7 @@
 // Created by ouchqt on 22/8/20.
 //
 
+#include "plumbus.h"
 #include "CommonTypes.h"
 
 namespace plumbus::vk::shaders

@@ -4,7 +4,7 @@
 namespace plumbus::vk::shaders
 {
     ShaderParser::ShaderParser()
-        : m_ShaderSegment()
+            : m_ShaderSegment()
     {
 
     }
@@ -31,12 +31,12 @@ namespace plumbus::vk::shaders
                             return false;
                         }
                     }
-                    else if(UniformParser::IsUniformLine(tokens, currIndex))
+                    else if (UniformParser::IsUniformLine(tokens, currIndex))
                     {
                         UniformParser builder;
                         if (Node* uniform = builder.Parse(tokens, currIndex))
                         {
-                            switch(uniform->m_Type)
+                            switch (uniform->m_Type)
                             {
                                 case NodeType::SamplerUniform:
                                     m_ShaderSegment.AddSamplerUniform(static_cast<Sampler2DUniform*>(uniform));
@@ -76,7 +76,11 @@ namespace plumbus::vk::shaders
             didError |= !TryStartNewNode(tokens, i);
         }
 
-        Log::Info("Compiled Shader Code:\n%s", m_ShaderSegment.ToGLSL().c_str());
+        if (!didError)
+        {
+            Log::Info("Compiled Shader Code:\n%s", m_ShaderSegment.ToGLSL().c_str());
+        }
+
         return !didError;
     }
 

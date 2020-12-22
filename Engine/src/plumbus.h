@@ -1,7 +1,12 @@
 #pragma once
 
-#include "vulkan/vulkan.h"
+#if !PL_PLATFORM_ANDROID
 #define GLFW_INCLUDE_VULKAN
+#else
+#define VK_USE_PLATFORM_ANDROID_KHR
+#endif
+#include "vulkan/vulkan.h"
+
 #include "renderer/vk/vk_types_fwd.h"
 
 #include <vector>
@@ -13,7 +18,9 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include <iostream>
 #include <cstring>
+#if !PL_PLATFORM_ANDROID
 #include <GLFW/glfw3.h>
+#endif
 #include <string>
 #include <map>
 #include <fstream>
@@ -39,7 +46,7 @@ namespace plumbus
 #elif PL_DEBUG
 #define PL_ASSERT(expr, ...) \
 	do { \
-			if (!(expr))\
+			if (false && !(expr))\
 			{\
 				char msg_buf[1024]; \
 				PL_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
@@ -89,7 +96,12 @@ namespace plumbus
 		}\
 	} while (0)
 #else 
-	#define PL_ASSERT(expr, ...)  do {} while(0)
+	#define PL_ASSERT(expr, ...)  do {\
+	if (!(expr))\
+    {\
+        /*raise(SIGINT);*/\
+    }\
+	} while(0)
 #endif
 
 #if PL_DIST

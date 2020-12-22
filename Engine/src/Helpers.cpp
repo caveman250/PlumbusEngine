@@ -1,6 +1,12 @@
 #include "plumbus.h"
 #include "Helpers.h"
 
+#if PL_PLATFORM_WINDOWS
+#include "platform/windows/Platform.h"
+#else
+#include "platform/android/Platform.h"
+#endif
+
 std::string ErrorString(VkResult errorCode)
 {
 	switch (errorCode)
@@ -36,9 +42,49 @@ std::string ErrorString(VkResult errorCode)
 	}
 }
 
+std::string DeviceTypeString(VkPhysicalDeviceType deviceType)
+{
+	switch (deviceType)
+	{
+#define STR(r) case r: return #r
+		STR(VK_PHYSICAL_DEVICE_TYPE_OTHER);
+		STR(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU);
+		STR(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+		STR(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU);
+		STR(VK_PHYSICAL_DEVICE_TYPE_CPU);
+#undef STR
+		default:
+			return "UNKNOWN";
+	}
+}
+
+#if PL_PLATFORM_ANDROID
+#include "android_native_app_glue.h"
+extern android_app* Android_application;
+#endif
+
 std::vector<char> Helpers::ReadFile(const std::string& filename)
 {
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+#if PL_PLATFORM_ANDROID
+
+	AAssetManager * mgr = Android_application->activity->assetManager;
+	if(AAsset* asset = AAssetManager_open(mgr, (plumbus::Platform::GetAssetsPath() + filename).c_str(), AASSET_MODE_BUFFER))
+	{
+		std::vector<char> buffer;
+		//holds size of searched file
+		off64_t length = AAsset_getLength64(asset);
+		buffer.resize(length);
+
+		//read data chunk
+		if(PL_VERIFY(AAsset_read(asset, buffer.data(), length) > 0))
+		{
+			return buffer;
+		}
+	}
+
+	return std::vector<char>();
+#else
+	std::ifstream file(plumbus::Platform::GetAssetsPath() + filename, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open())
 	{
@@ -54,4 +100,5 @@ std::vector<char> Helpers::ReadFile(const std::string& filename)
 	file.close();
 
 	return buffer;
+#endif
 }

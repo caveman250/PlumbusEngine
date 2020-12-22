@@ -7,7 +7,7 @@
 #include "renderer/vk/ImageHelpers.h"
 #include "renderer/vk/vk_types_fwd.h"
 
-#if !PL_DIST
+#if ENABLE_IMGUI
 namespace plumbus
 {
 	class ImGUIImpl

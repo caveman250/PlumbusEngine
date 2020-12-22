@@ -19,7 +19,7 @@ namespace plumbus::vk
 		appInfo.applicationVersion = VK_MAKE_VERSION(appVersion, 0, 0);
 		appInfo.pEngineName = "PlumbusEngine";
 		appInfo.engineVersion = VK_MAKE_VERSION(appVersion, 0, 0);
-		appInfo.apiVersion = VK_API_VERSION_1_2;
+		appInfo.apiVersion = VK_API_VERSION_1_0;
 		//Create Info
 
 		VkInstanceCreateInfo createInfo = {};
