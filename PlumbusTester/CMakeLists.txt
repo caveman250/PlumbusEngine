@@ -88,7 +88,9 @@ endif()
 target_link_libraries(${NAME} assimp)
 link_libraries(${ASSIMP_LIBRARIES})
 
+target_link_libraries(${NAME} SPIRV)
 target_link_libraries(${NAME} spirv-cross-core)
+target_link_libraries(${NAME} glslang)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES Android)
 target_link_libraries(${NAME} ${android-log-lib} android)

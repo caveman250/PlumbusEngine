@@ -30,9 +30,9 @@ namespace plumbus
 
 			vk::MaterialRef m_DeferredLightMaterial;
 
-			vk::DescriptorSetRef m_AlbedoTextureDescSet;
-			vk::DescriptorSetRef m_WorldPosTextureDescSet;
-			vk::DescriptorSetRef m_NormalsTextureDescSet;
+			vk::MaterialInstanceRef m_AlbedoTextureDescSet;
+			vk::MaterialInstanceRef m_WorldPosTextureDescSet;
+			vk::MaterialInstanceRef m_NormalsTextureDescSet;
 		};
 	}
 }

@@ -1,17 +1,20 @@
 #include "plumbus.h"
 #include "LightComponent.h"
 #include "glm/glm.hpp"
+#include "renderer/vk/ShadowDirectional.h"
+#include "renderer/vk/ShadowManager.h"
 
 namespace plumbus
 {
 	void DirectionalLight::AddShadow() 
 	{
 		m_Shadow = std::static_pointer_cast<vk::Shadow>(vk::ShadowDirectional::CreateShadowDirectional(this));
+		vk::ShadowManager::Get()->RegisterShadow(m_Shadow.get());
 	}
 	
 	glm::mat4 DirectionalLight::GetMVP() 
 	{
-		glm::mat4 proj = glm::ortho<float>(-10,10,-10,10,-10,20);
+		glm::mat4 proj = glm::ortho<float>(-15,15,-15,15,-15,50);
         glm::mat4 view = glm::lookAt(GetDirection(), glm::vec3(0,0,0), glm::vec3(0, 1,0));
         glm::mat4 model = glm::mat4(1.0f);
 

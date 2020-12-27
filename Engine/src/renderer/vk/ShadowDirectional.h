@@ -2,6 +2,7 @@
 #include "plumbus.h"
 #include "Shadow.h"
 #include "Buffer.h"
+#include "ModelComponent.h"
 
 namespace plumbus::vk
 {
@@ -10,17 +11,22 @@ namespace plumbus::vk
     public:
         static ShadowDirectionalRef CreateShadowDirectional(Light* light);
 
-        ShadowDirectional(Light* light) : Shadow(light), m_ShadowDirectionalMaterialInstance(nullptr) {}
+        ShadowDirectional(Light* light)
+			: Shadow(light)
+		{
+		}
+
+    	virtual ~ShadowDirectional();
+
         virtual void Init() override;
-        virtual void BuildCommandBuffer(uint32_t imageIndex) override;
-        virtual void Render(uint32_t imageIndex, VkSemaphore waitSemaphore) override;
-        virtual void CreateMaterialInstance() override;
+        virtual void BuildCommandBuffer() override;
+        virtual void Render(VkSemaphore waitSemaphore) override;
 
         static void CleanupMaterial();
 
     private:
         static MaterialRef s_ShadowDirectionalMaterial;
-        MaterialInstanceRef m_ShadowDirectionalMaterialInstance;
+        std::unordered_map<ModelComponent*, MaterialInstanceRef> m_ShadowDirectionalMaterialInstances;
 
         struct UniformBufferObject
 		{
@@ -29,7 +35,7 @@ namespace plumbus::vk
 			glm::mat4 m_Proj;
 		};
 
-        UniformBufferObject m_UniformBufferObject;
-        Buffer m_UniformBuffer;
+        std::unordered_map<ModelComponent*, UniformBufferObject> m_UniformBufferObjects;
+        std::unordered_map<ModelComponent*, Buffer> m_UniformBuffers;
     };
 }

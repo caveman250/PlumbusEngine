@@ -23,15 +23,6 @@
 
 namespace plumbus::vk
 {
-	const VertexLayout Mesh::s_VertexLayout = VertexLayout(
-	{
-		vk::VertexLayoutComponent::Position,
-		vk::VertexLayoutComponent::UV,
-		vk::VertexLayoutComponent::Colour,
-		vk::VertexLayoutComponent::Normal,
-		vk::VertexLayoutComponent::Tangent,
-	});
-
 	Mesh::Mesh()
 	{
 		m_ColourMap = new vk::Texture();
@@ -199,7 +190,7 @@ namespace plumbus::vk
         Assimp::Importer Importer;
         const aiScene* scene;
 
-        std::vector<char> fileContents = Helpers::ReadFile(fileName.c_str());
+        std::vector<char> fileContents = Helpers::ReadBinaryFile(fileName.c_str());
         scene = Importer.ReadFileFromMemory(fileContents.data(), fileContents.size(), flags);
         if (!scene)
         {
@@ -260,9 +251,6 @@ namespace plumbus::vk
                 const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
                 
                 Dimension dim;
-                
-                VertexLayout layout = VertexLayout(vertLayoutComponents);
-                
                 for (unsigned int j = 0; j < paiMesh->mNumVertices; j++)
                 {
                     const aiVector3D* pPos = &(paiMesh->mVertices[j]);
@@ -271,7 +259,7 @@ namespace plumbus::vk
                     const aiVector3D* pTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mTangents[j]) : &Zero3D;
                     const aiVector3D* pBiTangent = (paiMesh->HasTangentsAndBitangents()) ? &(paiMesh->mBitangents[j]) : &Zero3D;
                     
-                    for (auto& component : layout.components)
+                    for (auto& component : vertLayoutComponents)
                     {
                         switch (component)
                         {

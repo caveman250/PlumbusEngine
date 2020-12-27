@@ -4,6 +4,7 @@
 #include "DescriptorSet.h"
 #include "PipelineLayout.h"
 #include "Pipeline.h"
+#include "Device.h"
 
 namespace plumbus::vk
 {

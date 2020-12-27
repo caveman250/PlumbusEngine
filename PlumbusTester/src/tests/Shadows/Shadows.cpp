@@ -13,15 +13,16 @@
 #include "renderer/vk/VulkanRenderer.h"
 #include "imgui_impl/ImGuiImpl.h"
 #include "renderer/vk/DescriptorSet.h"
+#include "renderer/vk/ShadowManager.h"
 
 namespace plumbus::tester::tests 
 {
 	
 	Shadows::Shadows()
 		: Test()
-		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
+		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert", "shaders/shader.frag"))
 	{
-		m_DeferredLightMaterial->Setup(vk::Mesh::s_VertexLayout);
+		m_DeferredLightMaterial->Setup();
 	}
 
 	Shadows::~Shadows()
@@ -34,16 +35,16 @@ namespace plumbus::tester::tests
 
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(10.f, 3.f, -20.f));
-			camera->SetRotation(glm::vec3(0.f, 90.f, 90.f));
+			camera->SetPosition(glm::vec3(20.f, 6.f, 0.f));
+			camera->SetRotation(glm::vec3(-30.f, 90.f, 0.0f));
 		}
 
 		GameObject* plane = new GameObject("plane");
 		scene->AddGameObject(plane->
 #if PL_PLATFORM_ANDROID
-			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color.astc", "stonefloor_normal.astc"))->
+			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
 #else
-             AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor01_color_bc3_unorm.ktx", "stonefloor01_normal_bc3_unorm.ktx"))->
+             AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
 #endif
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
@@ -53,9 +54,9 @@ namespace plumbus::tester::tests
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
 #if PL_PLATFORM_ANDROID
-         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color.astc", "normal.astc"))->
+         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color", "normal"))->
 #else
-         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
+         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color", "normal"))->
 #endif
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
@@ -76,6 +77,17 @@ namespace plumbus::tester::tests
 
 	void Shadows::Update()
 	{
+#if !PL_DIST
+		if(!m_ShadowTextureImGui)
+		{
+			std::vector<vk::Shadow*>& shadows = vk::ShadowManager::Get()->GetShadows();
+			if (shadows.size() > 0)
+			{
+				vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
+				m_ShadowTextureImGui = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(shadows.back()->GetFrameBuffer()->GetSampler(), shadows.back()->GetFrameBuffer()->GetAttachment("depth").m_ImageView, true);
+			}
+		}
+#endif
 	}
 
 	void Shadows::Shutdown()
@@ -97,7 +109,12 @@ namespace plumbus::tester::tests
 	void Shadows::OnGui()
 	{
 		ImGui::Text("Shadows");
-		//TODO
+
+#if !PL_DIST
+		if(m_ShadowTextureImGui)
+			ImGui::Image(m_ShadowTextureImGui.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+#endif
+		
 	}
 
 }

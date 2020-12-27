@@ -14,12 +14,26 @@ namespace plumbus
 
 	namespace vk
 	{
+		struct PushConstant;
+
+		namespace shaders {
+			class ShaderSettings;
+		}
+
 		class Mesh;
 		class Instance;
 
 #define ENABLE_IMGUI !PL_PLATFORM_ANDROID && !PL_DIST
 
-		static constexpr size_t MAX_FRAMES_IN_FLIGHT = 3;
+		struct ShaderReflectionObject
+		{
+			std::vector<StageInput> m_VertexStageInputs;
+			std::vector<StageInput> m_FragmentStageInputs;
+			int m_VertexStageOutputCount = 0;
+			int m_FragmentStageOutputCount = 0;
+			std::vector<DescriptorBinding> m_Bindings;
+			std::vector<PushConstant> m_PushConstants;
+		};
 
 		class VulkanRenderer
 		{
@@ -34,7 +48,7 @@ namespace plumbus
 
 			bool WindowShouldClose();
 
-			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs);
+			VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage,  shaders::ShaderSettings settings, ShaderReflectionObject& shaderReflection);
 
 			InstanceRef GetInstance() { return m_Instance; }
 			DeviceRef GetDevice() { return m_Device; }
@@ -57,6 +71,8 @@ namespace plumbus
 			std::vector<const char*> GetRequiredInstanceExtensions();
 			std::vector<const char*> GetRequiredValidationLayers();
 
+			void SetShadowCount(int count);
+
 		private:
 			void InitVulkan();
 #if !PL_DIST
@@ -73,7 +89,7 @@ namespace plumbus
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
 
-			VkShaderModule CreateShaderModule(const std::vector<char>& code);
+			VkShaderModule CreateShaderModule(const std::vector<unsigned int>& code);
 
 			VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 

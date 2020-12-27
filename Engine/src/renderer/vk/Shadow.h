@@ -14,10 +14,10 @@ namespace plumbus::vk
     {
         public:
             Shadow(Light* light) : m_Light(light) {}
+    		virtual ~Shadow();
             virtual void Init() = 0;
-            virtual void BuildCommandBuffer(uint32_t imageIndex) = 0;
-            virtual void Render(uint32_t imageIndex, VkSemaphore waitSemaphore) = 0;
-            virtual void CreateMaterialInstance() = 0;
+            virtual void BuildCommandBuffer() = 0;
+            virtual void Render(VkSemaphore waitSemaphore) = 0;
             
             FrameBufferRef GetFrameBuffer() { return m_FrameBuffer; }
             VkSemaphore GetSemaphore() { return m_Semaphore; }

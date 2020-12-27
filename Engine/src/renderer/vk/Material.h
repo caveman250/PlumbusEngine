@@ -4,9 +4,13 @@
 
 #include "DescriptorSetLayout.h"
 #include "Pipeline.h"
+#include "shader_compiler/ShaderSettings.h"
 
 namespace plumbus::vk
 {
+	struct PushConstant;
+	struct ShaderReflectionObject;
+
 	enum class VertexLayoutComponent
 	{
 		Position = 0x0,
@@ -19,67 +23,29 @@ namespace plumbus::vk
 		DummyVec4 = 0x7
 	};
 
-	struct VertexLayout
-	{
-	public:
-		std::vector<VertexLayoutComponent> components;
-
-		VertexLayout()
-		{
-		}
-
-		VertexLayout(std::vector<VertexLayoutComponent> components)
-		{
-			this->components = std::move(components);
-		}
-
-		uint32_t stride()
-		{
-			uint32_t res = 0;
-			for (auto& component : components)
-			{
-				switch (component)
-				{
-				case VertexLayoutComponent::UV:
-					res += 2 * sizeof(float);
-					break;
-				case VertexLayoutComponent::DummyFloat:
-					res += sizeof(float);
-					break;
-				case VertexLayoutComponent::DummyVec4:
-					res += 4 * sizeof(float);
-					break;
-				default:
-					// All components except the ones listed above are made up of 3 floats
-					res += 3 * sizeof(float);
-				}
-			}
-			return res;
-		}
-	};
-
 	class Material
 	{
 	public:
-		Material(const char* vertShader, const char* fragShader, VkRenderPass renderPass = VK_NULL_HANDLE);
+		Material(const char* vertShader, const char* fragShader, VkRenderPass renderPass = VK_NULL_HANDLE, bool enableAlphaBlending = false);
 		~Material();
-		virtual void Setup(VertexLayout layout);
+		virtual void Setup();
 		const PipelineRef& GetPipeline() { return m_Pipeline; }
 		const PipelineLayoutRef& GetPipelineLayout() { return m_PipelineLayout; }
 
 		const DescriptorSetLayoutRef& GetLayout() { return m_DescriptorSetLayout; }
+		shaders::ShaderSettings& GetShaderSettings() { return m_ShaderSettings; }
 
 	private:
-		void CreatePipelineLayout(const std::vector<DescriptorBinding>& binding);
-		void CreateVertexDescriptions();
+		void CreatePipelineLayout(const ShaderReflectionObject& shaderReflection);
+		void CreateVertexDescriptions(const ShaderReflectionObject& shaderReflection);
 
 		VertexDescription m_VertexDescriptions;
 		DescriptorSetLayoutRef m_DescriptorSetLayout;
 
+		bool m_EnableAlphaBlending;
 		PipelineLayoutRef m_PipelineLayout;
 		PipelineRef m_Pipeline;
 
-		VertexLayout m_VertexLayout;
 		const char* m_VertShaderName;
 		const char* m_FragShaderName;
 
@@ -88,5 +54,7 @@ namespace plumbus::vk
 		VkPipelineShaderStageCreateInfo m_VertShaderPipelineCreateInfo;
 		VkPipelineShaderStageCreateInfo m_FragShaderPipelineCreateInfo;
 		bool m_ShadersLoaded;
+
+		shaders::ShaderSettings m_ShaderSettings;
 	};
 }

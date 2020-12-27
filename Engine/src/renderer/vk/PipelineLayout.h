@@ -4,15 +4,29 @@
 
 namespace plumbus::vk
 {
+	enum class PushConstantUsage
+	{
+		VertexShader,
+		FragmentShader
+	};
+	
+	struct PushConstant
+	{
+		PushConstantUsage m_Usage;
+		uint32_t m_Offset;
+		uint32_t m_Size;
+	};
+	
 	class PipelineLayout
 	{
 	public:
-		static PipelineLayoutRef CreatePipelineLayout(DescriptorSetLayoutRef layout);
+		
+		static PipelineLayoutRef CreatePipelineLayout(DescriptorSetLayoutRef layout, std::vector<PushConstant> pushConstants);
 
-		PipelineLayout(DescriptorSetLayoutRef layout);
+		PipelineLayout(DescriptorSetLayoutRef layout, std::vector<PushConstant> pushConstants);
 		~PipelineLayout();
 
-		const VkPipelineLayout& GetVulkanPipelineLayout() { return m_Layout; }
+		const VkPipelineLayout& GetVulkanPipelineLayout() const { return m_Layout; }
 
 	private:
 		VkPipelineLayout m_Layout;

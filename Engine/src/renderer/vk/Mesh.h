@@ -41,9 +41,6 @@ namespace plumbus::vk
 		Texture* GetColourMap() { return m_ColourMap; }
 		Texture* GetNormalMap() { return m_NormalMap; }
 
-		//TODO the material system needs to be able to handle having any vertex layout thrown at it.
-		static const VertexLayout s_VertexLayout;
-
 private:
         static std::vector<vk::Mesh*> LoadFromFile(const std::string& fileName,
                         std::vector<VertexLayoutComponent> vertLayoutComponents,
@@ -64,8 +61,6 @@ private:
 		DescriptorSetRef m_DescriptorSet;
 
 		Buffer m_UniformBuffer;
-
-		VertexLayout m_VertexLayout;
 
 		CommandBufferRef m_CommandBuffer;
 

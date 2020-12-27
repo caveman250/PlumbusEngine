@@ -13,7 +13,8 @@
 #include "renderer/vk/VulkanRenderer.h"
 #include "imgui_impl/ImGuiImpl.h"
 #include "renderer/vk/DescriptorSet.h"
-
+#include "renderer/vk/MaterialInstance.h"
+#include "renderer/vk/shader_compiler/ShaderSettings.h"
 
 
 namespace plumbus::tester::tests 
@@ -27,9 +28,9 @@ namespace plumbus::tester::tests
 		, m_LightHeight(3.f)
 		, m_LightRadius(20.f)
 		, m_LightsDistanceFromCenter(7.f)
-		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
+		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert", "shaders/shader.frag"))
 	{
-		m_DeferredLightMaterial->Setup(vk::Mesh::s_VertexLayout);
+		m_DeferredLightMaterial->Setup();
 	}
 
 	DeferredLights::~DeferredLights()
@@ -43,7 +44,7 @@ namespace plumbus::tester::tests
 		if (Camera* camera = scene->GetCamera())
 		{
 			camera->SetPosition(glm::vec3(20.f, 6.f, 0.f));
-			camera->SetRotation(glm::vec3(0.f, 90.f, -10.f));
+			camera->SetRotation(glm::vec3(0.f, 90.f, 0.f));
 		}
 
 		GameObject* plane = new GameObject("plane");
@@ -89,9 +90,9 @@ namespace plumbus::tester::tests
 
 #if ENABLE_IMGUI
 		vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
-		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour").m_ImageView);
-		m_NormalsTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal").m_ImageView);
-		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->AddTexture(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("position").m_ImageView);
+		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour").m_ImageView, false);
+		m_NormalsTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal").m_ImageView, false);
+		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("position").m_ImageView, false);
 #endif
 	}
 
@@ -155,9 +156,9 @@ namespace plumbus::tester::tests
 		ImGui::DragFloat("Light Radius", &m_LightRadius, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Distance From Center", &m_LightsDistanceFromCenter, 0.01f, 0.f, 20.f);
 #if !PL_DIST
-		ImGui::Image(m_AlbedoTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
-		ImGui::Image(m_NormalsTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
-		ImGui::Image(m_WorldPosTextureDescSet->GetVulkanDescriptorSet(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_AlbedoTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_NormalsTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_WorldPosTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
 #endif
 	}
 

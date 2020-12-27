@@ -22,10 +22,9 @@ namespace plumbus
 			void OnGui() override;
 		private:
 			vk::MaterialRef m_DeferredLightMaterial;
-
-			vk::DescriptorSetRef m_AlbedoTextureDescSet;
-			vk::DescriptorSetRef m_WorldPosTextureDescSet;
-			vk::DescriptorSetRef m_NormalsTextureDescSet;
+#if !PL_DIST
+			vk::MaterialInstanceRef m_ShadowTextureImGui;
+#endif
 		};
 	}
 }

@@ -19,9 +19,9 @@ namespace plumbus::tester::tests
 	
 	SponzaScene::SponzaScene()
 		: Test()
-		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert.spv", "shaders/shader.frag.spv"))
+		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert", "shaders/shader.frag"))
 	{
-		 m_DeferredLightMaterial->Setup(vk::Mesh::s_VertexLayout);
+		 m_DeferredLightMaterial->Setup();
 	}
 
 	SponzaScene::~SponzaScene()

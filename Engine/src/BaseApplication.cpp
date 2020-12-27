@@ -1,20 +1,10 @@
 #include "plumbus.h"
 
 #include "BaseApplication.h"
-#include "Helpers.h"
-#include "GameObject.h"
-#include "components/GameComponent.h"
-#include "components/ModelComponent.h"
-#include "renderer/vk/Mesh.h"
-#include "components/TranslationComponent.h"
-#include "Camera.h"
 #include "Scene.h"
-#include "components/LightComponent.h"
+#include "imgui_impl/ImGuiImpl.h"
 
 #include "renderer/vk/VulkanRenderer.h"
-
-//REMOVE THIS
-#include "renderer/vk/shader_compiler/ShaderCompiler.h"
 
 namespace plumbus
 {
@@ -34,10 +24,6 @@ namespace plumbus
 
     void BaseApplication::Run()
     {
-        vk::shaders::ShaderCompiler compiler;
-        compiler.Compile("shaders/shader.vert");
-        //return;
-
         m_Renderer->Init(m_AppName);
 
         PL_ASSERT(m_Scene != nullptr);
@@ -87,6 +73,9 @@ namespace plumbus
 			m_LastUpdateTime = currTime;
 
             UpdateScene();
+#if !PL_DIST
+        	m_Renderer->GetImGui()->OnGui();
+#endif
             m_Renderer->DrawFrame();
         }
 

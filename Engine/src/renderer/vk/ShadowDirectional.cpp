@@ -7,6 +7,7 @@
 #include "GameObject.h"
 #include "ModelComponent.h"
 #include "MaterialInstance.h"
+#include "ShadowManager.h"
 
 namespace plumbus::vk
 {
@@ -19,27 +20,16 @@ namespace plumbus::vk
 
         if(!s_ShadowDirectionalMaterial)
         {
-             s_ShadowDirectionalMaterial = std::make_shared<Material>("shaders/shadow.vert.spv", "shaders/shadow.frag.spv", shadow->GetFrameBuffer()->GetRenderPass());
-             s_ShadowDirectionalMaterial->Setup(Mesh::s_VertexLayout);
+             s_ShadowDirectionalMaterial = std::make_shared<Material>("shaders/shadow.vert", "shaders/shadow.frag", shadow->GetFrameBuffer()->GetRenderPass());
+             s_ShadowDirectionalMaterial->Setup();
         }
-
-        shadow->CreateMaterialInstance();
 
         return shadow;
     }
-
-    void ShadowDirectional::CreateMaterialInstance() 
-    {
-        m_ShadowDirectionalMaterialInstance = MaterialInstance::CreateMaterialInstance(s_ShadowDirectionalMaterial);
-
-        CHECK_VK_RESULT(VulkanRenderer::Get()->GetDevice()->CreateBuffer(
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &m_UniformBuffer,
-        sizeof(ModelComponent::UniformBufferObject)));
-
-        CHECK_VK_RESULT(m_UniformBuffer.Map());
-    }
+	
+	ShadowDirectional::~ShadowDirectional()
+	{
+	}
 
     void ShadowDirectional::Init() 
     {
@@ -54,7 +44,7 @@ namespace plumbus::vk
 
     }
 
-    void ShadowDirectional::BuildCommandBuffer(uint32_t imageIndex) 
+    void ShadowDirectional::BuildCommandBuffer() 
     {
         if (m_CommandBuffer == VK_NULL_HANDLE)
         {
@@ -77,22 +67,44 @@ namespace plumbus::vk
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
+        	//HACK HACK
+        	// if (obj->GetID() == "plane")
+        	// {
+        	// 	continue;
+        	// }
+        	
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
-                DirectionalLight *dirLight = static_cast<DirectionalLight *>(m_Light);
-                m_UniformBufferObject.m_Proj = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
-                m_UniformBufferObject.m_View = glm::lookAt(dirLight->GetDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
-                m_UniformBufferObject.m_Model = comp->GetModelMatrix();
+                DirectionalLight* dirLight = static_cast<DirectionalLight *>(m_Light);
+                m_UniformBufferObjects[comp].m_Proj = glm::ortho<float>(-15, 15, -15, 15, -15, 50);
+                m_UniformBufferObjects[comp].m_View = glm::lookAt(dirLight->GetDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+                m_UniformBufferObjects[comp].m_Model = comp->GetModelMatrix();
 
-                memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));
+            	if(m_UniformBuffers.count(comp) == 0)
+            	{
+            		CHECK_VK_RESULT(VulkanRenderer::Get()->GetDevice()->CreateBuffer(
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    &m_UniformBuffers[comp],
+                    sizeof(ModelComponent::UniformBufferObject)));
 
-                m_ShadowDirectionalMaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
+            		CHECK_VK_RESULT(m_UniformBuffers[comp].Map());
+            	}
+
+            	if (m_ShadowDirectionalMaterialInstances.count(comp) == 0)
+            	{
+            		m_ShadowDirectionalMaterialInstances[comp] = MaterialInstance::CreateMaterialInstance(s_ShadowDirectionalMaterial);
+            	}
+            	
+
+            	m_ShadowDirectionalMaterialInstances[comp]->SetBufferUniform("UBO", &m_UniformBuffers[comp]);
+                memcpy(m_UniformBuffers[comp].m_Mapped, &m_UniformBufferObjects[comp], sizeof(m_UniformBufferObjects[comp]));
 
                 vkDeviceWaitIdle(VulkanRenderer::Get()->GetDevice()->GetVulkanDevice());
 
 				for (Mesh* model : comp->GetModels())
 				{
-                    model->Render(m_CommandBuffer, m_ShadowDirectionalMaterialInstance);
+                    model->Render(m_CommandBuffer, m_ShadowDirectionalMaterialInstances[comp]);
 				}
             }
         }
@@ -101,7 +113,7 @@ namespace plumbus::vk
         m_CommandBuffer->EndRecording();
     }
     
-    void ShadowDirectional::Render(uint32_t imageIndex, VkSemaphore waitSemaphore) 
+    void ShadowDirectional::Render(VkSemaphore waitSemaphore) 
     {
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

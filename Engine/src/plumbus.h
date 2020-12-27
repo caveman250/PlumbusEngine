@@ -46,13 +46,13 @@ namespace plumbus
 #elif PL_DEBUG
 #define PL_ASSERT(expr, ...) \
 	do { \
-			if (false && !(expr))\
+			if (!(expr))\
 			{\
 				char msg_buf[1024]; \
 				PL_ASSERT_MESSAGE(msg_buf, __VA_ARGS__)\
 				char buf[1024]; \
 				snprintf(buf, 1024, "%s\n\nMessage: %s\n", #expr, (const char*)&msg_buf); \
-				printf("\033[0;37;41mAssertion failed: %s - at %s:%i\033[0m\n\n", (const char*)&buf, __FILE__, __LINE__); \
+				printf("\033[0;41mAssertion failed: %s - at %s:%i\033[0m\n\n", (const char*)&buf, __FILE__, __LINE__); \
 				fflush(stdout);\
 				bool assertResult = _CrtDbgReport(_CRT_ASSERT, __FILE__, __LINE__, "Plumbus Application", buf); \
 				if (assertResult == 0)\

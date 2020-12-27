@@ -18,6 +18,8 @@ namespace plumbus::vk
 
         void Bind(CommandBufferRef commandBuffer);
 
+		MaterialRef GetMaterial() { return m_Material; }
+
 	private:
 		MaterialRef m_Material;
         DescriptorSetRef m_DescriptorSet;

@@ -2,7 +2,6 @@
 #include "components/GameComponent.h"
 #include "glm/glm.hpp"
 #include "renderer/vk/Shadow.h"
-#include "renderer/vk/ShadowDirectional.h"
 
 namespace plumbus
 {

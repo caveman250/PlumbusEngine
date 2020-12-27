@@ -12,7 +12,7 @@ namespace plumbus
 	{
 		m_Position = glm::vec3(23, 14.5, 0);
 		m_Rotation = glm::vec3(-18, 0, 90);
-		m_ProjectionMatrix = glm::perspective(glm::radians(60.0f), BaseApplication::Get().GetRenderer()->GetWindow()->GetWidth() / (float)BaseApplication::Get().GetRenderer()->GetWindow()->GetHeight(), 0.1f, 256.0f);
+		m_ProjectionMatrix = glm::perspective(glm::radians(30.0f), BaseApplication::Get().GetRenderer()->GetWindow()->GetWidth() / (float)BaseApplication::Get().GetRenderer()->GetWindow()->GetHeight(), 0.1f, 256.0f);
 	}
 
 	void Camera::OnUpdate()
@@ -45,6 +45,7 @@ namespace plumbus
 		glm::mat4 rotMY = glm::rotate(glm::mat4(1.0f), glm::radians(m_Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 rotMZ = glm::rotate(glm::mat4(1.0f), glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
+		rotM = rotMX * rotMZ * rotMY;
 		glm::vec3 forward(rotM[0][2], rotM[1][2], rotM[2][2]);
 #if !PL_PLATFORM_ANDROID
 		if (glfwGetKey(renderer->GetWindow()->GetWindow(), GLFW_KEY_W))
@@ -65,17 +66,19 @@ namespace plumbus
 		}
 #endif
 
-		//m_ViewMatrix = glm::lookAt(m_Position, m_Position + forward, glm::vec3(0, 0, 1));
-
 		transM = glm::translate(glm::mat4(1.0f), m_Position);
 
-		m_ViewMatrix = rotMX * transM;
-        m_ViewMatrix = rotMZ * m_ViewMatrix;
-        m_ViewMatrix = rotMY * m_ViewMatrix;
+		m_ViewMatrix = rotM * transM;
 
 #if PL_PLATFORM_ANDROID
 		glm::mat4 preTransform = glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0, 0, 1));
 		m_ViewMatrix = preTransform * m_ViewMatrix;
 #endif
+	}
+
+	void Camera::OnGui()
+	{
+		ImGui::Text("Camera:");
+		ImGui::DragFloat3("Rotation", (float*)&m_Rotation);
 	}
 }

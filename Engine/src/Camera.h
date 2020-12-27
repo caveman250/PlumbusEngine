@@ -19,6 +19,8 @@ namespace plumbus
 		void SetPosition(glm::vec3 pos) { m_Position = pos; }
 		void SetRotation(glm::vec3 rot) { m_Rotation = rot; }
 
+		void OnGui();
+
 	private:
 		glm::mat4	m_ViewMatrix;
 		glm::mat4	m_ProjectionMatrix;

@@ -1,12 +1,12 @@
-#version 450
-
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
 layout (binding = 0) uniform sampler2D samplerposition;
 layout (binding = 1) uniform sampler2D samplerNormal;
 layout (binding = 2) uniform sampler2D samplerAlbedo;
+#if NUM_SHADOWS
 layout (binding = 4) uniform sampler2D samplerShadows;
+#endif
 
 layout (location = 0) in vec2 inUV;
 
@@ -34,6 +34,7 @@ layout (binding = 3) uniform UBO
 	DirectionalLight directionalLights[MAX_DIRECTIONAL_LIGHTS];
 } ubo;
 
+#if NUM_SHADOWS
 float shadowProj(vec4 P, vec2 offset)
 {
 	float shadow = 1.0;
@@ -53,12 +54,14 @@ vec3 shadow(vec3 fragcolor, vec3 fragpos)
 {
 	for(int i = 0; i < MAX_DIRECTIONAL_LIGHTS; ++i)
 	{
-		vec4 shadowClip	= ubo.directionalLights[i].mvp * vec4(fragpos, 1.0);
+		vec3 fragPosYUp = vec3(fragpos.x, -fragpos.z, fragpos.y);
+		vec4 shadowClip	= ubo.directionalLights[i].mvp * vec4(fragPosYUp, 1.0);
 		float shadowFactor = shadowProj(shadowClip, vec2(0.0));
 		fragcolor *= shadowFactor;
 	}
 	return fragcolor;
 }
+#endif
 
 void main() 
 {
@@ -130,14 +133,9 @@ void main()
 		fragcolor += diff + spec;
 	}	
 
+#if NUM_SHADOWS
 	fragcolor = shadow(fragcolor, fragPos);
-
-	// vec4 shadowClip	= ubo.directionalLights[0].mvp * vec4(fragPos, 1.0);
-	// vec4 shadowCoord = shadowClip / shadowClip.w;
-	// shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
-	// float dist = texture(samplerShadows, shadowCoord.st).r;
-
-	// vec3 fragcolor = vec3(dist, dist, dist);
+#endif
    
   	outFragcolor = vec4(fragcolor, 1.0);	
 }

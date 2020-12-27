@@ -17,5 +17,8 @@ std::string DeviceTypeString(VkPhysicalDeviceType deviceType);
 class Helpers
 {
 public:
-	static std::vector<char> ReadFile(const std::string& filename);
+	static std::vector<char> ReadBinaryFile(const std::string& filename);
+	static std::string ReadTextFile(const std::string& filename);
+
+	static std::string FormatStr(const char* fmt, ...);
 };

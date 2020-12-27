@@ -80,4 +80,5 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android" )
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android" )
 add_subdirectory(third_party/assimp)
 add_subdirectory(third_party/SPIRV-Cross)
+add_subdirectory(third_party/glslang)
 

@@ -8,7 +8,7 @@
 #define BEGIN_YELLOW printf("\033[0;33m");
 #define BEGIN_WHITE printf("\033[0;37m");
 #define BEGIN_RED printf("\033[0;31m");
-#define BEGIN_FATAL printf("\033[0;37;41m");
+#define BEGIN_FATAL printf("\033[0;41m");
 
 #define END_COLOUR printf("\033[0m\n");
 

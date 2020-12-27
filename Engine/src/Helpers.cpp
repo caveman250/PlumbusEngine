@@ -63,7 +63,7 @@ std::string DeviceTypeString(VkPhysicalDeviceType deviceType)
 extern android_app* Android_application;
 #endif
 
-std::vector<char> Helpers::ReadFile(const std::string& filename)
+std::vector<char> Helpers::ReadBinaryFile(const std::string& filename)
 {
 #if PL_PLATFORM_ANDROID
 
@@ -101,4 +101,64 @@ std::vector<char> Helpers::ReadFile(const std::string& filename)
 
 	return buffer;
 #endif
+}
+
+std::string Helpers::ReadTextFile(const std::string& filename)
+{
+#if PL_PLATFORM_ANDROID
+
+	AAssetManager * mgr = Android_application->activity->assetManager;
+	if(AAsset* asset = AAssetManager_open(mgr, (plumbus::Platform::GetAssetsPath() + filename).c_str(), AASSET_MODE_BUFFER))
+	{
+		std::vector<char> buffer;
+		//holds size of searched file
+		off64_t length = AAsset_getLength64(asset);
+		buffer.resize(length);
+
+		//read data chunk
+		if(PL_VERIFY(AAsset_read(asset, buffer.data(), length) > 0))
+		{
+			return std::string((const char*)buffer.data());
+		}
+	}
+
+	return std::string();
+#else
+	std::ifstream file(plumbus::Platform::GetAssetsPath() + filename);
+
+	if (!file.is_open())
+	{
+		plumbus::Log::Error("Helpers::ReadFile: failed to open file %s!", filename.c_str());
+	}
+
+	return std::string((std::istreambuf_iterator<char>(file)),std::istreambuf_iterator<char>());
+#endif
+}
+
+std::string Helpers::FormatStr(const char* fmt, ...)
+{
+	char buffer[256];
+
+	va_list args;
+	va_start(args, fmt);
+	const auto formatVal = std::vsnprintf(buffer, sizeof buffer, fmt, args);
+	va_end(args);
+
+	if (formatVal < 0)
+	{
+		return {};
+	}
+
+	const size_t len = formatVal;
+	if (len < sizeof buffer)
+	{
+		return { buffer, len };
+	}
+	
+	std::string str(len, '\0');
+	va_start(args, fmt);
+	std::vsnprintf(str.data(), len + 1, fmt, args);
+	va_end(args);
+
+	return str;
 }

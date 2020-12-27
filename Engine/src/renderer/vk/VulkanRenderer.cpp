@@ -17,6 +17,8 @@
 #if PL_PLATFORM_LINUX
 #include <gtk/gtk.h>
 #endif
+#include <glslang/StandAlone/ResourceLimits.h>
+
 #include "CommandBuffer.h"
 #include "DescriptorSet.h"
 #include "DescriptorSetLayout.h"
@@ -26,6 +28,16 @@
 #include "PipelineCache.h"
 #include "PipelineLayout.h"
 #include "MaterialInstance.h"
+
+#include "glslang/glslang/Public/ShaderLang.h"
+#include "glslang/SPIRV/GlslangToSpv.h"
+#include "glslang/SPIRV/Logger.h"
+#include "glslang/SPIRV/SpvTools.h"
+#include "glslang/StandAlone/DirStackFileIncluder.h"
+#include "shader_compiler/ShaderCompiler.h"
+#include "shader_compiler/ShaderSettings.h"
+#include "ShadowManager.h"
+#include "ShadowDirectional.h"
 
 static uint32_t s_Width, s_Height;
 
@@ -111,11 +123,11 @@ namespace plumbus::vk
         m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
 
 #if ENABLE_IMGUI
-            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_DeferredOutputFrameBuffer->GetRenderPass());
+            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_DeferredOutputFrameBuffer->GetRenderPass());
 #else
-            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert.spv", "shaders/deferred.frag.spv", m_SwapChain->GetRenderPass());
+            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_SwapChain->GetRenderPass());
 #endif
-            m_DeferredOutputMaterial->Setup(VertexLayout());
+            m_DeferredOutputMaterial->Setup();
 
         m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
         const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
@@ -123,22 +135,6 @@ namespace plumbus::vk
         m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView, false);
         m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView, false);
         m_DeferredOutputMaterialInstance->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
-
-        //HACK HACK find the first shadow
-        ShadowDirectionalRef shadow = nullptr;
-        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
-        {
-            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
-            {
-                for (Light* light : lightComp->GetLights())
-                {
-                    if (light->GetShadow() && light->GetType() == LightType::Directional)
-                    {
-                        shadow = std::static_pointer_cast<ShadowDirectional>(light->GetShadow());
-                    }
-                } 
-            }
-        }
 
         BuildDefferedCommandBuffer();
 #if ENABLE_IMGUI
@@ -180,6 +176,48 @@ namespace plumbus::vk
             Log::Fatal("failed to acquire swap chain image!");
         }
 
+    	//collect all shadows
+    	std::vector<ShadowRef> shadows;
+    	for(GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+    	{
+    		if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+    		{
+    			for (Light* light : lightComp->GetLights())
+    			{
+    				if (ShadowRef shadow = light->GetShadow())
+    				{
+    					shadows.push_back(shadow);
+    				}
+    			}
+    		}
+    	}
+
+    	for(int i = 0; i < shadows.size(); ++i)
+    	{
+    		shadows[i]->BuildCommandBuffer();
+    		shadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : shadows[i - 1]->GetSemaphore());
+    	}
+
+    	//HACK HACK find the first shadow
+    	ShadowDirectionalRef shadow = nullptr;
+    	for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+    	{
+    		if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+    		{
+    			for (Light* light : lightComp->GetLights())
+    			{
+    				if (light->GetShadow() && light->GetType() == LightType::Directional)
+    				{
+    					shadow = std::static_pointer_cast<ShadowDirectional>(light->GetShadow());
+    				}
+    			} 
+    		}
+    	}
+		if(shadow)
+		{
+			m_DeferredOutputMaterialInstance->SetTextureUniform("samplerShadows", shadow->GetFrameBuffer()->GetSampler(), shadow->GetFrameBuffer()->GetAttachment("depth").m_ImageView, true);
+		}
+    	
         BuildPresentCommandBuffer(imageIndex);
         BuildDefferedCommandBuffer();
 #if ENABLE_IMGUI
@@ -189,7 +227,7 @@ namespace plumbus::vk
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { m_SwapChain->GetImageAvailableSemaphore() };
+        VkSemaphore waitSemaphores[] = { shadows.size() > 0 ? shadows.back()->GetSemaphore() : m_SwapChain->GetImageAvailableSemaphore() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
@@ -264,6 +302,8 @@ namespace plumbus::vk
 
     void VulkanRenderer::Cleanup()
     {
+    	ShadowManager::Destroy();
+    	
         m_DeferredFrameBuffer.reset();
 #if ENABLE_IMGUI
         m_DeferredOutputFrameBuffer.reset();
@@ -369,19 +409,17 @@ namespace plumbus::vk
     void VulkanRenderer::GenerateFullscreenQuad()
     {
         struct Vert {
-            float pos[3];
-            float uv[2];
-            float col[3];
-            float normal[3];
-            float tangent[3];
+            glm::vec3 pos;
+            glm::vec2 uv;
+        	float dummyFloat = 0.f;
         };
 
         std::vector<Vert> vertexBuffer;
 
-        vertexBuffer.push_back({ { 1.0f, 1.0f, 0.0f },{ 1.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
-        vertexBuffer.push_back({ { 0.0f, 1.0f, 0.0f },{ 0.0f, 1.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
-        vertexBuffer.push_back({ { 0.0f, 0.0f, 0.0f },{ 0.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
-        vertexBuffer.push_back({ { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f },{ 1.0f, 1.0f, 1.0f },{ 0.0f, 0.0f, 0.0f } });
+        vertexBuffer.push_back({ { 1.0f, 1.0f ,0.0f},{ 1.0f, 1.0f }});
+        vertexBuffer.push_back({ { -1.0f, 1.0f ,0.0f},{ 0.0f, 1.0f }});
+        vertexBuffer.push_back({ { -1.0f, -1.0f, 0.0f},{ 0.0f, 0.0f }});
+        vertexBuffer.push_back({ { 1.0f, -1.0f, 0.0f},{ 1.0f, 0.0f }});
 
         CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -392,7 +430,7 @@ namespace plumbus::vk
 
 
         // Setup indices
-        std::vector<uint32_t> indexBuffer = { 0,1,2, 2,3,0 };
+        std::vector<uint32_t> indexBuffer = { 0, 1, 2, 2, 3, 0 };
 
         m_FullscreenQuad.SetIndexSize((uint32_t)indexBuffer.size());
 
@@ -421,7 +459,6 @@ namespace plumbus::vk
     void VulkanRenderer::BuildPresentCommandBuffer(uint32_t imageIndex)
     {
 #if ENABLE_IMGUI
-        m_ImGui->NewFrame();
         m_ImGui->UpdateBuffers();
 #endif
 
@@ -430,7 +467,7 @@ namespace plumbus::vk
         m_SwapChain->GetCommandBuffer(imageIndex)->BeginRenderPass();
 
 #if ENABLE_IMGUI
-        m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(imageIndex)->GetVulkanCommandBuffer());
+        m_ImGui->DrawFrame(m_SwapChain->GetCommandBuffer(imageIndex));
 #else
         m_SwapChain->GetCommandBuffer(imageIndex)->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
         m_SwapChain->GetCommandBuffer(imageIndex)->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
@@ -498,8 +535,8 @@ namespace plumbus::vk
 
         m_DeferredOutputCommandBuffer->BeginRecording();
         m_DeferredOutputCommandBuffer->BeginRenderPass();
-        m_DeferredOutputCommandBuffer->SetViewport((float)m_SwapChain->GetExtents().width, (float)m_SwapChain->GetExtents().height, 0.f, 1.f);
-        m_DeferredOutputCommandBuffer->SetScissor(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, 0, 0);
+        m_DeferredOutputCommandBuffer->SetViewport((float)m_DeferredOutputFrameBuffer->GetWidth(), (float)m_DeferredOutputFrameBuffer->GetHeight(), 0.f, 1.f);
+        m_DeferredOutputCommandBuffer->SetScissor(m_DeferredOutputFrameBuffer->GetWidth(), m_DeferredOutputFrameBuffer->GetHeight(), 0, 0);
 
         m_DeferredOutputMaterialInstance->Bind(m_DeferredOutputCommandBuffer);
         m_DeferredOutputCommandBuffer->BindVertexBuffer(m_FullscreenQuad.GetVertexBuffer());
@@ -562,21 +599,53 @@ namespace plumbus::vk
     }
 #endif
 
-    VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage, std::vector<DescriptorBinding>& outBindingInfo, int& numOutputs)
+    VkPipelineShaderStageCreateInfo VulkanRenderer::LoadShader(std::string fileName, VkShaderStageFlagBits stage, shaders::ShaderSettings settings, ShaderReflectionObject& shaderReflection)
     {
-        std::vector<char> spirvText = Helpers::ReadFile(fileName);
+        std::string glslText = Helpers::ReadTextFile(fileName);
+
+    	//apply shader settings
+    	Log::Info("Applying shader settings: %s", fileName.c_str());
+		glslText = shaders::ShaderCompiler::ApplyShaderSettings(glslText, settings);
+
+    	std::vector<unsigned int> SpirV;
+    	Log::Info("Compiling Shader: %s", fileName.c_str());
+		if(!shaders::ShaderCompiler::CompileShader(glslText, stage, SpirV))
+		{
+			Log::Error("Failed to compile shader %s", fileName.c_str());
+		}
+    	else
+    	{
+    		Log::Info("Compile success: %s", fileName.c_str());
+    	}
+
         VkPipelineShaderStageCreateInfo shaderStage = {};
         shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStage.stage = stage;
-        shaderStage.module = CreateShaderModule(spirvText);
+        shaderStage.module = CreateShaderModule(SpirV);
         shaderStage.pName = "main"; // todo : make param
         PL_ASSERT(shaderStage.module != VK_NULL_HANDLE);
         m_ShaderModules.push_back(shaderStage.module);
 
-        spirv_cross::Compiler spirv(reinterpret_cast<uint32_t*>(spirvText.data()), spirvText.size() / (sizeof(uint32_t) / sizeof(char)));
+        spirv_cross::Compiler spirv(reinterpret_cast<uint32_t*>(SpirV.data()), SpirV.size());
         spirv_cross::ShaderResources resources = spirv.get_shader_resources();
 
-        for (auto &resource : resources.sampled_images)
+		for (auto& resource : resources.push_constant_buffers)
+		{
+			uint32_t id = resource.id;
+			uint32_t size = 0;
+			for(auto& bufferRange : spirv.get_active_buffer_ranges(id))
+			{
+				size += bufferRange.range;
+			}
+		
+			PushConstant pushConstant;
+			pushConstant.m_Offset = spirv.get_decoration(resource.id, spv::DecorationOffset);
+			pushConstant.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? PushConstantUsage::VertexShader : PushConstantUsage::FragmentShader;
+			pushConstant.m_Size = size;
+			shaderReflection.m_PushConstants.push_back(pushConstant);
+		}
+    	
+        for (auto& resource : resources.sampled_images)
         {
             DescriptorBinding binding;
 
@@ -584,7 +653,7 @@ namespace plumbus::vk
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
             binding.m_Type = DescriptorBindingType::ImageSampler;
             binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader; 
-            outBindingInfo.push_back(binding);
+            shaderReflection.m_Bindings.push_back(binding);
         }
 
         for (auto &resource : resources.uniform_buffers)
@@ -595,23 +664,72 @@ namespace plumbus::vk
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
             binding.m_Type = DescriptorBindingType::UniformBuffer;
             binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader;
-            outBindingInfo.push_back(binding);
+            shaderReflection.m_Bindings.push_back(binding);
         }
+
+    	auto getResourceTypeSize = [](spirv_cross::SPIRType type) 
+		{
+    		unsigned vecsize = type.vecsize;
+    		unsigned columns = type.columns;
+    		size_t component_size = type.width / 8;
+    		return vecsize * component_size * columns;
+    			
+		};
+    	for (auto& resource : resources.stage_inputs)
+    	{    		
+    		StageInput stageInput;
+			stageInput.m_Location = spirv.get_decoration(resource.id, spv::DecorationLocation);
+			stageInput.m_Binding = spirv.get_decoration(resource.id, spv::DecorationBinding);
+    		stageInput.m_Size = getResourceTypeSize(spirv.get_type(resource.type_id));
+
+    		switch (spirv.get_type(resource.type_id).basetype)
+    		{
+				case spirv_cross::SPIRType::Int:
+					stageInput.m_Format = VK_FORMAT_R32G32B32A32_SINT;
+    				break;
+				case spirv_cross::SPIRType::UInt:
+					stageInput.m_Format = VK_FORMAT_R32G32B32A32_UINT;
+    				break;
+				case spirv_cross::SPIRType::Float:
+					stageInput.m_Format = VK_FORMAT_R32G32B32_SFLOAT;
+					break;
+				default: ;
+			}
+
+    		if (stage == VK_SHADER_STAGE_VERTEX_BIT)
+    		{
+    			shaderReflection.m_VertexStageInputs.push_back(stageInput);
+    		}
+    		else
+    		{
+    			shaderReflection.m_FragmentStageInputs.push_back(stageInput);
+    		}
+    	}
+
+    	std::sort(shaderReflection.m_VertexStageInputs.begin(), shaderReflection.m_VertexStageInputs.end(), [](const StageInput& lhs, const StageInput& rhs){ return lhs.m_Location < rhs.m_Location;});
+    	std::sort(shaderReflection.m_FragmentStageInputs.begin(), shaderReflection.m_FragmentStageInputs.end(), [](const StageInput& lhs, const StageInput& rhs){ return lhs.m_Location < rhs.m_Location;});
 
         //get outputs for material
         for (auto& resource : resources.stage_outputs)
         {
-            numOutputs++;
+        	if (stage == VK_SHADER_STAGE_VERTEX_BIT)
+        	{
+        		shaderReflection.m_VertexStageOutputCount++;
+        	}
+        	else
+        	{
+        		shaderReflection.m_FragmentStageOutputCount++;
+        	}
         }
 
         return shaderStage;
     }
 
-    VkShaderModule VulkanRenderer::CreateShaderModule(const std::vector<char>& code)
+    VkShaderModule VulkanRenderer::CreateShaderModule(const std::vector<unsigned int>& code)
     {
         VkShaderModuleCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
+        createInfo.codeSize = code.size() * (sizeof(unsigned int) / sizeof(char));
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
         VkShaderModule shaderModule;
@@ -653,6 +771,30 @@ namespace plumbus::vk
 		{
 		};
 #endif
+	}
+
+	void VulkanRenderer::SetShadowCount(int count)
+	{
+    	m_DeferredOutputMaterialInstance.reset();
+    	m_DeferredOutputMaterial.reset();
+    	
+#if ENABLE_IMGUI
+    	m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_DeferredOutputFrameBuffer->GetRenderPass());
+#else
+    	m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_SwapChain->GetRenderPass());
+#endif
+
+    	shaders::ShaderSettings& settings = m_DeferredOutputMaterial->GetShaderSettings();
+    	settings.SetValue("NUM_SHADOWS", count);
+    	
+    	m_DeferredOutputMaterial->Setup();
+
+    	m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
+    	const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
+    	m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position").m_ImageView, false);
+    	m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView, false);
+    	m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView, false);
+    	m_DeferredOutputMaterialInstance->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
 	}
 
 	void VulkanRenderer::RecreateSwapChain()

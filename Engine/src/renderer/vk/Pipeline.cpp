@@ -5,12 +5,12 @@
 
 namespace plumbus::vk
 {
-	PipelineRef Pipeline::CreatePipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass) 
+	PipelineRef Pipeline::CreatePipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass, bool enableAlphaBlending) 
 	{
-		return std::make_shared<Pipeline>(pipelineLayout, numOutputs, vertexDescription, vertShader, fragShader, renderPass);
+		return std::make_shared<Pipeline>(pipelineLayout, numOutputs, vertexDescription, vertShader, fragShader, renderPass, enableAlphaBlending);
 	}
 
-	Pipeline::Pipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass)
+	Pipeline::Pipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass, bool enableAlphaBlending)
 	{
 		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
@@ -29,6 +29,7 @@ namespace plumbus::vk
 		rasterizationState.depthClampEnable = VK_FALSE;
 		rasterizationState.lineWidth = 1.0f;
 
+		// Enable blending
 		VkPipelineColorBlendStateCreateInfo colorBlendState{};
 		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 
@@ -110,9 +111,24 @@ namespace plumbus::vk
 		for (int i = 0; i < numOutputs; ++i)
 		{
 			VkPipelineColorBlendAttachmentState blendAttachmentState{};
-			blendAttachmentState.colorWriteMask = 0xf;
-			blendAttachmentState.blendEnable = VK_FALSE;
-			blendAttachmentStates.push_back(blendAttachmentState);
+			if (enableAlphaBlending)
+			{
+				blendAttachmentState.blendEnable = VK_TRUE;
+				blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+				blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+				blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+				blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+			}
+			else
+			{
+				blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				blendAttachmentState.blendEnable = VK_FALSE;
+			}
+			
+			blendAttachmentStates.push_back(std::move(blendAttachmentState));
 		}
 
 		colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());

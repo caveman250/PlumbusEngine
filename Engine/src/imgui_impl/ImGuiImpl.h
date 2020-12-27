@@ -28,11 +28,11 @@ namespace plumbus
 		void Init(float width, float height);
 		void InitGLFWCallbacks();
 		void InitResources(VkRenderPass renderPass, VkQueue copyQueue);
-		void NewFrame();
+		void OnGui();
 		void UpdateBuffers();
-		void DrawFrame(VkCommandBuffer commandBuffer);
+		void DrawFrame(vk::CommandBufferRef commandBuffer);
 
-		vk::DescriptorSetRef AddTexture(VkSampler sampler, VkImageView image_view);
+		vk::MaterialInstanceRef CreateImGuiTextureMaterialInstance(VkSampler sampler, VkImageView image_view, bool isDepth) const;
 
 		static void OnMouseScolled(GLFWwindow* window, double xoffset, double yoffset);
 		static void OnKeyDown(GLFWwindow*, int key, int, int action, int mods);
@@ -46,14 +46,11 @@ namespace plumbus
 		VkDeviceMemory m_FontMemory = VK_NULL_HANDLE;
 		VkImage m_FontImage = VK_NULL_HANDLE;
 		VkImageView m_FontView = VK_NULL_HANDLE;
-		VkPipelineCache m_PipelineCache;
-		VkPipelineLayout m_PipelineLayout;
-		VkPipeline m_Pipeline;
 
-		vk::DescriptorPoolRef m_DescriptorPool;
-		vk::DescriptorSetLayoutRef m_DescriptorSetLayout;
-		vk::DescriptorSetRef m_DescriptorSet;
-		vk::DescriptorSetRef m_GameViewTextureDescSet;
+		vk::MaterialRef m_Material;
+		vk::MaterialInstanceRef m_MaterialInstance;
+
+		vk::MaterialInstanceRef m_GameViewMaterialInstance;
 
 		GameObject* m_SelectedObject = nullptr;
 	};

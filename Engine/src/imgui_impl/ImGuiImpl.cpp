@@ -7,9 +7,15 @@
 #include "components/LightComponent.h"
 #include "imgui/imgui_internal.h"
 #include "Scene.h"
+#include "renderer/vk/CommandBuffer.h"
 #include "renderer/vk/Material.h"
 #include "renderer/vk/DescriptorPool.h"
 #include "renderer/vk/DescriptorSet.h"
+#include "renderer/vk/MaterialInstance.h"
+#include "renderer/vk/PipelineLayout.h"
+#include "renderer/vk/vk_types_fwd.h"
+#include "renderer/vk/VulkanRenderer.h"
+#include "renderer/vk/shader_compiler/ShaderSettings.h"
 
 #if ENABLE_IMGUI
 namespace plumbus
@@ -29,14 +35,10 @@ namespace plumbus
 		vkDestroyImageView(device->GetVulkanDevice(), m_FontView, nullptr);
 		vkFreeMemory(device->GetVulkanDevice(), m_FontMemory, nullptr);
 		vkDestroySampler(device->GetVulkanDevice(), m_Sampler, nullptr);
-		vkDestroyPipelineCache(device->GetVulkanDevice(), m_PipelineCache, nullptr);
-		vkDestroyPipeline(device->GetVulkanDevice(), m_Pipeline, nullptr);
-		vkDestroyPipelineLayout(device->GetVulkanDevice(), m_PipelineLayout, nullptr);
-
-		m_DescriptorSet.reset();
-		m_GameViewTextureDescSet.reset();
-		m_DescriptorSetLayout.reset();
-		m_DescriptorPool.reset();
+		
+		m_MaterialInstance.reset();
+		m_GameViewMaterialInstance.reset();
+		m_Material.reset();
 	}
 
 	void ImGUIImpl::Init(float width, float height)
@@ -194,182 +196,20 @@ namespace plumbus
 		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		CHECK_VK_RESULT(vkCreateSampler(device->GetVulkanDevice(), &samplerInfo, nullptr, &m_Sampler));
 
-		m_DescriptorPool = vk::DescriptorPool::CreateDescriptorPool(0, 5, 5);
-
-		m_DescriptorSetLayout = vk::DescriptorSetLayout::CreateDescriptorSetLayout();
-		m_DescriptorSetLayout->AddBinding(vk::DescriptorBindingUsage::FragmentShader, vk::DescriptorBindingType::ImageSampler, 0, "fontSampler");
-		m_DescriptorSetLayout->Build();
-
-		m_DescriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
-		m_DescriptorSet->SetTextureUniform("fontSampler", m_Sampler, m_FontView, false);
-		m_DescriptorSet->Build();
-
-		// Pipeline cache
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		CHECK_VK_RESULT(vkCreatePipelineCache(device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
-
-		// Pipeline layout
-		// Push constants for UI rendering parameters
-		VkPushConstantRange pushConstantRange{};
-		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		pushConstantRange.offset = 0;
-		pushConstantRange.size = sizeof(PushConstBlock);
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout->GetVulkanDescriptorSetLayout();
-		pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-		pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-		CHECK_VK_RESULT(vkCreatePipelineLayout(device->GetVulkanDevice(), &pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
-
-		// Setup graphics pipeline for UI rendering
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{};
-		inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssemblyState.flags = 0;
-		inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-
-		VkPipelineRasterizationStateCreateInfo rasterizationState{};
-		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationState.cullMode = VK_CULL_MODE_NONE;
-		rasterizationState.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizationState.flags = 0;
-		rasterizationState.depthClampEnable = VK_FALSE;
-		rasterizationState.lineWidth = 1.0f;
-
-		// Enable blending
-		VkPipelineColorBlendAttachmentState blendAttachmentState{};
-		blendAttachmentState.blendEnable = VK_TRUE;
-		blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-		blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-
-		VkPipelineColorBlendStateCreateInfo colorBlendState{};
-		colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendState.attachmentCount = 1;
-		colorBlendState.pAttachments = &blendAttachmentState;
-
-		VkPipelineDepthStencilStateCreateInfo depthStencilState{};
-		depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilState.depthTestEnable = VK_FALSE;
-		depthStencilState.depthWriteEnable = VK_FALSE;
-		depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		depthStencilState.front = depthStencilState.back;
-		depthStencilState.back.compareOp = VK_COMPARE_OP_ALWAYS;
-
-		VkPipelineViewportStateCreateInfo viewportState{};
-		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportState.viewportCount = 1;
-		viewportState.scissorCount = 1;
-		viewportState.flags = 0;
-
-		VkPipelineMultisampleStateCreateInfo multisampleState{};
-		multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisampleState.flags = 0;
-
-		std::vector<VkDynamicState> dynamicStateEnables =
-		{
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState{};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.pDynamicStates = dynamicStateEnables.data();
-		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-		dynamicState.flags = 0;
-
-		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
-
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
-		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCreateInfo.layout = m_PipelineLayout;
-		pipelineCreateInfo.renderPass = renderPass;
-		pipelineCreateInfo.flags = 0;
-		pipelineCreateInfo.basePipelineIndex = -1;
-		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
-		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfo.pStages = shaderStages.data();
-
-		// Vertex bindings an attributes based on ImGui vertex definition
-		VkVertexInputBindingDescription vertexInputBindingDescription{};
-		vertexInputBindingDescription.binding = 0;
-		vertexInputBindingDescription.stride = sizeof(ImDrawVert);
-		vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		std::vector<VkVertexInputBindingDescription> vertexInputBindings =
-		{
-			vertexInputBindingDescription
-		};
-
-		//position desc
-		VkVertexInputAttributeDescription positionDesc{};
-		positionDesc.location = 0;
-		positionDesc.binding = 0;
-		positionDesc.format = VK_FORMAT_R32G32_SFLOAT;
-		positionDesc.offset = offsetof(ImDrawVert, pos);
-
-		//uv desc
-		VkVertexInputAttributeDescription uvDesc{};
-		uvDesc.location = 1;
-		uvDesc.binding = 0;
-		uvDesc.format = VK_FORMAT_R32G32_SFLOAT;
-		uvDesc.offset = offsetof(ImDrawVert, uv);
-
-		//colour desc
-		VkVertexInputAttributeDescription colourDesc{};
-		colourDesc.location = 2;
-		colourDesc.binding = 0;
-		colourDesc.format = VK_FORMAT_R8G8B8A8_UNORM;
-		colourDesc.offset = offsetof(ImDrawVert, col);
-
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-			positionDesc,
-			uvDesc,
-			colourDesc
-		};
-
-		VkPipelineVertexInputStateCreateInfo vertexInputState{};
-		vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-		vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-		vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-		vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-		pipelineCreateInfo.pVertexInputState = &vertexInputState;
-
-		std::vector<vk::DescriptorBinding> bindingInfo;
-		int numOutputs = 0;
-		shaderStages[0] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.vert.spv", VK_SHADER_STAGE_VERTEX_BIT, bindingInfo, numOutputs);
-		shaderStages[1] = vk::VulkanRenderer::Get()->LoadShader("shaders/ui.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT, bindingInfo, numOutputs);
-
-		io.Fonts->TexID = (void*)m_DescriptorSet->GetVulkanDescriptorSet();
-
-		CHECK_VK_RESULT(vkCreateGraphicsPipelines(device->GetVulkanDevice(), m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline));
+		m_Material = std::make_shared<vk::Material>("shaders/ui.vert", "shaders/ui.frag", renderPass, true);
+		m_Material->Setup();
+		m_MaterialInstance = vk::MaterialInstance::CreateMaterialInstance(m_Material);
+		m_MaterialInstance->SetTextureUniform("imageSampler", m_Sampler, m_FontView, false);
+		io.Fonts->TexID = (void*)m_MaterialInstance.get();
 	}
 
-	void ImGUIImpl::NewFrame()
+	void ImGUIImpl::OnGui()
 	{
 		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
-		if (!m_GameViewTextureDescSet)
+		if (!m_GameViewMaterialInstance)
 		{
-			m_GameViewTextureDescSet = AddTexture(renderer->GetDeferredOutputFramebuffer()->GetSampler(), renderer->GetDeferredOutputFramebuffer()->GetAttachment("colour").m_ImageView);
+			m_GameViewMaterialInstance = CreateImGuiTextureMaterialInstance(renderer->GetDeferredOutputFramebuffer()->GetSampler(), renderer->GetDeferredOutputFramebuffer()->GetAttachment("colour").m_ImageView, false);
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -408,6 +248,7 @@ namespace plumbus
 			ImGui::End();
 
 			ImGui::Begin("Properties", 0);
+			BaseApplication::Get().GetScene()->GetCamera()->OnGui();
 			if (m_SelectedObject)
 			{
 				if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
@@ -489,7 +330,7 @@ namespace plumbus
 			BaseApplication::Get().m_GameWindowFocused = ImGui::IsWindowHovered();
 
 			//TODO game size is fixed to initial window size, give more control over game resolution.
-			ImGui::Image((void*)m_GameViewTextureDescSet->GetVulkanDescriptorSet(), ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), true);
+			ImGui::Image((void*)m_GameViewMaterialInstance.get(), ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), true);
 			ImGui::End();
 
 			Log::Draw("Log");
@@ -552,29 +393,21 @@ namespace plumbus
 		m_IndexBuffer.Flush();
 	}
 
-	void ImGUIImpl::DrawFrame(VkCommandBuffer commandBuffer)
+	void ImGUIImpl::DrawFrame(vk::CommandBufferRef commandBuffer)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
-
 		// Bind vertex and index buffer
 		VkDeviceSize offsets[1] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_VertexBuffer.m_Buffer, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindVertexBuffers(commandBuffer->GetVulkanCommandBuffer(), 0, 1, &m_VertexBuffer.m_Buffer, offsets);
+		vkCmdBindIndexBuffer(commandBuffer->GetVulkanCommandBuffer(), m_IndexBuffer.m_Buffer, 0, VK_INDEX_TYPE_UINT16);
         
 		VkViewport viewport{};
         viewport.width = io.DisplaySize.x * io.DisplayFramebufferScale.x;
 		viewport.height = io.DisplaySize.y * io.DisplayFramebufferScale.y;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-		// UI scale and translate via push constants
-		m_PushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-		m_PushConstBlock.translate = glm::vec2(-1.0f);
-		vkCmdPushConstants(commandBuffer, m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &m_PushConstBlock);
-
+		vkCmdSetViewport(commandBuffer->GetVulkanCommandBuffer(), 0, 1, &viewport);
 		// Render commands
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		int32_t vertexOffset = 0;
@@ -585,6 +418,24 @@ namespace plumbus
 			for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
 			{
 				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
+
+				// UI scale and translate via push constants
+				m_PushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+				m_PushConstBlock.translate = glm::vec2(-1.0f);
+
+				vk::MaterialInstance* materialInstance;
+				if(pcmd->TextureId)
+				{
+					materialInstance = static_cast<vk::MaterialInstance*>(pcmd->TextureId);
+				}
+				else
+				{
+					materialInstance = m_MaterialInstance.get();
+				}
+
+				materialInstance->Bind(commandBuffer);
+				vkCmdPushConstants(commandBuffer->GetVulkanCommandBuffer(), materialInstance->GetMaterial()->GetPipelineLayout()->GetVulkanPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &m_PushConstBlock);
+			
 				VkRect2D scissorRect;
 				scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
 				scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
@@ -596,24 +447,22 @@ namespace plumbus
                 scissorRect.extent.width*=io.DisplayFramebufferScale.x;
                 scissorRect.extent.height=scissorRect.extent.height*io.DisplayFramebufferScale.y+1;// FIXME: Why +1 here?
                 
-				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-
-				VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->TextureId };
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, desc_set, 0, nullptr);
-
-				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
+				vkCmdSetScissor(commandBuffer->GetVulkanCommandBuffer(), 0, 1, &scissorRect);
+				
+				vkCmdDrawIndexed(commandBuffer->GetVulkanCommandBuffer(), pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
 				indexOffset += pcmd->ElemCount;
 			}
 			vertexOffset += cmd_list->VtxBuffer.Size;
 		}
 	}
 
-	vk::DescriptorSetRef ImGUIImpl::AddTexture(VkSampler sampler, VkImageView image_view)
+	vk::MaterialInstanceRef ImGUIImpl::CreateImGuiTextureMaterialInstance(VkSampler sampler, VkImageView image_view, bool isDepth) const
 	{
-		vk::DescriptorSetRef descriptorSet = vk::DescriptorSet::CreateDescriptorSet(m_DescriptorPool, m_DescriptorSetLayout);
-		descriptorSet->SetTextureUniform("fontSampler", sampler, image_view, false);
-		descriptorSet->Build();
-		return descriptorSet;
+		vk::MaterialRef material = std::make_shared<vk::Material>("shaders/ui.vert", isDepth ? "shaders/ui_depth.frag" : "shaders/ui.frag", vk::VulkanRenderer::Get()->GetSwapChain()->GetRenderPass());
+		material->Setup();
+		vk::MaterialInstanceRef materialInstance = vk::MaterialInstance::CreateMaterialInstance(material);
+		materialInstance->SetTextureUniform("imageSampler", sampler, image_view, isDepth);
+		return materialInstance;
 	}
 
 	void ImGUIImpl::OnMouseScolled(GLFWwindow* window, double xoffset, double yoffset)
