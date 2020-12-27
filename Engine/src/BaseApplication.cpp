@@ -73,7 +73,7 @@ namespace plumbus
 			m_LastUpdateTime = currTime;
 
             UpdateScene();
-#if !PL_DIST
+#if ENABLE_IMGUI
         	m_Renderer->GetImGui()->OnGui();
 #endif
             m_Renderer->DrawFrame();

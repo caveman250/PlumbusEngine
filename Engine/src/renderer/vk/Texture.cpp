@@ -142,7 +142,7 @@ namespace plumbus::vk
 		std::shared_ptr<vk::Device> device = VulkanRenderer::Get()->GetDevice();
 
 #if PL_PLATFORM_ANDROID
-        std::vector<char> fileContents = Helpers::ReadFile(filename);
+        std::vector<char> fileContents = Helpers::ReadBinaryFile(filename);
 		ASTCTexture tex2D = LoadASTCTexture(fileContents);
 
 		uint32_t width = static_cast<uint32_t>(tex2D.m_Width);

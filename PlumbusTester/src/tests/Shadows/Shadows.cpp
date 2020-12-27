@@ -35,8 +35,8 @@ namespace plumbus::tester::tests
 
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(20.f, 6.f, 0.f));
-			camera->SetRotation(glm::vec3(-30.f, 90.f, 0.0f));
+			camera->SetPosition(glm::vec3(35.f, 11.f, 0.f));
+			camera->SetRotation(glm::vec3(-15.f, 90.f, 0.0f));
 		}
 
 		GameObject* plane = new GameObject("plane");
@@ -77,7 +77,7 @@ namespace plumbus::tester::tests
 
 	void Shadows::Update()
 	{
-#if !PL_DIST
+#if ENABLE_IMGUI
 		if(!m_ShadowTextureImGui)
 		{
 			std::vector<vk::Shadow*>& shadows = vk::ShadowManager::Get()->GetShadows();

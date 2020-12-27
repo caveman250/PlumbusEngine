@@ -7,6 +7,6 @@ layout (location = 0) out vec4 outColor;
 
 void main() 
 {
-	outColor = inColor;
-	outColor *= texture(imageSampler, inUV);
+    float r = texture(imageSampler, inUV).r;
+	outColor = vec4(r, r, r, 1.0f);
 }

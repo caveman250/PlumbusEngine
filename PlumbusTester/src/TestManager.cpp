@@ -40,7 +40,7 @@ namespace plumbus::tester
 #if PL_PLATFORM_ANDROID || PL_DIST
 		else
 		{
-			BeginTest<tests::DeferredLights>();
+			BeginTest<tests::Shadows>();
 		}
 #endif
 	}

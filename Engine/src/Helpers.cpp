@@ -5,6 +5,7 @@
 #include "platform/windows/Platform.h"
 #else
 #include "platform/android/Platform.h"
+#include <android/log.h>
 #endif
 
 std::string ErrorString(VkResult errorCode)
@@ -108,15 +109,16 @@ std::string Helpers::ReadTextFile(const std::string& filename)
 #if PL_PLATFORM_ANDROID
 
 	AAssetManager * mgr = Android_application->activity->assetManager;
-	if(AAsset* asset = AAssetManager_open(mgr, (plumbus::Platform::GetAssetsPath() + filename).c_str(), AASSET_MODE_BUFFER))
+	if(AAsset* asset = AAssetManager_open(mgr, (plumbus::Platform::GetAssetsPath() + filename).c_str(), AASSET_MODE_STREAMING))
 	{
-		std::vector<char> buffer;
+		std::vector<char*> buffer;
 		//holds size of searched file
 		off64_t length = AAsset_getLength64(asset);
 		buffer.resize(length);
 
 		//read data chunk
-		if(PL_VERIFY(AAsset_read(asset, buffer.data(), length) > 0))
+		int bytesRead = AAsset_read(asset, buffer.data(), length);
+		if(PL_VERIFY(bytesRead > 0))
 		{
 			return std::string((const char*)buffer.data());
 		}
