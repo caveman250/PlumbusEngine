@@ -15,7 +15,7 @@
             android:screenOrientation="landscape"
             android:label="@string/app_name"
             android:configChanges="orientation|screenSize">
-            <meta-data android:name="android.app.lib_name" android:value="PlumbusTesterd" />
+            <meta-data android:name="android.app.lib_name" android:value="PlumbusTester" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

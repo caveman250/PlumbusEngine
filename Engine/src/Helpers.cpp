@@ -1,11 +1,11 @@
 #include "plumbus.h"
 #include "Helpers.h"
 
-#if PL_PLATFORM_WINDOWS
-#include "platform/windows/Platform.h"
-#else
+#if PL_PLATFORM_ANDROID
 #include "platform/android/Platform.h"
 #include <android/log.h>
+#else
+#include "platform/windows/Platform.h"
 #endif
 
 std::string ErrorString(VkResult errorCode)

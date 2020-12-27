@@ -3,17 +3,9 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    signingConfigs {
-        release {
-            storeFile file('C:\\Checkouts\\android_keystore\\keystore.jks')
-            storePassword 'thal291096'
-            keyAlias 'key0'
-            keyPassword 'thal291096'
-        }
-    }
     compileSdkVersion 29
     buildToolsVersion "30.0.2"
-    ndkVersion "19.2.5345600"
+    ndkVersion "22.0.7026061"
 
     defaultConfig {
         applicationId "com.plumbusengine.plumbustesterandroid"
@@ -29,7 +21,6 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
         }
     }
     externalNativeBuild {

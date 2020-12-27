@@ -15,10 +15,10 @@
 #include "DescriptorSet.h"
 #include "PipelineLayout.h"
 #include "MaterialInstance.h"
-#if PL_PLATFORM_WINDOWS
-#include "platform/windows/Platform.h"
-#else
+#if PL_PLATFORM_ANDROID
 #include "platform/android/Platform.h"
+#else
+#include "platform/windows/Platform.h"
 #endif
 
 namespace plumbus::vk
