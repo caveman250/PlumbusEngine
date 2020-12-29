@@ -5,12 +5,12 @@
 
 namespace plumbus::vk
 {
-	PipelineRef Pipeline::CreatePipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass, bool enableAlphaBlending) 
+	PipelineRef Pipeline::CreatePipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass, bool enableAlphaBlending, VkCullModeFlagBits cullMode)
 	{
-		return std::make_shared<Pipeline>(pipelineLayout, numOutputs, vertexDescription, vertShader, fragShader, renderPass, enableAlphaBlending);
+		return std::make_shared<Pipeline>(pipelineLayout, numOutputs, vertexDescription, vertShader, fragShader, renderPass, enableAlphaBlending, cullMode);
 	}
 
-	Pipeline::Pipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass, bool enableAlphaBlending)
+	Pipeline::Pipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass, bool enableAlphaBlending, VkCullModeFlagBits cullMode)
 	{
 		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
 
@@ -23,7 +23,7 @@ namespace plumbus::vk
 		VkPipelineRasterizationStateCreateInfo rasterizationState{};
 		rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationState.cullMode = cullMode;
 		rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		rasterizationState.flags = 0;
 		rasterizationState.depthClampEnable = VK_FALSE;

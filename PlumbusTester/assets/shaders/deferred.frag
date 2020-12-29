@@ -62,8 +62,7 @@ float shadowProj(vec4 P, vec2 offset, int index, float NdotL)
 
 float shadow(vec3 fragpos, int index, float NdotL)
 {
-	vec3 fragPosYUp = vec3(fragpos.x, -fragpos.z, fragpos.y);
-	vec4 shadowClip	= dirLights.lights[index].mvp * vec4(fragPosYUp, 1.0);
+	vec4 shadowClip	= dirLights.lights[index].mvp * vec4(fragpos, 1.0);
 	float shadowFactor = shadowProj(shadowClip, vec2(0.0), index, NdotL);
 	return shadowFactor;
 }
@@ -83,9 +82,6 @@ void main()
 	for (int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{
 		vec3 worldPos =  pointLights.lights[i].position.xyz;
-		float temp = worldPos.z;
-		worldPos.z = -worldPos.y;
-		worldPos.y = temp;
 
 		// Vector to light
 		vec3 L = worldPos.xyz - fragPos;
@@ -104,7 +100,7 @@ void main()
 
 		// Diffuse part
 		vec3 N = normalize(normal);
-		float NdotL = clamp(dot(N, L), -1.0, 1.0);
+		float NdotL = max(0.0f, dot(N, L));
 		vec3 diff = pointLights.lights[i].color.xyz * albedo.rgb * NdotL * atten;
 
 		// Specular part
@@ -120,7 +116,6 @@ void main()
 	for (int i = 0; i < NUM_DIR_LIGHTS; ++i)
 	{
 		vec3 lightDir = dirLights.lights[i].direction.xyz;
-		lightDir.y = -lightDir.y;
 		vec3 L = normalize(lightDir);
 
 		// Diffuse part

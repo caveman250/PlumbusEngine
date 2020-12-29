@@ -36,14 +36,11 @@ void main()
 
 	// Vertex position in world space
 	outWorldPos = vec3(ubo.model * tmpPos);
-	// GL to Vulkan coord space
-	float temp = outWorldPos.z;
-	outWorldPos.z = -outWorldPos.y;
-	outWorldPos.y = temp;
 	
 	// Normal in world space
 	mat3 mNormal = transpose(inverse(mat3(ubo.model)));
-	outNormal = mNormal * normalize(inNormal);	
+	outNormal = mNormal * normalize(inNormal);
+	outNormal.y = -outNormal.y;
 	outTangent = mNormal * normalize(inTangent);
 	
 	// Currently just vertex color

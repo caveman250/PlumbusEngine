@@ -89,7 +89,7 @@ namespace plumbus::tester::tests
 		);
 
 		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, -2.4f, 0));
-		knight->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0, -glm::half_pi<float>(), 0));
+		knight->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, 0.f));
 		knight->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
 		//Lights
@@ -108,9 +108,12 @@ namespace plumbus::tester::tests
 			GameObject* light = new GameObject("Light " + std::to_string(i));
 			scene->AddGameObject(light->
 				AddComponent<TranslationComponent>(new TranslationComponent())->
+                AddComponent<ModelComponent>(new ModelComponent("models/sphere.obj", "stonefloor_color", "stonefloor_normal"))->
 				AddComponent<LightComponent>(new LightComponent()));
 
 			light->GetComponent<LightComponent>()->AddPointLight(colours[i], m_LightRadius);
+            light->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+            light->GetComponent<TranslationComponent>()->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
 		}
 
 		BaseApplication::Get().GetScene()->LoadAssets();

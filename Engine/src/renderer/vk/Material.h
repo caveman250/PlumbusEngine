@@ -35,6 +35,8 @@ namespace plumbus::vk
 		const DescriptorSetLayoutRef& GetLayout() { return m_DescriptorSetLayout; }
 		shaders::ShaderSettings& GetShaderSettings() { return m_ShaderSettings; }
 
+        void SetCullingMode(VkCullModeFlagBits cullMode) { m_CullMode = cullMode; }
+
 	private:
 		void CreatePipelineLayout(const ShaderReflectionObject& shaderReflection);
 		void CreateVertexDescriptions(const ShaderReflectionObject& shaderReflection);
@@ -45,6 +47,7 @@ namespace plumbus::vk
 		bool m_EnableAlphaBlending;
 		PipelineLayoutRef m_PipelineLayout;
 		PipelineRef m_Pipeline;
+		VkCullModeFlagBits m_CullMode;
 
 		const char* m_VertShaderName;
 		const char* m_FragShaderName;

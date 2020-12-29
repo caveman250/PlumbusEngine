@@ -14,7 +14,7 @@ namespace plumbus
 	
 	glm::mat4 DirectionalLight::GetMVP() 
 	{
-		glm::mat4 proj = glm::ortho<float>(-15,15,-15,15,-15,50);
+		glm::mat4 proj = glm::ortho<float>(-25, 25, -25, 25, -50, 50);
         glm::mat4 view = glm::lookAt(GetDirection(), glm::vec3(0,0,0), glm::vec3(0, 1,0));
         glm::mat4 model = glm::mat4(1.0f);
 

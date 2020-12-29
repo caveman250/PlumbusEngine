@@ -21,6 +21,7 @@ namespace plumbus::vk
         if(!s_ShadowDirectionalMaterial)
         {
              s_ShadowDirectionalMaterial = std::make_shared<Material>("shaders/shadow.vert", "shaders/shadow.frag", shadow->GetFrameBuffer()->GetRenderPass());
+             s_ShadowDirectionalMaterial->SetCullingMode(VK_CULL_MODE_FRONT_BIT);
              s_ShadowDirectionalMaterial->Setup();
         }
 
@@ -78,7 +79,7 @@ namespace plumbus::vk
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
                 DirectionalLight* dirLight = static_cast<DirectionalLight *>(m_Light);
-                m_UniformBufferObjects[comp].m_Proj = glm::ortho<float>(-15, 15, -15, 15, -15, 50);
+                m_UniformBufferObjects[comp].m_Proj = glm::ortho<float>(-25, 25, -25, 25, -50, 50);
                 m_UniformBufferObjects[comp].m_View = glm::lookAt(dirLight->GetDirection(), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
                 m_UniformBufferObjects[comp].m_Model = comp->GetModelMatrix();
 

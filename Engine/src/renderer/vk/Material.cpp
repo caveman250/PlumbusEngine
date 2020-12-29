@@ -19,6 +19,7 @@ namespace plumbus::vk
 		, m_RenderPass(renderPass)
 		, m_ShadersLoaded(false)
 		, m_EnableAlphaBlending(enableAlphaBlending)
+		, m_CullMode(VK_CULL_MODE_BACK_BIT)
 	{
 	}
 	
@@ -52,7 +53,7 @@ namespace plumbus::vk
 
 		if (!m_Pipeline)
 		{
-			m_Pipeline = Pipeline::CreatePipeline(m_PipelineLayout, shaderReflection.m_FragmentStageOutputCount, m_VertexDescriptions, m_VertShaderPipelineCreateInfo, m_FragShaderPipelineCreateInfo, m_RenderPass, m_EnableAlphaBlending);
+			m_Pipeline = Pipeline::CreatePipeline(m_PipelineLayout, shaderReflection.m_FragmentStageOutputCount, m_VertexDescriptions, m_VertShaderPipelineCreateInfo, m_FragShaderPipelineCreateInfo, m_RenderPass, m_EnableAlphaBlending, m_CullMode);
 		}
 	}
 

@@ -32,9 +32,9 @@ namespace plumbus::vk
 	class Pipeline
 	{
 	public:
-		static PipelineRef CreatePipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass = VK_NULL_HANDLE, bool enableAlphaBlending = false);
+		static PipelineRef CreatePipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass = VK_NULL_HANDLE, bool enableAlphaBlending = false, VkCullModeFlagBits cullMode = VK_CULL_MODE_BACK_BIT);
 
-		Pipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass = VK_NULL_HANDLE, bool enableAlphaBlending = false);
+		Pipeline(PipelineLayoutRef pipelineLayout, int numOutputs, VertexDescription vertexDescription, VkPipelineShaderStageCreateInfo vertShader, VkPipelineShaderStageCreateInfo fragShader, VkRenderPass renderPass = VK_NULL_HANDLE, bool enableAlphaBlending = false, VkCullModeFlagBits cullMode = VK_CULL_MODE_BACK_BIT);
 		~Pipeline();
 
 		const VkPipeline& GetVulkanPipeline() { return m_Pipeline; }
