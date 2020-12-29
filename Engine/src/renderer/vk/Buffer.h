@@ -15,6 +15,7 @@ namespace plumbus::vk
 		void CopyTo(void* data, VkDeviceSize size);
 		VkResult Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 		VkResult Invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		bool IsInitialised() { return m_Memory != VK_NULL_HANDLE; }
 		void Cleanup();
 
 		VkDevice m_Device;

@@ -419,13 +419,16 @@ namespace plumbus::vk
 
     void VulkanRenderer::CreateLightsUniformBuffers()
     {
-        CHECK_VK_RESULT(m_Device->CreateBuffer(
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &m_ViewPosVulkanBuffer,
-            sizeof(m_ViewPos)));
+        if (!m_ViewPosVulkanBuffer.IsInitialised())
+        {
+            CHECK_VK_RESULT(m_Device->CreateBuffer(
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    &m_ViewPosVulkanBuffer,
+                    sizeof(m_ViewPos)));
 
-        CHECK_VK_RESULT(m_ViewPosVulkanBuffer.Map());
+            CHECK_VK_RESULT(m_ViewPosVulkanBuffer.Map());
+        }
 
         if (m_DirectionalLights.size() > 0)
         {

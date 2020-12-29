@@ -29,6 +29,14 @@ namespace plumbus::vk
 	
 	ShadowDirectional::~ShadowDirectional()
 	{
+        s_ShadowDirectionalMaterial.reset();
+        m_ShadowDirectionalMaterialInstances.clear();
+        m_UniformBufferObjects.clear();
+        for(auto& [_, buffer] : m_UniformBuffers)
+        {
+            buffer.Cleanup();
+        }
+        m_UniformBuffers.clear();
 	}
 
     void ShadowDirectional::Init() 
@@ -67,12 +75,6 @@ namespace plumbus::vk
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-        	//HACK HACK
-        	// if (obj->GetID() == "plane")
-        	// {
-        	// 	continue;
-        	// }
-        	
             if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
             {
                 DirectionalLight* dirLight = static_cast<DirectionalLight *>(m_Light);

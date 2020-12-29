@@ -102,7 +102,6 @@ namespace plumbus::vk
 	void Mesh::Cleanup()
 	{
 		vk::VulkanRenderer* renderer = VulkanRenderer::Get();
-		VkDevice device = renderer->GetDevice()->GetVulkanDevice();
 
 		m_UniformBuffer.Cleanup();
 		m_VulkanVertexBuffer.Cleanup();

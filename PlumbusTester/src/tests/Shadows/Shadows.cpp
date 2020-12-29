@@ -116,6 +116,7 @@ namespace plumbus::tester::tests
 		BaseApplication::Get().GetScene()->ClearObjects();
 
 		m_DeferredLightMaterial.reset();
+        m_ShadowTextureImGui.clear();
 	}
 
 	void Shadows::OnGui()

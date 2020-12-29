@@ -33,14 +33,17 @@ layout (binding = 6) uniform DirectionalLights { DirectionalLight lights[NUM_DIR
 #endif
 
 #if NUM_SHADOWS && NUM_DIR_LIGHTS
-float shadowProj(vec4 P, vec2 offset, int index)
+float shadowProj(vec4 P, vec2 offset, int index, float NdotL)
 {
 	float shadow = 1.0;
 	vec4 shadowCoord = P / P.w;
 	shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
 
+	float bias = 0.005 * tan(acos(NdotL)); // cosTheta is dot( n,l ), clamped between 0 and 1
+	bias = clamp(bias, 0, 0.01);
+
 	float dist = texture(samplerShadows[index], shadowCoord.st + offset).r;
-	if (shadowCoord.w > 0.0 && dist + 0.005 < shadowCoord.z)
+	if (shadowCoord.w > 0.0 && dist < shadowCoord.z - bias)
 	{
 		shadow = 0;
 	}
@@ -48,11 +51,11 @@ float shadowProj(vec4 P, vec2 offset, int index)
 	return shadow;
 }
 
-float shadow(vec3 fragpos, int index)
+float shadow(vec3 fragpos, int index, float NdotL)
 {
 	vec3 fragPosYUp = vec3(fragpos.x, -fragpos.z, fragpos.y);
 	vec4 shadowClip	= dirLights.lights[index].mvp * vec4(fragPosYUp, 1.0);
-	float shadowFactor = shadowProj(shadowClip, vec2(0.0), index);
+	float shadowFactor = shadowProj(shadowClip, vec2(0.0), index, NdotL);
 	return shadowFactor;
 }
 #endif
@@ -94,7 +97,7 @@ void main()
 
 		// Diffuse part
 		vec3 N = normalize(normal);
-		float NdotL = max(0.0, dot(N, L));
+		float NdotL = clamp(dot(N, L), 0.0, 1.0);
 		vec3 diff = pointLights.lights[i].color.xyz * albedo.rgb * NdotL * atten;
 
 		// Specular part
@@ -116,7 +119,7 @@ void main()
 
 		// Diffuse part
 		vec3 N = normalize(normal);
-		float NdotL = max(0.0, dot(N, L));
+		float NdotL = clamp(dot(N, L), 0.0, 1.0);
 		vec3 diff = dirLights.lights[i].color.xyz * albedo.rgb * NdotL;
 
 		// Specular part
@@ -128,7 +131,7 @@ void main()
 		vec3 spec = dirLights.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0);
 
 #if NUM_SHADOWS
-		float shadow = shadow(fragPos, i);
+		float shadow = shadow(fragPos, i, NdotL);
 		fragcolor += (diff + spec) * shadow;
 #else
 		fragcolor += (diff + spec);
