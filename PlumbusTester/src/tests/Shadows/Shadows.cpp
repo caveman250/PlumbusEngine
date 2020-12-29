@@ -88,12 +88,12 @@ namespace plumbus::tester::tests
 
         light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(0.5f, -0.2f, 1.f), true);
 
-        GameObject* light2 = new GameObject("Light2");
-        scene->AddGameObject(light2->
-                AddComponent<LightComponent>(new LightComponent())
-        );
-
-        light2->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(-0.5f, -0.2f, 1.f), true);
+//        GameObject* light2 = new GameObject("Light2");
+//        scene->AddGameObject(light2->
+//                AddComponent<LightComponent>(new LightComponent())
+//        );
+//
+//        light2->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(-0.5f, -0.2f, 1.f), true);
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}

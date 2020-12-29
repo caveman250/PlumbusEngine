@@ -34,7 +34,7 @@ namespace plumbus::tester::tests
 
 		GameObject* sponza = new GameObject("Sponza");
 		scene->AddGameObject(sponza->
-			AddComponent<ModelComponent>(new ModelComponent("models/sponza.dae", "color_bc3_unorm.ktx", "normal_bc3_unorm.ktx"))->
+			AddComponent<ModelComponent>(new ModelComponent("models/sponza.dae", "color", "normal"))->
 			AddComponent<TranslationComponent>(new TranslationComponent())
 		);
 
@@ -46,7 +46,7 @@ namespace plumbus::tester::tests
 				AddComponent<TranslationComponent>(new TranslationComponent())->
 				AddComponent<LightComponent>(new LightComponent()));
 
-        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.3f, 1.f, 0.3), true);
+        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.3f, 1.f, 0.3), false);
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}

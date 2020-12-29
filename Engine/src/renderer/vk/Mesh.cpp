@@ -222,13 +222,13 @@ namespace plumbus::vk
 				if (diffusePath.length == 0)
 				{
                     Log::Warn("No diffuse texture defined for submesh: %i, in file: %s", i, fileName.c_str());
-					diffusePath = defaultDiffuseTexture;
+					diffusePath = defaultDiffuseTexture + Platform::GetTextureExtension();
 				}
 
 				if (normalPath.length == 0)
 				{
                     Log::Warn("No normal texture defined for submesh: %i, in file: %s", i, fileName.c_str());
-                    normalPath = defaultNormalTexture;
+                    normalPath = defaultNormalTexture + Platform::GetTextureExtension();
 				}
 
                 vk::Mesh* newModel = new vk::Mesh();
@@ -244,8 +244,8 @@ namespace plumbus::vk
 				aiColor3D pColor(0.f, 0.f, 0.f);
 				scene->mMaterials[paiMesh->mMaterialIndex]->Get(AI_MATKEY_COLOR_DIFFUSE, pColor);
                 
-                meshes.back()->GetColourMap()->LoadTexture(Platform::GetTextureDirPath() + diffusePath.C_Str() + Platform::GetTextureExtension());
-			    meshes.back()->GetNormalMap()->LoadTexture(Platform::GetTextureDirPath() + normalPath.C_Str() + Platform::GetTextureExtension());
+                meshes.back()->GetColourMap()->LoadTexture(Platform::GetTextureDirPath() + diffusePath.C_Str());
+			    meshes.back()->GetNormalMap()->LoadTexture(Platform::GetTextureDirPath() + normalPath.C_Str());
 
                 const aiVector3D Zero3D(0.0f, 0.0f, 0.0f);
                 
