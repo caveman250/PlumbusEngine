@@ -34,34 +34,51 @@ namespace plumbus::tester::tests
 
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(35.f, 11.f, 0.f));
-			camera->SetRotation(glm::vec3(-15.f, 90.f, 0.0f));
+			camera->SetPosition(glm::vec3(0.f, 11.f, -35.f));
+			camera->SetRotation(glm::vec3(-15.f, 0.f, 0.0f));
 		}
 
 		GameObject* plane = new GameObject("plane");
 		scene->AddGameObject(plane->
-#if PL_PLATFORM_ANDROID
-			AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
-#else
              AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
-#endif
-			AddComponent<TranslationComponent>(new TranslationComponent())
+             AddComponent<TranslationComponent>(new TranslationComponent())
 		);
-
 		plane->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+
+        GameObject* plane2 = new GameObject("plane2");
+        scene->AddGameObject(plane2->
+                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<TranslationComponent>(new TranslationComponent())
+        );
+        plane2->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane2->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, glm::half_pi<float>()));
+        plane2->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(-10.f, -10.f, 0.f));
+
+        GameObject* plane3 = new GameObject("plane3");
+        scene->AddGameObject(plane3->
+                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<TranslationComponent>(new TranslationComponent())
+        );
+        plane3->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane3->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, -glm::half_pi<float>()));
+        plane3->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(10.f, -10.f, 0.f));
+
+        GameObject* plane4 = new GameObject("plane4");
+        scene->AddGameObject(plane4->
+                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<TranslationComponent>(new TranslationComponent())
+        );
+        plane4->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane4->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f));
+        plane4->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0.f, -10.f, -10.f));
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
-#if PL_PLATFORM_ANDROID
          AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color", "normal"))->
-#else
-         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color", "normal"))->
-#endif
-			AddComponent<TranslationComponent>(new TranslationComponent())
+         AddComponent<TranslationComponent>(new TranslationComponent())
 		);
+		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0.f, -2.4f, 4.f));
 
-		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0, -2.4f, 0));
-		knight->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0, -glm::half_pi<float>(), 0));
 		knight->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
         GameObject* light = new GameObject("Light");
@@ -69,14 +86,14 @@ namespace plumbus::tester::tests
             AddComponent<LightComponent>(new LightComponent())
 		);
 
-        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(0.8f, 0.8f, 0.6f), glm::vec3(-1.f, -1.f, 1.f), true);
+        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(0.5f, -0.2f, 1.f), true);
 
         GameObject* light2 = new GameObject("Light2");
         scene->AddGameObject(light2->
                 AddComponent<LightComponent>(new LightComponent())
         );
 
-        light2->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(0.8f, 0.8f, 0.6f), glm::vec3(-1.f, -1.f, -1.f), true);
+        light2->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(-0.5f, -0.2f, 1.f), true);
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}

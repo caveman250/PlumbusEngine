@@ -39,7 +39,7 @@ float shadowProj(vec4 P, vec2 offset, int index, float NdotL)
 	vec4 shadowCoord = P / P.w;
 	shadowCoord.st = shadowCoord.st * 0.5 + 0.5;
 
-	float bias = 0.005 * tan(acos(NdotL)); // cosTheta is dot( n,l ), clamped between 0 and 1
+	float bias = 0.005 * tan(acos(NdotL));
 	bias = clamp(bias, 0, 0.01);
 
 	float dist = texture(samplerShadows[index], shadowCoord.st + offset).r;
@@ -67,10 +67,8 @@ void main()
 	vec3 normal = texture(samplerNormal, inUV).rgb;
 	vec4 albedo = texture(samplerAlbedo, inUV);
 
-	#define ambient 0.3
-
 	// Ambient part
-	vec3 fragcolor  = albedo.rgb * ambient;
+	vec3 fragcolor = vec3(0);
 
 #if NUM_POINT_LIGHTS
 	for (int i = 0; i < NUM_POINT_LIGHTS; ++i)
@@ -97,7 +95,7 @@ void main()
 
 		// Diffuse part
 		vec3 N = normalize(normal);
-		float NdotL = clamp(dot(N, L), 0.0, 1.0);
+		float NdotL = clamp(dot(N, L), -1.0, 1.0);
 		vec3 diff = pointLights.lights[i].color.xyz * albedo.rgb * NdotL * atten;
 
 		// Specular part
@@ -109,7 +107,6 @@ void main()
 		fragcolor += diff + spec;
 	}
 #endif
-
 #if NUM_DIR_LIGHTS
 	for (int i = 0; i < NUM_DIR_LIGHTS; ++i)
 	{
@@ -131,13 +128,12 @@ void main()
 		vec3 spec = dirLights.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0);
 
 #if NUM_SHADOWS
-		float shadow = shadow(fragPos, i, NdotL);
-		fragcolor += (diff + spec) * shadow;
+		fragcolor += (diff + spec) * shadow(fragPos, i, NdotL);
 #else
 		fragcolor += (diff + spec);
 #endif
 	}
 #endif
-
-	outFragcolor = vec4(fragcolor, 1.0);
+	#define ambient 0.3f
+	outFragcolor = vec4((albedo.rgb * ambient) + (albedo.rgb * fragcolor), 1.0);
 }

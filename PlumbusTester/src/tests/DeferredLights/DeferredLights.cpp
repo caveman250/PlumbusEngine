@@ -43,8 +43,8 @@ namespace plumbus::tester::tests
 
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(35.f, 11.f, 0.f));
-			camera->SetRotation(glm::vec3(-15.f, 90.f, 0.0f));
+			camera->SetPosition(glm::vec3(0.f, 11.f, -35.f));
+			camera->SetRotation(glm::vec3(-15.f, 0.f, 0.0f));
 		}
 
 		GameObject* plane = new GameObject("plane");
@@ -54,6 +54,33 @@ namespace plumbus::tester::tests
 		);
 
 		plane->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+
+        GameObject* plane2 = new GameObject("plane2");
+        scene->AddGameObject(plane2->
+                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<TranslationComponent>(new TranslationComponent())
+        );
+        plane2->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane2->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, glm::half_pi<float>()));
+        plane2->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(-10.f, -10.f, 0.f));
+
+        GameObject* plane3 = new GameObject("plane3");
+        scene->AddGameObject(plane3->
+                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<TranslationComponent>(new TranslationComponent())
+        );
+        plane3->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane3->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, -glm::half_pi<float>()));
+        plane3->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(10.f, -10.f, 0.f));
+
+        GameObject* plane4 = new GameObject("plane4");
+        scene->AddGameObject(plane4->
+                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<TranslationComponent>(new TranslationComponent())
+        );
+        plane4->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane4->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f));
+        plane4->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0.f, -10.f, -10.f));
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
@@ -69,11 +96,11 @@ namespace plumbus::tester::tests
 		glm::vec3 colours[] =
 		{
 			glm::vec3(1.5f),
-			glm::vec3(1.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 0.0f, 2.5f),
-			glm::vec3(1.0f, 1.0f, 0.0f),
-			glm::vec3(0.0f, 1.0f, 0.2f),
-			glm::vec3(1.0f, 0.7f, 0.3f)
+			glm::vec3(3.0f, 0.0f, 0.0f),
+			glm::vec3(0.0f, 0.0f, 3.f),
+			glm::vec3(3.0f, 3.0f, 0.0f),
+			glm::vec3(0.0f, 3.0f, 1.f),
+			glm::vec3(3.0f, 2.f, 1.f)
 		};
 
 		for (int i = 0; i < 6; ++i)
