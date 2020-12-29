@@ -23,7 +23,7 @@ namespace plumbus
 		private:
 			vk::MaterialRef m_DeferredLightMaterial;
 #if !PL_DIST
-			vk::MaterialInstanceRef m_ShadowTextureImGui;
+			std::vector<vk::MaterialInstanceRef> m_ShadowTextureImGui;
 #endif
 		};
 	}

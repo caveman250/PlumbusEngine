@@ -23,9 +23,9 @@ namespace plumbus::vk
         m_DescriptorSet.reset();
     }
 
-    void MaterialInstance::SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth) 
+    void MaterialInstance::SetTextureUniform(std::string name, std::vector<DescriptorSet::TextureUniform> textureUniforms, bool isDepth)
 	{
-        m_DescriptorSet->SetTextureUniform(name, sampler, imageView, isDepth);
+        m_DescriptorSet->SetTextureUniform(name, textureUniforms, isDepth);
         m_UniformsDirty = true;
 	}
 	

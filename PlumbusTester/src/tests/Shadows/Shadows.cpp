@@ -17,7 +17,6 @@
 
 namespace plumbus::tester::tests 
 {
-	
 	Shadows::Shadows()
 		: Test()
 		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert", "shaders/shader.frag"))
@@ -72,19 +71,32 @@ namespace plumbus::tester::tests
 
         light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(0.8f, 0.8f, 0.6f), glm::vec3(-1.f, -1.f, 1.f), true);
 
+        GameObject* light2 = new GameObject("Light2");
+        scene->AddGameObject(light2->
+                AddComponent<LightComponent>(new LightComponent())
+        );
+
+        light2->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(0.8f, 0.8f, 0.6f), glm::vec3(-1.f, -1.f, -1.f), true);
+
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}
 
 	void Shadows::Update()
 	{
 #if ENABLE_IMGUI
-		if(!m_ShadowTextureImGui)
+        std::vector<vk::Shadow*>& shadows = vk::ShadowManager::Get()->GetShadows();
+		if (m_ShadowTextureImGui.size() != shadows.size())
 		{
-			std::vector<vk::Shadow*>& shadows = vk::ShadowManager::Get()->GetShadows();
+		    m_ShadowTextureImGui.clear();
 			if (shadows.size() > 0)
 			{
-				vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
-				m_ShadowTextureImGui = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(shadows.back()->GetFrameBuffer()->GetSampler(), shadows.back()->GetFrameBuffer()->GetAttachment("depth").m_ImageView, true);
+			    for (const vk::Shadow* shadow : shadows)
+			    {
+                    vk::VulkanRenderer *vkRenderer = vk::VulkanRenderer::Get();
+                    m_ShadowTextureImGui.push_back(vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(
+                            shadow->GetFrameBuffer()->GetSampler(),
+                            shadow->GetFrameBuffer()->GetAttachment("depth").m_ImageView, true));
+                }
 			}
 		}
 #endif
@@ -111,8 +123,11 @@ namespace plumbus::tester::tests
 		ImGui::Text("Shadows");
 
 #if !PL_DIST
-		if(m_ShadowTextureImGui)
-			ImGui::Image(m_ShadowTextureImGui.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		for (vk::MaterialInstanceRef shadowMaterial : m_ShadowTextureImGui)
+		{
+            ImGui::Image(shadowMaterial.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1),
+                         ImVec4(0, 0, 0, 0), false);
+        }
 #endif
 		
 	}

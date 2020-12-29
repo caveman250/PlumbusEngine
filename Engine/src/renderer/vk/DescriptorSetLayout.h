@@ -21,6 +21,7 @@ namespace plumbus::vk
         DescriptorBindingType m_Type;
         DescriptorBindingUsage m_Usage;
         int m_Location;
+        int m_Count;
         std::string m_Name;
     };
     

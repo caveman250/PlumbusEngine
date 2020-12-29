@@ -144,8 +144,8 @@ namespace plumbus::vk
 		vk::Texture* vkNormalMap = static_cast<vk::Texture*>(m_NormalMap);
 
 		m_MaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
-		m_MaterialInstance->SetTextureUniform("samplerColor", vkColourMap->m_TextureSampler, vkColourMap->m_ImageView, false);
-		m_MaterialInstance->SetTextureUniform("samplerNormalMap", vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView, false);
+		m_MaterialInstance->SetTextureUniform("samplerColor", {{vkColourMap->m_TextureSampler, vkColourMap->m_ImageView}}, false);
+		m_MaterialInstance->SetTextureUniform("samplerNormalMap", {{vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView}}, false);
 	}
 
 	void Mesh::Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial)

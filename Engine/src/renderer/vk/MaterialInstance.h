@@ -1,6 +1,7 @@
 #pragma once
 
 #include "plumbus.h"
+#include "DescriptorSet.h"
 
 namespace plumbus::vk
 {
@@ -13,7 +14,7 @@ namespace plumbus::vk
 		MaterialInstance(MaterialRef material);
 		~MaterialInstance();
 
-        void SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth);
+        void SetTextureUniform(std::string name, std::vector<DescriptorSet::TextureUniform> textureUniforms, bool isDepth);
 		void SetBufferUniform(std::string name, Buffer* buffer);
 
         void Bind(CommandBufferRef commandBuffer);

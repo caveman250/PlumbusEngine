@@ -11,6 +11,7 @@ namespace plumbus::vk
 		void RegisterShadow(Shadow* shadow);
 		void UnregisterShadow(Shadow* shadow);
 
+		int GetShadowCount() { return (int)m_Shadows.size(); }
 		std::vector<Shadow*>& GetShadows() { return m_Shadows; }
 	private:
 		static ShadowManager* s_Instance;

@@ -71,8 +71,6 @@ namespace plumbus
 			std::vector<const char*> GetRequiredInstanceExtensions();
 			std::vector<const char*> GetRequiredValidationLayers();
 
-			void SetShadowCount(int count);
-
 		private:
 			void InitVulkan();
 #if !PL_DIST
@@ -88,6 +86,8 @@ namespace plumbus
 #endif
 			void RecreateSwapChain();
 			void UpdateLightsUniformBuffer();
+            void GetNumLights(int& numPointLights, int& numDirLights);
+            void UpdateOutputMaterial();
 
 			VkShaderModule CreateShaderModule(const std::vector<unsigned int>& code);
 
@@ -137,17 +137,14 @@ namespace plumbus
 				glm::mat4 m_Mvp;
 			};
 
-			static constexpr size_t MAX_POINT_LIGHTS = 6;
-			static constexpr size_t MAX_DIRECTIONAL_LIGHTS = 1;
-			struct UniformBufferLights
-			{
-				glm::vec4 m_ViewPos;
-				PointLightBufferInfo m_PointLights[MAX_POINT_LIGHTS];
-				DirectionalLightBufferInfo m_DirectionalLights[MAX_DIRECTIONAL_LIGHTS];
-			};
+            glm::vec4 m_ViewPos;
+            std::vector<PointLightBufferInfo> m_PointLights;
+            std::vector<DirectionalLightBufferInfo> m_DirectionalLights;
+			vk::Buffer m_ViewPosVulkanBuffer;
+            vk::Buffer m_PointLightsVulkanBuffer;
+            vk::Buffer m_DirLightsVulkanBuffer;
 
-			vk::Buffer m_LightsVulkanBuffer;
-			UniformBufferLights m_LightsUniformBuffer;
+			int m_CachedShadowCount;
 		};
 	}
 }

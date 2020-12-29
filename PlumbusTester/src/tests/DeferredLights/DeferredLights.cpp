@@ -25,7 +25,7 @@ namespace plumbus::tester::tests
 		, m_LightTime(0)
 		, m_LightsPaused(false)
 		, m_LightSpeed(1.0f)
-		, m_LightHeight(3.f)
+		, m_LightHeight(-4.f)
 		, m_LightRadius(20.f)
 		, m_LightsDistanceFromCenter(7.f)
 		, m_DeferredLightMaterial(new vk::Material("shaders/shader.vert", "shaders/shader.frag"))

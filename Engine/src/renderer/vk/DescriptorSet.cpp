@@ -29,9 +29,7 @@ namespace plumbus::vk
 				}
 				case DescriptorBindingType::ImageSampler:
 				{
-					TextureBindingValue* value = new TextureBindingValue(); 
-					value->imageView = VK_NULL_HANDLE;
-					value->sampler = VK_NULL_HANDLE;
+					TextureBindingValue* value = new TextureBindingValue();
 					value->isDepth = false;
 					m_BindingValues[binding.m_Name] = value;
 					break;
@@ -42,7 +40,6 @@ namespace plumbus::vk
 
 	DescriptorSet::~DescriptorSet()
 	{
-		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
 		m_Pool->FreeDescriptorSet(this);
 
 		for (auto& [_, bindingValue] : m_BindingValues)
@@ -52,13 +49,12 @@ namespace plumbus::vk
 		m_BindingValues.clear();
 	}
 	
-	void DescriptorSet::SetTextureUniform(std::string name, VkSampler sampler, VkImageView imageView, bool isDepth) 
+	void DescriptorSet::SetTextureUniform(std::string name, std::vector<TextureUniform> textures, bool isDepth)
 	{
 		if (PL_VERIFY(m_BindingValues.count(name) > 0))
 		{
 			TextureBindingValue* textureBinding = static_cast<TextureBindingValue*>(m_BindingValues[name]);
-			textureBinding->imageView = imageView;
-			textureBinding->sampler = sampler;
+			textureBinding->m_Textures = textures;
 			textureBinding->isDepth = isDepth;
 		}
 	}
@@ -75,8 +71,6 @@ namespace plumbus::vk
 
 	void DescriptorSet::Build()
 	{
-		VkDevice device = VulkanRenderer::Get()->GetDevice()->GetVulkanDevice();
-
 		if (m_DescriptorSet == VK_NULL_HANDLE)
 		{
 			m_Pool->AllocateDescriptorSet(this, m_Layout.get());
@@ -86,7 +80,21 @@ namespace plumbus::vk
 
 		//eed to keep these alive until after we update the descriptor set.
 		std::vector<VkDescriptorImageInfo> imageInfoList;
-		imageInfoList.resize(m_Layout->GetBindings().size());
+		int numImageBindings = 0;
+        for (const DescriptorBinding& binding : m_Layout->GetBindings())
+        {
+            switch (binding.m_Type)
+            {
+                case DescriptorBindingType::ImageSampler:
+                {
+                    const TextureBindingValue* textureBinding = static_cast<const TextureBindingValue*>(m_BindingValues[binding.m_Name]);
+                    numImageBindings += textureBinding->m_Textures.size();
+                    break;
+                }
+                default: break;
+            }
+        }
+		imageInfoList.resize(numImageBindings);
 		int imageIndex = 0;
 		for (const DescriptorBinding& binding : m_Layout->GetBindings())
 		{
@@ -95,25 +103,32 @@ namespace plumbus::vk
 				case DescriptorBindingType::ImageSampler:
 				{
 					const TextureBindingValue* textureBinding = static_cast<const TextureBindingValue*>(m_BindingValues[binding.m_Name]);
-					
-					if(textureBinding->sampler != VK_NULL_HANDLE)
-					{
-						VkDescriptorImageInfo& imageInfo = imageInfoList[imageIndex];
-						imageInfo.sampler = textureBinding->sampler;
-						imageInfo.imageView = textureBinding->imageView;
-						imageInfo.imageLayout = textureBinding->isDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-						VkWriteDescriptorSet writeSet {};
-						writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-						writeSet.dstSet = m_DescriptorSet;
-						writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-						writeSet.dstBinding = binding.m_Location;
-						writeSet.pImageInfo = &imageInfoList[imageIndex];
-						writeSet.descriptorCount = 1;
+					int firstImageIndex = imageIndex;
+					for (const TextureUniform& textureUniform : textureBinding->m_Textures)
+                    {
+                        if (textureUniform.m_Sampler != VK_NULL_HANDLE)
+                        {
+                            VkDescriptorImageInfo &imageInfo = imageInfoList[imageIndex];
+                            imageInfo.sampler = textureUniform.m_Sampler;
+                            imageInfo.imageView = textureUniform.m_ImageView;
+                            imageInfo.imageLayout = textureBinding->isDepth
+                                                    ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                                                    : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        }
 
-						writeSets.push_back(writeSet);
-					}
-					imageIndex++;
+                        imageIndex++;
+                    }
+
+                    VkWriteDescriptorSet writeSet{};
+                    writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    writeSet.dstSet = m_DescriptorSet;
+                    writeSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    writeSet.dstBinding = binding.m_Location;
+                    writeSet.pImageInfo = &imageInfoList[firstImageIndex];
+                    writeSet.descriptorCount = textureBinding->m_Textures.size();
+
+                    writeSets.push_back(writeSet);
 					break;
 				}
 				case DescriptorBindingType::UniformBuffer:

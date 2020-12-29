@@ -49,7 +49,7 @@ namespace plumbus::vk
 					layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 					layoutBinding.stageFlags = binding.m_Usage == DescriptorBindingUsage::VertexShader ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
 					layoutBinding.binding = binding.m_Location;
-					layoutBinding.descriptorCount = 1;
+					layoutBinding.descriptorCount = binding.m_Count;
 
 					layoutBindings.push_back(layoutBinding);
 					break;
@@ -60,7 +60,7 @@ namespace plumbus::vk
 					layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 					layoutBinding.stageFlags = binding.m_Usage == DescriptorBindingUsage::VertexShader ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
 					layoutBinding.binding = binding.m_Location;
-					layoutBinding.descriptorCount = 1;
+					layoutBinding.descriptorCount = binding.m_Count;
 
 					layoutBindings.push_back(layoutBinding);
 					break;

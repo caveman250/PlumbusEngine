@@ -19,9 +19,9 @@ namespace plumbus::vk
             virtual void BuildCommandBuffer() = 0;
             virtual void Render(VkSemaphore waitSemaphore) = 0;
             
-            FrameBufferRef GetFrameBuffer() { return m_FrameBuffer; }
-            VkSemaphore GetSemaphore() { return m_Semaphore; }
-            CommandBufferRef GetCommandBuffer() { return m_CommandBuffer; }
+            FrameBufferRef GetFrameBuffer() const { return m_FrameBuffer; }
+            VkSemaphore GetSemaphore() const { return m_Semaphore; }
+            CommandBufferRef GetCommandBuffer() const { return m_CommandBuffer; }
 
     protected:
             FrameBufferRef m_FrameBuffer = VK_NULL_HANDLE;

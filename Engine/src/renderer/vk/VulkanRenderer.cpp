@@ -119,27 +119,12 @@ namespace plumbus::vk
         m_DeferredOutputFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo);
 #endif
 
-        CreateLightsUniformBuffers();
         m_DescriptorPool = DescriptorPool::CreateDescriptorPool(100, 100, 100);
 
-#if ENABLE_IMGUI
-            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_DeferredOutputFrameBuffer->GetRenderPass());
-#else
-            m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_SwapChain->GetRenderPass());
-#endif
-            m_DeferredOutputMaterial->Setup();
+        CreateLightsUniformBuffers();
 
-        m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
-        const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position").m_ImageView, false);
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView, false);
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView, false);
-        m_DeferredOutputMaterialInstance->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
-
-        BuildDefferedCommandBuffer();
 #if ENABLE_IMGUI
         SetupImGui();
-        BuildDeferredOutputCommandBuffer();
 #endif
     }
 
@@ -163,6 +148,9 @@ namespace plumbus::vk
 
     void VulkanRenderer::DrawFrame()
     {
+        UpdateOutputMaterial();
+        UpdateLightsUniformBuffer();
+
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_SwapChain->GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex);
 
@@ -192,31 +180,18 @@ namespace plumbus::vk
     		}
     	}
 
+        std::vector<DescriptorSet::TextureUniform> shadowTextures;
     	for(int i = 0; i < shadows.size(); ++i)
     	{
     		shadows[i]->BuildCommandBuffer();
     		shadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : shadows[i - 1]->GetSemaphore());
+    		shadowTextures.push_back({ shadows[i]->GetFrameBuffer()->GetSampler(), shadows[i]->GetFrameBuffer()->GetAttachment("depth").m_ImageView });
     	}
 
-    	//HACK HACK find the first shadow
-    	ShadowDirectionalRef shadow = nullptr;
-    	for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+    	if (shadowTextures.size() > 0)
     	{
-    		if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
-    		{
-    			for (Light* light : lightComp->GetLights())
-    			{
-    				if (light->GetShadow() && light->GetType() == LightType::Directional)
-    				{
-    					shadow = std::static_pointer_cast<ShadowDirectional>(light->GetShadow());
-    				}
-    			} 
-    		}
-    	}
-		if(shadow)
-		{
-			m_DeferredOutputMaterialInstance->SetTextureUniform("samplerShadows", shadow->GetFrameBuffer()->GetSampler(), shadow->GetFrameBuffer()->GetAttachment("depth").m_ImageView, true);
-		}
+            m_DeferredOutputMaterialInstance->SetTextureUniform("samplerShadows", shadowTextures, true);
+        }
     	
         BuildPresentCommandBuffer(imageIndex);
         BuildDefferedCommandBuffer();
@@ -281,8 +256,6 @@ namespace plumbus::vk
         }
 
 		vkQueueWaitIdle(GetDevice()->GetPresentQueue());
-
-        UpdateLightsUniformBuffer();
     }
 
     void VulkanRenderer::AwaitIdle()
@@ -317,7 +290,9 @@ namespace plumbus::vk
         }
 
         m_FullscreenQuad.Cleanup();
-        m_LightsVulkanBuffer.Cleanup();
+        m_ViewPosVulkanBuffer.Cleanup();
+        m_DirLightsVulkanBuffer.Cleanup();
+        m_PointLightsVulkanBuffer.Cleanup();
 
         m_DeferredCommandBuffer.reset();
 #if ENABLE_IMGUI
@@ -444,14 +419,35 @@ namespace plumbus::vk
 
     void VulkanRenderer::CreateLightsUniformBuffers()
     {
-        // Deferred fragment shader
         CHECK_VK_RESULT(m_Device->CreateBuffer(
             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &m_LightsVulkanBuffer,
-            sizeof(m_LightsUniformBuffer)));
+            &m_ViewPosVulkanBuffer,
+            sizeof(m_ViewPos)));
 
-        CHECK_VK_RESULT(m_LightsVulkanBuffer.Map());
+        CHECK_VK_RESULT(m_ViewPosVulkanBuffer.Map());
+
+        if (m_DirectionalLights.size() > 0)
+        {
+            CHECK_VK_RESULT(m_Device->CreateBuffer(
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    &m_DirLightsVulkanBuffer,
+                    sizeof(DirectionalLightBufferInfo) * m_DirectionalLights.size()));
+
+            CHECK_VK_RESULT(m_DirLightsVulkanBuffer.Map());
+        }
+
+        if (m_PointLights.size() > 0)
+        {
+            CHECK_VK_RESULT(m_Device->CreateBuffer(
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    &m_PointLightsVulkanBuffer,
+                    sizeof(PointLightBufferInfo) * m_PointLights.size()));
+
+            CHECK_VK_RESULT(m_PointLightsVulkanBuffer.Map());
+        }
 
         UpdateLightsUniformBuffer();
     }
@@ -547,13 +543,33 @@ namespace plumbus::vk
     }
 #endif
 
+    void VulkanRenderer::GetNumLights(int& numPointLights, int& numDirLights)
+    {
+        numPointLights = 0;
+        numDirLights = 0;
+
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+        {
+            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+            {
+                for (Light* light : lightComp->GetLights())
+                {
+                    if (light->GetType() == LightType::Point)
+                    {
+                        numPointLights++;
+                    }
+                    else if (light->GetType() == LightType::Directional)
+                    {
+                        numDirLights++;
+                    }
+                }
+            }
+        }
+    }
+
     void VulkanRenderer::UpdateLightsUniformBuffer()
     {
         //TODO surely there is a way of only copying the lights that have changed.
-
-        //clear the buffer, this should be smarter at some point.
-        memset(&m_LightsUniformBuffer, 0, sizeof(m_LightsUniformBuffer));
-
 		int pointLightIndex = 0;
         int dirLightIndex = 0;
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
@@ -567,27 +583,36 @@ namespace plumbus::vk
                         PointLight* pointLight = static_cast<PointLight*>(light);
                         if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
                         {
-                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
-                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Colour = glm::vec4(pointLight->GetColour(), 1.0f);
-                            m_LightsUniformBuffer.m_PointLights[pointLightIndex].m_Radius = pointLight->GetRadius();
+                            m_PointLights[pointLightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
+                            m_PointLights[pointLightIndex].m_Colour = glm::vec4(pointLight->GetColour(), 1.0f);
+                            m_PointLights[pointLightIndex].m_Radius = pointLight->GetRadius();
                             pointLightIndex++;
                         }
                     }
                     else if (light->GetType() == LightType::Directional)
                     {
                         DirectionalLight* directionalLight = static_cast<DirectionalLight*>(light);
-                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Direction = glm::vec4(directionalLight->GetDirection(), 1);
-                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
-                        m_LightsUniformBuffer.m_DirectionalLights[dirLightIndex].m_Mvp = directionalLight->GetMVP();
+                        m_DirectionalLights[dirLightIndex].m_Direction = glm::vec4(directionalLight->GetDirection(), 1);
+                        m_DirectionalLights[dirLightIndex].m_Colour = glm::vec4(directionalLight->GetColour(), 1);
+                        m_DirectionalLights[dirLightIndex].m_Mvp = directionalLight->GetMVP();
+                        dirLightIndex++;
                     }
                 }
             }
         }
 
         // Current view position
-        m_LightsUniformBuffer.m_ViewPos = glm::vec4(BaseApplication::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+        m_ViewPos = glm::vec4(BaseApplication::Get().GetScene()->GetCamera()->GetPosition(), 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
-        memcpy(m_LightsVulkanBuffer.m_Mapped, &m_LightsUniformBuffer, sizeof(m_LightsUniformBuffer));
+        memcpy(m_ViewPosVulkanBuffer.m_Mapped, &m_ViewPos, sizeof(m_ViewPos));
+        if (m_DirectionalLights.size() > 0)
+        {
+            memcpy(m_DirLightsVulkanBuffer.m_Mapped, m_DirectionalLights.data(), sizeof(DirectionalLightBufferInfo) * m_DirectionalLights.size());
+        }
+        if(m_PointLights.size() > 0)
+        {
+            memcpy(m_PointLightsVulkanBuffer.m_Mapped, m_PointLights.data(), sizeof(PointLightBufferInfo) * m_PointLights.size());
+        }
     }
 
 #if ENABLE_IMGUI
@@ -652,7 +677,12 @@ namespace plumbus::vk
             binding.m_Name = resource.name;
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
             binding.m_Type = DescriptorBindingType::ImageSampler;
-            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader; 
+            binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader;
+            binding.m_Count = spirv.get_type(resource.type_id).array[0];
+            if (binding.m_Count == 0)
+            {
+                binding.m_Count = 1;
+            }
             shaderReflection.m_Bindings.push_back(binding);
         }
 
@@ -664,6 +694,11 @@ namespace plumbus::vk
             binding.m_Location = spirv.get_decoration(resource.id, spv::DecorationBinding);
             binding.m_Type = DescriptorBindingType::UniformBuffer;
             binding.m_Usage = stage == VK_SHADER_STAGE_VERTEX_BIT ? DescriptorBindingUsage::VertexShader : DescriptorBindingUsage::FragmentShader;
+            binding.m_Count = spirv.get_type(resource.type_id).array[0];
+            if (binding.m_Count == 0)
+            {
+                binding.m_Count = 1;
+            }
             shaderReflection.m_Bindings.push_back(binding);
         }
 
@@ -773,28 +808,75 @@ namespace plumbus::vk
 #endif
 	}
 
-	void VulkanRenderer::SetShadowCount(int count)
+	void VulkanRenderer::UpdateOutputMaterial()
 	{
-    	m_DeferredOutputMaterialInstance.reset();
-    	m_DeferredOutputMaterial.reset();
-    	
+        bool outputMaterialNeedsRebuild = !m_DeferredOutputMaterial.get();
+        int numShadows = ShadowManager::Get()->GetShadowCount();
+        int numPointLights, numDirLights;
+        GetNumLights(numPointLights, numDirLights);
+
+        if (numShadows != m_CachedShadowCount ||
+            numPointLights != m_PointLights.size() ||
+            numDirLights != m_DirectionalLights.size())
+        {
+            m_CachedShadowCount = numShadows;
+            outputMaterialNeedsRebuild = true;
+        }
+
+        if (!outputMaterialNeedsRebuild)
+        {
+            return;
+        }
+
+        m_DeferredOutputMaterialInstance.reset();
+        m_DeferredOutputMaterial.reset();
+
 #if ENABLE_IMGUI
-    	m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_DeferredOutputFrameBuffer->GetRenderPass());
+        m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_DeferredOutputFrameBuffer->GetRenderPass());
 #else
-    	m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_SwapChain->GetRenderPass());
+        m_DeferredOutputMaterial = std::make_shared<Material>("shaders/deferred.vert", "shaders/deferred.frag", m_SwapChain->GetRenderPass());
 #endif
 
-    	shaders::ShaderSettings& settings = m_DeferredOutputMaterial->GetShaderSettings();
-    	settings.SetValue("NUM_SHADOWS", count);
-    	
-    	m_DeferredOutputMaterial->Setup();
+        shaders::ShaderSettings& settings = m_DeferredOutputMaterial->GetShaderSettings();
+        settings.SetValue("NUM_SHADOWS", numShadows);
+        settings.SetValue("NUM_DIR_LIGHTS", numDirLights);
+        settings.SetValue("NUM_POINT_LIGHTS", numPointLights);
 
-    	m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
-    	const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
-    	m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position").m_ImageView, false);
-    	m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView, false);
-    	m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView, false);
-    	m_DeferredOutputMaterialInstance->SetBufferUniform("UBO", &m_LightsVulkanBuffer);
+        bool lightsChanged = false;
+        if (m_PointLights.size() != numPointLights)
+        {
+            m_PointLights.resize(numPointLights);
+            lightsChanged = true;
+        }
+        if (m_DirectionalLights.size() != numDirLights)
+        {
+            m_DirectionalLights.resize(numDirLights);
+            lightsChanged = true;
+        }
+
+        if (lightsChanged)
+        {
+            m_PointLightsVulkanBuffer.Cleanup();
+            m_DirLightsVulkanBuffer.Cleanup();
+            CreateLightsUniformBuffers();
+        }
+
+        m_DeferredOutputMaterial->Setup();
+
+        m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
+        const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
+        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position").m_ImageView }}, false);
+        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView }}, false);
+        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView }}, false);
+        m_DeferredOutputMaterialInstance->SetBufferUniform("ViewPos", &m_ViewPosVulkanBuffer);
+        if (m_PointLights.size() > 0)
+        {
+            m_DeferredOutputMaterialInstance->SetBufferUniform("PointLights", &m_PointLightsVulkanBuffer);
+        }
+        if (m_DirectionalLights.size() > 0)
+        {
+            m_DeferredOutputMaterialInstance->SetBufferUniform("DirectionalLights", &m_DirLightsVulkanBuffer);
+        }
 	}
 
 	void VulkanRenderer::RecreateSwapChain()

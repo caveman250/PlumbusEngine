@@ -199,7 +199,7 @@ namespace plumbus
 		m_Material = std::make_shared<vk::Material>("shaders/ui.vert", "shaders/ui.frag", renderPass, true);
 		m_Material->Setup();
 		m_MaterialInstance = vk::MaterialInstance::CreateMaterialInstance(m_Material);
-		m_MaterialInstance->SetTextureUniform("imageSampler", m_Sampler, m_FontView, false);
+		m_MaterialInstance->SetTextureUniform("imageSampler", {{m_Sampler, m_FontView}}, false);
 		io.Fonts->TexID = (void*)m_MaterialInstance.get();
 	}
 
@@ -461,7 +461,7 @@ namespace plumbus
 		vk::MaterialRef material = std::make_shared<vk::Material>("shaders/ui.vert", isDepth ? "shaders/ui_depth.frag" : "shaders/ui.frag", vk::VulkanRenderer::Get()->GetSwapChain()->GetRenderPass());
 		material->Setup();
 		vk::MaterialInstanceRef materialInstance = vk::MaterialInstance::CreateMaterialInstance(material);
-		materialInstance->SetTextureUniform("imageSampler", sampler, image_view, isDepth);
+		materialInstance->SetTextureUniform("imageSampler", {{sampler, image_view}}, isDepth);
 		return materialInstance;
 	}
 
