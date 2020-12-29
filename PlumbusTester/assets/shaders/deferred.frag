@@ -49,10 +49,12 @@ float shadowProj(vec4 P, vec2 offset, int index, float NdotL)
 	float bias = 0.005 * tan(acos(NdotL));
 	bias = clamp(bias, 0, 0.01);
 
-	float dist = texture(samplerShadows[index], shadowCoord.st + offset).r;
-	if (shadowCoord.w > 0.0 && dist < shadowCoord.z - bias)
+	for (int i = 0; i < 4; i++)
 	{
-		shadow = 0;
+		if (texture(samplerShadows[index],shadowCoord.st + poissonDisk[i] / 700.0 ).r  < shadowCoord.z - bias)
+		{
+			shadow -= 0.25;
+		}
 	}
 
 	return shadow;
