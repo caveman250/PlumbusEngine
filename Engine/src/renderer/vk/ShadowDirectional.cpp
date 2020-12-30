@@ -45,7 +45,7 @@ namespace plumbus::vk
         //create framebuffer
         std::vector<FrameBuffer::FrameBufferAttachmentInfo> offscreenAttachmentInfo =
         {
-            FrameBuffer::FrameBufferAttachmentInfo(VulkanRenderer::Get()->GetDepthFormat(), true, "depth")
+            FrameBuffer::FrameBufferAttachmentInfo(VulkanRenderer::Get()->GetDepthFormat(), FrameBuffer::FrameBufferAttachmentType::Depth, "depth")
         };
 
         SwapChainRef swapChain = VulkanRenderer::Get()->GetSwapChain();

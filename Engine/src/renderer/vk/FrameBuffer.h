@@ -7,16 +7,29 @@ namespace plumbus::vk
 	class FrameBuffer
 	{
 	public:
+	    enum class FrameBufferAttachmentType
+        {
+	        Colour,
+	        Depth,
+	        ColourCube,
+	        DepthCube
+        };
+
 		struct FrameBufferAttachmentInfo
 		{
-			FrameBufferAttachmentInfo(VkFormat format, bool isDepth, std::string name)
+			FrameBufferAttachmentInfo(VkFormat format, FrameBufferAttachmentType type, std::string name)
 				: attachmentFormat(format)
-				, depthAttachment(isDepth)
+				, attachmentType(type)
 				, attachmentName(name)
 			{}
 
+			VkImageUsageFlagBits GetUsageFlagBits();
+			VkImageLayout  GetImageLayout();
+            VkImageViewType GetImageViewType();
+            int GetLayerCount();
+
 			VkFormat attachmentFormat;
-			bool depthAttachment;
+			FrameBufferAttachmentType attachmentType;
 			std::string attachmentName;
 		};
 
@@ -47,7 +60,7 @@ namespace plumbus::vk
 		void SetVulkanFrameBuffer(VkFramebuffer frameBuffer) { m_FrameBuffer = frameBuffer; }
 		void SetRenderPass(VkRenderPass renderPass) { m_RenderPass = renderPass; }
 
-		void CreateAttachment(VkFormat format, VkImageUsageFlagBits usage, std::string id);
+		void CreateAttachment(VkImageViewType imageType, VkFormat format, VkImageUsageFlagBits usage, int layerCount, std::string id);
 		void AddAttachment(VkImageView imageView, VkFormat imageFormat, std::string id);
 
 	private:

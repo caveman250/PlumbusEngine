@@ -100,20 +100,20 @@ namespace plumbus::vk
 
         std::vector<FrameBuffer::FrameBufferAttachmentInfo> offscreenAttachmentInfo =
         {
-            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R16G16B16A16_SFLOAT, false, "position"),
-            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R16G16B16A16_SFLOAT, false, "normal"),
-            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
-            FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), true, "depth")
+            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R16G16B16A16_SFLOAT, FrameBuffer::FrameBufferAttachmentType::Colour, "position"),
+            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R16G16B16A16_SFLOAT, FrameBuffer::FrameBufferAttachmentType::Colour, "normal"),
+            FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, FrameBuffer::FrameBufferAttachmentType::Colour, "colour"),
+            FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), FrameBuffer::FrameBufferAttachmentType::Depth, "depth")
         };
 
-        m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
+        m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(1024, 1024, offscreenAttachmentInfo);
 
 
 #if ENABLE_IMGUI
 		std::vector<FrameBuffer::FrameBufferAttachmentInfo> outputAttachmentInfo =
 		{
-			FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, false, "colour"),
-			FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), true, "depth")
+			FrameBuffer::FrameBufferAttachmentInfo(VK_FORMAT_R8G8B8A8_UNORM, FrameBuffer::FrameBufferAttachmentType::Colour, "colour"),
+			FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), FrameBuffer::FrameBufferAttachmentType::Depth, "depth")
 		};
 
         m_DeferredOutputFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, outputAttachmentInfo);

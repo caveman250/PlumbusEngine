@@ -53,7 +53,7 @@ namespace plumbus::vk
 		vkDestroyFramebuffer(device, m_FrameBuffer, nullptr);
 	}
 
-	void FrameBuffer::CreateAttachment(VkFormat format, VkImageUsageFlagBits usage, std::string id)
+	void FrameBuffer::CreateAttachment(VkImageViewType imageType, VkFormat format, VkImageUsageFlagBits usage, int layerCount, std::string id)
 	{
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
@@ -84,10 +84,14 @@ namespace plumbus::vk
 		image.extent.height = m_Height;
 		image.extent.depth = 1;
 		image.mipLevels = 1;
-		image.arrayLayers = 1;
+		image.arrayLayers = layerCount;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
 		image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+		if (imageType == VK_IMAGE_VIEW_TYPE_CUBE)
+        {
+            image.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        }
 
 		std::shared_ptr<vk::Device> device = VulkanRenderer::Get()->GetDevice();
 
@@ -104,14 +108,14 @@ namespace plumbus::vk
 
 		VkImageViewCreateInfo imageView{};
 		imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageView.viewType = imageType;
 		imageView.format = format;
 		imageView.subresourceRange = {};
 		imageView.subresourceRange.aspectMask = aspectMask;
 		imageView.subresourceRange.baseMipLevel = 0;
 		imageView.subresourceRange.levelCount = 1;
 		imageView.subresourceRange.baseArrayLayer = 0;
-		imageView.subresourceRange.layerCount = 1;
+		imageView.subresourceRange.layerCount = layerCount;
 		imageView.image = attachment.m_Image;
 		CHECK_VK_RESULT(vkCreateImageView(device->GetVulkanDevice(), &imageView, nullptr, &attachment.m_ImageView));
 	}
@@ -171,7 +175,7 @@ namespace plumbus::vk
 		int depthIndex = 0;
 		for (int i = 0; i < attachments.size(); ++i)
 		{
-			fb->CreateAttachment(attachments[i].attachmentFormat, !attachments[i].depthAttachment ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, attachments[i].attachmentName);
+			fb->CreateAttachment(attachments[i].GetImageViewType(), attachments[i].attachmentFormat, attachments[i].GetUsageFlagBits(), attachments[i].GetLayerCount(), attachments[i].attachmentName);
 
 			attachmentDescs[i].samples = VK_SAMPLE_COUNT_1_BIT;
 			attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -179,17 +183,14 @@ namespace plumbus::vk
 			attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-			if (attachments[i].depthAttachment)
+            attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachmentDescs[i].finalLayout = attachments[i].GetImageLayout();
+			if (attachments[i].GetImageLayout() == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
 			{
 				depthIndex = i;
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 			}
 			else
 			{
-				attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
 				colorReferences.push_back({ (uint32_t)i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
 			}
 
@@ -280,4 +281,83 @@ namespace plumbus::vk
 		return fb;
 	}
 
+    VkImageUsageFlagBits FrameBuffer::FrameBufferAttachmentInfo::GetUsageFlagBits()
+    {
+	    switch (attachmentType)
+        {
+            case FrameBufferAttachmentType::Colour:
+            case FrameBufferAttachmentType::ColourCube:
+            {
+                return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            }
+            case FrameBufferAttachmentType::Depth:
+            case FrameBufferAttachmentType::DepthCube:
+            {
+                return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            }
+        }
+
+        PL_ASSERT(false, "FrameBuffer::FrameBufferAttachmentInfo::GetUsageFlagBits: Unsupported FrameBufferAttachmentType.");
+        return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+
+    VkImageLayout FrameBuffer::FrameBufferAttachmentInfo::GetImageLayout()
+    {
+        switch (attachmentType)
+        {
+            case FrameBufferAttachmentType::Colour:
+            case FrameBufferAttachmentType::ColourCube:
+            {
+                return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            }
+            case FrameBufferAttachmentType::Depth:
+            case FrameBufferAttachmentType::DepthCube:
+            {
+                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            }
+        }
+
+        PL_ASSERT(false, "FrameBuffer::FrameBufferAttachmentInfo::GetImageLayout: Unsupported FrameBufferAttachmentType.");
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    }
+
+    VkImageViewType FrameBuffer::FrameBufferAttachmentInfo::GetImageViewType()
+    {
+        switch (attachmentType)
+        {
+            case FrameBufferAttachmentType::Colour:
+            case FrameBufferAttachmentType::Depth:
+            {
+                return VK_IMAGE_VIEW_TYPE_2D;
+            }
+            case FrameBufferAttachmentType::ColourCube:
+            case FrameBufferAttachmentType::DepthCube:
+            {
+                return VK_IMAGE_VIEW_TYPE_CUBE;
+            }
+        }
+
+        PL_ASSERT(false, "FrameBuffer::FrameBufferAttachmentInfo::GetImageViewType: Unsupported FrameBufferAttachmentType.");
+        return VK_IMAGE_VIEW_TYPE_2D;
+    }
+
+    int FrameBuffer::FrameBufferAttachmentInfo::GetLayerCount()
+    {
+        switch (attachmentType)
+        {
+            case FrameBufferAttachmentType::Colour:
+            case FrameBufferAttachmentType::Depth:
+            {
+                return 1;
+            }
+            case FrameBufferAttachmentType::ColourCube:
+            case FrameBufferAttachmentType::DepthCube:
+            {
+                return 6;
+            }
+        }
+
+        PL_ASSERT(false, "FrameBuffer::FrameBufferAttachmentInfo::GetLayerCount: Unsupported FrameBufferAttachmentType.");
+        return 1;
+    }
 }
