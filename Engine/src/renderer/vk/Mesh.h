@@ -26,7 +26,7 @@ namespace plumbus::vk
 
 		void CreateUniformBuffer(Device* vulkanDevice);
 		void SetupUniforms();
-		void Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial = nullptr);
+		void Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial = nullptr, bool bind = true);
 
 		void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo);
 

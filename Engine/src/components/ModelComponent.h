@@ -32,6 +32,7 @@ namespace plumbus
 
 		void OnUpdate(Scene* scene) override;
 		void Cleanup();
+		void UpdateModelMatrix();
 		void UpdateUniformBuffer(Scene* scene);
 
 		std::string GetModelPath() { return m_ModelPath; }
@@ -52,5 +53,12 @@ namespace plumbus
 		std::string m_ModelPath;
 		std::string m_TexturePath;
 		std::string m_NormalPath;
+
+		//dont update model matrix if we don't have to.
+		glm::vec3 m_CachedPos;
+		glm::vec3 m_CachedRotation;
+		glm::vec3 m_CachedScale;
+
+		glm::mat4 m_ModelMatrix;
 	};
 }

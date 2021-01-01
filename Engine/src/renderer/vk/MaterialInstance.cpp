@@ -37,14 +37,18 @@ namespace plumbus::vk
     
     void MaterialInstance::Bind(CommandBufferRef commandBuffer) 
     {
-        if (m_UniformsDirty)
+        if (VulkanRenderer::Get()->GetBoundMaterialInstance() != this)
         {
-            m_DescriptorSet->Build();
-        	m_UniformsDirty = false;
-        }
+            if (m_UniformsDirty)
+            {
+                m_DescriptorSet->Build();
+                m_UniformsDirty = false;
+            }
 
-        commandBuffer->BindPipeline(m_Material->GetPipeline());
-        commandBuffer->BindDescriptorSet(m_Material->GetPipelineLayout(), m_DescriptorSet);
+            commandBuffer->BindPipeline(m_Material->GetPipeline());
+            commandBuffer->BindDescriptorSet(m_Material->GetPipelineLayout(), m_DescriptorSet);
+            VulkanRenderer::Get()->SetBoundMaterial(this);
+        }
     }
 
 

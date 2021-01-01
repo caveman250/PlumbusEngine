@@ -70,7 +70,8 @@ namespace plumbus
 
 	void ModelComponent::OnUpdate(Scene* scene)
 	{
-		UpdateUniformBuffer(scene);
+	    UpdateModelMatrix();
+        UpdateUniformBuffer(scene);
 	}
 
 	void ModelComponent::Cleanup()
@@ -97,19 +98,33 @@ namespace plumbus
 	
 	glm::mat4 ModelComponent::GetModelMatrix() 
 	{
-		::plumbus::TranslationComponent *transComp = GetOwner()->GetComponent<::plumbus::TranslationComponent>();
-		glm::mat4 modelMat = glm::identity<glm::mat4>();
-		glm::vec3 translation = transComp->GetTranslation();
-		glm::vec3 rotation = transComp->GetRotation();
-		glm::vec3 scale = transComp->GetScale();
-
-		modelMat = glm::translate(modelMat, translation);
-		modelMat = glm::rotate(modelMat, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-		modelMat = glm::rotate(modelMat, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-		modelMat = glm::rotate(modelMat, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
-
-		modelMat = glm::scale(modelMat, scale);
-
-		return modelMat;
+        return m_ModelMatrix;
 	}
+
+    void ModelComponent::UpdateModelMatrix()
+    {
+        ::plumbus::TranslationComponent *transComp = GetOwner()->GetComponent<::plumbus::TranslationComponent>();
+        glm::vec3 translation = transComp->GetTranslation();
+        glm::vec3 rotation = transComp->GetRotation();
+        glm::vec3 scale = transComp->GetScale();
+
+        if(translation != m_CachedPos ||
+           rotation != m_CachedRotation ||
+           scale != m_CachedScale)
+        {
+
+
+            m_CachedPos = translation;
+            m_CachedRotation = rotation;
+            m_CachedScale = scale;
+
+            m_ModelMatrix = glm::identity<glm::mat4>();
+            m_ModelMatrix = glm::translate(m_ModelMatrix, translation);
+            m_ModelMatrix = glm::rotate(m_ModelMatrix, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+            m_ModelMatrix = glm::rotate(m_ModelMatrix, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+            m_ModelMatrix = glm::rotate(m_ModelMatrix, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+
+            m_ModelMatrix = glm::scale(m_ModelMatrix, scale);
+        }
+    }
 }

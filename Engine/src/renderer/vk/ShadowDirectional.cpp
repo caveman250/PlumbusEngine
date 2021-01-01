@@ -38,6 +38,8 @@ namespace plumbus::vk
             buffer.Cleanup();
         }
         m_UniformBuffers.clear();
+
+        ShadowManager::Get()->UnregisterShadow(this);
 	}
 
     void ShadowDirectional::Init() 

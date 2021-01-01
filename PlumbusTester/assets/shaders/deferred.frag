@@ -10,7 +10,7 @@ layout (binding = 2) uniform sampler2D samplerAlbedo;
 layout (binding = 3) uniform sampler2D samplerDirShadows[NUM_DIR_SHADOWS];
 #endif
 #if NUM_OMNIDIR_SHADOWS
-layout (binding = 3) uniform samplerCube samplerOmniDirShadows[NUM_OMNIDIR_SHADOWS];
+layout (binding = 4) uniform samplerCube samplerOmniDirShadows[NUM_OMNIDIR_SHADOWS];
 #endif
 
 layout (location = 0) in vec2 inUV;
@@ -29,12 +29,12 @@ struct DirectionalLight {
 	mat4 mvp;
 };
 
-layout (binding = 4) uniform ViewPos { vec4 value; } viewPos;
+layout (binding = 5) uniform ViewPos { vec4 value; } viewPos;
 #if NUM_POINT_LIGHTS
-layout (binding = 5) uniform PointLights { PointLight lights[NUM_POINT_LIGHTS]; } pointLights;
+layout (binding = 6) uniform PointLights { PointLight lights[NUM_POINT_LIGHTS]; } pointLights;
 #endif
 #if NUM_DIR_LIGHTS
-layout (binding = 6) uniform DirectionalLights { DirectionalLight lights[NUM_DIR_LIGHTS]; } dirLights;
+layout (binding = 7) uniform DirectionalLights { DirectionalLight lights[NUM_DIR_LIGHTS]; } dirLights;
 #endif
 
 #if NUM_DIR_SHADOWS && NUM_DIR_LIGHTS

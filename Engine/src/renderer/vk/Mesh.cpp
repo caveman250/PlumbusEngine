@@ -147,12 +147,15 @@ namespace plumbus::vk
 		m_MaterialInstance->SetTextureUniform("samplerNormalMap", {{vkNormalMap->m_TextureSampler, vkNormalMap->m_ImageView}}, false);
 	}
 
-	void Mesh::Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial)
+	void Mesh::Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial, bool bind)
 	{
 		MaterialInstanceRef material = overrideMaterial ? overrideMaterial : m_MaterialInstance;
 		material->Bind(commandBuffer);
-		commandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
-		commandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
+		if(bind)
+        {
+            commandBuffer->BindVertexBuffer(m_VulkanVertexBuffer);
+            commandBuffer->BindIndexBuffer(m_VulkanIndexBuffer);
+        }
 		commandBuffer->RecordDraw(m_IndexSize);
 	}
 

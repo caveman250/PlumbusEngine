@@ -149,11 +149,15 @@ namespace plumbus::vk
 
     void VulkanRenderer::DrawFrame()
     {
+        // keep in list so pointers retain their target until the present call.
+        // the last element is always the next semaphore to use.
+        std::vector<VkSemaphore_T*> activeSemaphores = { m_SwapChain->GetImageAvailableSemaphore() };
+
         UpdateOutputMaterial();
         UpdateLightsUniformBuffer();
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), m_SwapChain->GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(m_Device->GetVulkanDevice(), m_SwapChain->GetVulkanSwapChain(), std::numeric_limits<uint64_t>::max(), activeSemaphores.back(), VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -167,14 +171,15 @@ namespace plumbus::vk
 
     	std::vector<ShadowDirectional*> dirShadows = ShadowManager::Get()->GetDirectionalShadows();
         std::vector<DescriptorSet::TextureUniform> dirShadowTextures;
-    	for(int i = 0; i < dirShadows.size(); ++i)
+    	for (int i = 0; i < dirShadows.size(); ++i)
     	{
             dirShadows[i]->BuildCommandBuffer();
-            dirShadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : dirShadows[i - 1]->GetSemaphore());
+            dirShadows[i]->Render(activeSemaphores.back());
     		dirShadowTextures.push_back({ dirShadows[i]->GetFrameBuffer()->GetSampler(), dirShadows[i]->GetFrameBuffer()->GetAttachment("depth")->m_ImageView });
+    		activeSemaphores.push_back(dirShadows[i]->GetSemaphore());
     	}
 
-    	if (!dirShadowTextures.empty())
+    	if (!dirShadowTextures.empty() && ShadowManager::Get()->ShadowTexturesOutOfDate())
     	{
             m_DeferredOutputMaterialInstance->SetTextureUniform("samplerDirShadows", dirShadowTextures, true);
         }
@@ -183,22 +188,32 @@ namespace plumbus::vk
         std::vector<DescriptorSet::TextureUniform> omniDirShadowTextures;
         for (int i = 0; i < omniDirShadows.size(); ++i)
         {
-            omniDirShadows[i]->GetCommandBuffer()->BeginRecording();
             omniDirShadows[i]->UpdateUniformBuffer();
-            for (int j = 0; j < omniDirShadows[i]->GetRenderPassCount(); ++j)
-            {
-                omniDirShadows[i]->BuildCommandBuffer(j);
-                //Log::Error("Fix shadow semaphore");
-            }
-            omniDirShadows[i]->GetCommandBuffer()->EndRecording();
 
-            omniDirShadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : omniDirShadows[i - 1]->GetSemaphore());
+            static bool hasRecorded = false;
+            if (!hasRecorded)
+            {
+                omniDirShadows[i]->GetCommandBuffer()->BeginRecording();
+                for (int j = 0; j < omniDirShadows[i]->GetRenderPassCount(); ++j)
+                {
+                    omniDirShadows[i]->BuildCommandBuffer(j);
+                }
+                omniDirShadows[i]->GetCommandBuffer()->EndRecording();
+            }
+
+            omniDirShadows[i]->Render(activeSemaphores.back());
             omniDirShadowTextures.push_back({ omniDirShadows[i]->GetCubeMap().m_TextureSampler, omniDirShadows[i]->GetCubeMap().m_ImageView });
+            activeSemaphores.push_back(omniDirShadows[i]->GetSemaphore());
         }
 
-        if (!omniDirShadowTextures.empty())
+        if (!omniDirShadowTextures.empty() && ShadowManager::Get()->ShadowTexturesOutOfDate())
         {
-            m_DeferredOutputMaterialInstance->SetTextureUniform("samplerOmniDirShadows", omniDirShadowTextures, false);
+            static bool hasUploaded = false;
+            if(!hasUploaded)
+            {
+                m_DeferredOutputMaterialInstance->SetTextureUniform("samplerOmniDirShadows", omniDirShadowTextures, false);
+                hasUploaded = true;
+            }
         }
     	
         BuildPresentCommandBuffer(imageIndex);
@@ -210,47 +225,47 @@ namespace plumbus::vk
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { omniDirShadows.size() > 0 ? omniDirShadows.back()->GetSemaphore() : m_SwapChain->GetImageAvailableSemaphore() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
+        VkSemaphore waitSemaphores[] = { activeSemaphores.back() };
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &m_DeferredCommandBuffer->GetVulkanCommandBuffer();
 
-        VkSemaphore signalSemaphores[] = { m_DeferredSemaphore };
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
-
+        submitInfo.pSignalSemaphores = &m_DeferredSemaphore;
+        activeSemaphores.push_back(m_DeferredSemaphore);
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
 
 #if ENABLE_IMGUI
-        submitInfo.pWaitSemaphores = &m_DeferredSemaphore;
+        VkSemaphore imguiWaitSemaphores[] = { activeSemaphores.back() };
+        submitInfo.pWaitSemaphores = imguiWaitSemaphores;
         submitInfo.pSignalSemaphores = &m_DeferredOutputSemaphore;
+        activeSemaphores.push_back(m_DeferredOutputSemaphore);
 
         submitInfo.pCommandBuffers = &m_DeferredOutputCommandBuffer->GetVulkanCommandBuffer();
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
-
-        submitInfo.pWaitSemaphores = &m_DeferredOutputSemaphore;
-#else
-        submitInfo.pWaitSemaphores = &m_DeferredSemaphore;
 #endif
+        VkSemaphore presentWaitSemaphores[] = { activeSemaphores.back() };
+        submitInfo.pWaitSemaphores = presentWaitSemaphores;
         submitInfo.pSignalSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
 
         submitInfo.pCommandBuffers = &m_SwapChain->GetCommandBuffer(imageIndex)->GetVulkanCommandBuffer();
         CHECK_VK_RESULT(vkQueueSubmit(GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
+        activeSemaphores.push_back(m_SwapChain->GetRenderFinishedSemaphore());
 
         VkPresentInfoKHR presentInfo = {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &m_SwapChain->GetRenderFinishedSemaphore();
+        presentInfo.pWaitSemaphores = &activeSemaphores.back();
 
         VkSwapchainKHR swapChains[] = { m_SwapChain->GetVulkanSwapChain() };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
-        presentInfo.pResults = nullptr; // Optional
+        presentInfo.pResults = nullptr;
 
         result = vkQueuePresentKHR(GetDevice()->GetPresentQueue(), &presentInfo);
 

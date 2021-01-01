@@ -67,6 +67,10 @@ namespace plumbus
 			ImGUIImpl* GetImGui() { return m_ImGui; }
 #endif
 
+            //this could be expanded on greatly, but as a minor optimization, dont bind a material if it is already bound.
+            void SetBoundMaterial(const MaterialInstance* materialInstance) { m_BoundMaterialInstance = materialInstance; }
+            const MaterialInstance* GetBoundMaterialInstance() { return m_BoundMaterialInstance; }
+
 			std::vector<const char*> GetRequiredDeviceExtensions();
 			std::vector<const char*> GetRequiredInstanceExtensions();
 			std::vector<const char*> GetRequiredValidationLayers();
@@ -118,6 +122,7 @@ namespace plumbus
 #endif
 
 			std::vector<VkShaderModule> m_ShaderModules;
+			const MaterialInstance* m_BoundMaterialInstance = nullptr;
 
 			plumbus::ImGUIImpl* m_ImGui = nullptr;
 

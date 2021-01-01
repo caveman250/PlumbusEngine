@@ -26,9 +26,13 @@ namespace plumbus::vk
 
     ShadowOmniDirectional::~ShadowOmniDirectional()
     {
+        m_FrameBuffer.reset();
         s_ShadowOmniDirectionalMaterial.reset();
         m_ShadowOmniDirectionalMaterialInstance.reset();
         m_UniformBuffer.Cleanup();
+        m_CubeMapTexture.Cleanup();
+
+        ShadowManager::Get()->UnregisterShadow(this);
     }
 
     void ShadowOmniDirectional::Init()
@@ -40,7 +44,7 @@ namespace plumbus::vk
             FrameBuffer::FrameBufferAttachmentInfo(VulkanRenderer::Get()->GetDepthFormat(), FrameBuffer::FrameBufferAttachmentType::Depth, "depth", false)
         };
 
-        m_FrameBuffer = FrameBuffer::CreateFrameBuffer(1024, 1024, offscreenAttachmentInfo);
+        m_FrameBuffer = FrameBuffer::CreateFrameBuffer(512, 512, offscreenAttachmentInfo);
 
         if (m_CommandBuffer == VK_NULL_HANDLE)
         {
@@ -164,8 +168,8 @@ namespace plumbus::vk
         copyRegion.dstSubresource.layerCount = 1;
         copyRegion.dstOffset = { 0, 0, 0 };
 
-        copyRegion.extent.width = 1024;
-        copyRegion.extent.height = 1024;
+        copyRegion.extent.width = 512;
+        copyRegion.extent.height = 512;
         copyRegion.extent.depth = 1;
 
         // Put image copy into command buffer
@@ -219,30 +223,35 @@ namespace plumbus::vk
 
     void ShadowOmniDirectional::UpdateUniformBuffer()
     {
-        if (!m_UniformBuffer.IsInitialised())
+        // only need to update if the light has moved.
+        glm::vec4 pos = glm::vec4(m_Light->GetParent()->GetOwner()->GetComponent<TranslationComponent>()->GetTranslation(), 1.f);
+        if (pos != m_UniformBufferObject.m_LightPos)
         {
-            CHECK_VK_RESULT(VulkanRenderer::Get()->GetDevice()->CreateBuffer(
-                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    &m_UniformBuffer,
-                    sizeof(UniformBufferObject)));
+            if (!m_UniformBuffer.IsInitialised())
+            {
+                CHECK_VK_RESULT(VulkanRenderer::Get()->GetDevice()->CreateBuffer(
+                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                        &m_UniformBuffer,
+                        sizeof(UniformBufferObject)));
 
-            CHECK_VK_RESULT(m_UniformBuffer.Map());
+                CHECK_VK_RESULT(m_UniformBuffer.Map());
+            }
+
+            m_UniformBufferObject.m_Proj = glm::perspective((float) (M_PI / 2.0), 1.0f, 0.01f, 1024.f);
+            m_UniformBufferObject.m_LightPos = pos;
+
+            memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));
+
+            m_ShadowOmniDirectionalMaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
         }
-
-        m_UniformBufferObject.m_Proj = glm::perspective((float)(M_PI / 2.0), 1.0f, 0.01f, 1024.f);
-        m_UniformBufferObject.m_LightPos = glm::vec4(m_Light->GetParent()->GetOwner()->GetComponent<TranslationComponent>()->GetTranslation(), 1.0f);
-
-        memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));
-
-        m_ShadowOmniDirectionalMaterialInstance->SetBufferUniform("UBO", &m_UniformBuffer);
 
     }
 
     void ShadowOmniDirectional::SetupCubeMap()
     {
-        ImageHelpers::CreateImage(1024,
-                                  1024,
+        ImageHelpers::CreateImage(512,
+                                  512,
                                   VK_FORMAT_R32_SFLOAT,
                                   VK_IMAGE_TILING_OPTIMAL,
                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
