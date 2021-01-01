@@ -5,6 +5,7 @@
 #include "tests/DeferredLights/DeferredLights.h"
 #include "tests/SponzaScene/SponzaScene.h"
 #include "tests/Shadows/Shadows.h"
+#include "tests/OmniDirShadows/OmniDirShadows.h"
 
 namespace plumbus::tester
 {
@@ -65,6 +66,11 @@ namespace plumbus::tester
 				{
 					BeginTest<tests::Shadows>();
 				}
+
+                if (ImGui::Button("OmniDirShadows"))
+                {
+                    BeginTest<tests::OmniDirShadows>();
+                }
 			}
 			else
 			{

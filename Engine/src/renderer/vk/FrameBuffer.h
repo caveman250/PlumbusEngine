@@ -12,15 +12,18 @@ namespace plumbus::vk
 	        Colour,
 	        Depth,
 	        ColourCube,
-	        DepthCube
+	        DepthCube,
+	        R32,
+	        R32Cube
         };
 
 		struct FrameBufferAttachmentInfo
 		{
-			FrameBufferAttachmentInfo(VkFormat format, FrameBufferAttachmentType type, std::string name)
+			FrameBufferAttachmentInfo(VkFormat format, FrameBufferAttachmentType type, std::string name, bool transferSrc = false)
 				: attachmentFormat(format)
 				, attachmentType(type)
-				, attachmentName(name)
+				, attachmentName(std::move(name))
+				, transferSrc(transferSrc)
 			{}
 
 			VkImageUsageFlagBits GetUsageFlagBits();
@@ -31,6 +34,7 @@ namespace plumbus::vk
 			VkFormat attachmentFormat;
 			FrameBufferAttachmentType attachmentType;
 			std::string attachmentName;
+			bool transferSrc;
 		};
 
 		struct FrameBufferAttachment
@@ -39,6 +43,16 @@ namespace plumbus::vk
 			VkDeviceMemory m_Memory;
 			VkImageView m_ImageView;
 			VkFormat m_Format;
+
+			bool IsDepth() const
+            {
+			    return m_Format == VK_FORMAT_D16_UNORM ||
+			    m_Format == VK_FORMAT_D16_UNORM ||
+                m_Format == VK_FORMAT_D16_UNORM_S8_UINT ||
+			    m_Format == VK_FORMAT_D24_UNORM_S8_UINT ||
+			    m_Format == VK_FORMAT_D32_SFLOAT ||
+			    m_Format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+            }
 		};
 
 		static FrameBufferRef CreateFrameBuffer(uint32_t width, uint32_t height, std::vector<FrameBufferAttachmentInfo> attachments);
@@ -51,7 +65,8 @@ namespace plumbus::vk
 		const int32_t GetHeight() { return m_Height; }
 
 		const size_t GetAttachmentCount() { return m_Attachments.size(); }
-		const FrameBufferAttachment& GetAttachment(std::string attachmentName) { return m_Attachments[attachmentName]; }
+		const FrameBufferAttachment* GetAttachment(const std::string& attachmentName);
+        const std::vector<std::pair<std::string, FrameBufferAttachment>>& GetAttachments() { return m_Attachments; }
 		const VkSampler& GetSampler() const { return m_ColourSampler; }
 		const VkFramebuffer& GetVulkanFrameBuffer() const { return m_FrameBuffer; }
 		const VkRenderPass& GetRenderPass() const { return m_RenderPass; }
@@ -67,7 +82,7 @@ namespace plumbus::vk
 		int32_t m_Width;
 		int32_t m_Height;
 		VkFramebuffer m_FrameBuffer;
-		std::map<std::string, FrameBufferAttachment> m_Attachments;
+		std::vector<std::pair<std::string, FrameBufferAttachment>> m_Attachments;
 		VkRenderPass m_RenderPass;
 		VkSampler m_ColourSampler = VK_NULL_HANDLE;
 

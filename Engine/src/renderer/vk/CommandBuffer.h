@@ -21,6 +21,7 @@ namespace plumbus::vk
             void EndRecording() const;
             void EndRenderPass() const;
             void RecordDraw(const uint32_t indexCount) const;
+            void Flush();
 
             void SetViewport(const float width, const float height, const float minDepth, const float maxDepth) const;
             void SetScissor(const uint32_t width, const uint32_t height, const int32_t minDepth, const int32_t maxDepth) const;
@@ -30,10 +31,10 @@ namespace plumbus::vk
             void BindIndexBuffer(const vk::Buffer& buffer) const;
 
             void SetFrameBuffer(FrameBufferRef frameBuffer) { m_FrameBuffer = frameBuffer; }
-            
+
             void Cleanup();
         private:
-            VkCommandBuffer m_CommandBuffer;
+            VkCommandBuffer m_CommandBuffer = VK_NULL_HANDLE;
             FrameBufferRef m_FrameBuffer;
     };
 }

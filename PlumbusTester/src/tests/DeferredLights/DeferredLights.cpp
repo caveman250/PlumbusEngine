@@ -111,7 +111,7 @@ namespace plumbus::tester::tests
                 AddComponent<ModelComponent>(new ModelComponent("models/sphere.obj", "stonefloor_color", "stonefloor_normal"))->
 				AddComponent<LightComponent>(new LightComponent()));
 
-			light->GetComponent<LightComponent>()->AddPointLight(colours[i], m_LightRadius);
+			light->GetComponent<LightComponent>()->AddPointLight(colours[i], m_LightRadius, false);
             light->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
             light->GetComponent<TranslationComponent>()->SetScale(glm::vec3(0.1f, 0.1f, 0.1f));
 		}
@@ -120,9 +120,9 @@ namespace plumbus::tester::tests
 
 #if ENABLE_IMGUI
 		vk::VulkanRenderer* vkRenderer = vk::VulkanRenderer::Get();
-		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour").m_ImageView, false);
-		m_NormalsTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal").m_ImageView, false);
-		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("position").m_ImageView, false);
+		m_AlbedoTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("colour")->m_ImageView, vk::TextureType::RGBA8);
+		m_NormalsTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("normal")->m_ImageView, vk::TextureType::RGBA16);
+		m_WorldPosTextureDescSet = vkRenderer->GetImGui()->CreateImGuiTextureMaterialInstance(vkRenderer->GetDeferredFramebuffer()->GetSampler(), vkRenderer->GetDeferredFramebuffer()->GetAttachment("position")->m_ImageView, vk::TextureType::RGBA16);
 #endif
 	}
 

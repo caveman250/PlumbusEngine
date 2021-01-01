@@ -2,6 +2,7 @@
 #include "LightComponent.h"
 #include "glm/glm.hpp"
 #include "renderer/vk/ShadowDirectional.h"
+#include "renderer/vk/ShadowOmniDirectional.h"
 #include "renderer/vk/ShadowManager.h"
 
 namespace plumbus
@@ -9,7 +10,7 @@ namespace plumbus
 	void DirectionalLight::AddShadow() 
 	{
 		m_Shadow = std::static_pointer_cast<vk::Shadow>(vk::ShadowDirectional::CreateShadowDirectional(this));
-		vk::ShadowManager::Get()->RegisterShadow(m_Shadow.get());
+		vk::ShadowManager::Get()->RegisterShadow(static_cast<vk::ShadowDirectional*>(m_Shadow.get()));
 	}
 	
 	glm::mat4 DirectionalLight::GetMVP() 
@@ -23,7 +24,8 @@ namespace plumbus
 	
 	void PointLight::AddShadow() 
 	{
-		PL_ASSERT(false, "Point light shadows not implemented.");
+        m_Shadow = std::static_pointer_cast<vk::Shadow>(vk::ShadowOmniDirectional::CreateShadowOmniDirectional(this));
+        vk::ShadowManager::Get()->RegisterShadow(static_cast<vk::ShadowOmniDirectional*>(m_Shadow.get()));
 	}
 
 	LightComponent::LightComponent()
@@ -42,9 +44,14 @@ namespace plumbus
 		m_Lights.clear();
 	}
 
-	void LightComponent::AddPointLight(glm::vec3 colour, float radius)
+	void LightComponent::AddPointLight(glm::vec3 colour, float radius, bool shadow)
 	{
 		m_Lights.push_back(new PointLight(colour, radius, this));
+
+		if (shadow)
+        {
+		    m_Lights.back()->AddShadow();
+        }
 	}
 
 	void LightComponent::AddDirectionalLight(glm::vec3 colour, glm::vec3 target, bool shadow)

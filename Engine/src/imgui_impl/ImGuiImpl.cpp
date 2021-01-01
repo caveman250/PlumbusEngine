@@ -209,7 +209,7 @@ namespace plumbus
 
 		if (!m_GameViewMaterialInstance)
 		{
-			m_GameViewMaterialInstance = CreateImGuiTextureMaterialInstance(renderer->GetDeferredOutputFramebuffer()->GetSampler(), renderer->GetDeferredOutputFramebuffer()->GetAttachment("colour").m_ImageView, false);
+			m_GameViewMaterialInstance = CreateImGuiTextureMaterialInstance(renderer->GetDeferredOutputFramebuffer()->GetSampler(), renderer->GetDeferredOutputFramebuffer()->GetAttachment("colour")->m_ImageView, vk::TextureType::RGBA8);
 		}
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -456,12 +456,34 @@ namespace plumbus
 		}
 	}
 
-	vk::MaterialInstanceRef ImGUIImpl::CreateImGuiTextureMaterialInstance(VkSampler sampler, VkImageView image_view, bool isDepth) const
+	vk::MaterialInstanceRef ImGUIImpl::CreateImGuiTextureMaterialInstance(VkSampler sampler, VkImageView image_view, vk::TextureType type) const
 	{
-		vk::MaterialRef material = std::make_shared<vk::Material>("shaders/ui.vert", isDepth ? "shaders/ui_depth.frag" : "shaders/ui.frag", vk::VulkanRenderer::Get()->GetSwapChain()->GetRenderPass());
+	    std::string fragShader;
+	    switch (type)
+        {
+            case vk::TextureType::R32:
+            case vk::TextureType::RGB8:
+            case vk::TextureType::RGB16:
+            case vk::TextureType::RGB32:
+            case vk::TextureType::RGBA8:
+            case vk::TextureType::RGBA16:
+            case vk::TextureType::RGBA32:
+                fragShader = "shaders/ui.frag";
+                break;
+            case vk::TextureType::Depth24:
+            case vk::TextureType::Depth32:
+            case vk::TextureType::Depth32U:
+                fragShader = "shaders/ui_depth.frag";
+                break;
+            case vk::TextureType::R32Cube:
+                fragShader = "shaders/ui_cubemap.frag";
+                break;
+        }
+
+		vk::MaterialRef material = std::make_shared<vk::Material>("shaders/ui.vert", fragShader.c_str(), vk::VulkanRenderer::Get()->GetSwapChain()->GetRenderPass());
 		material->Setup();
 		vk::MaterialInstanceRef materialInstance = vk::MaterialInstance::CreateMaterialInstance(material);
-		materialInstance->SetTextureUniform("imageSampler", {{sampler, image_view}}, isDepth);
+		materialInstance->SetTextureUniform("imageSampler", {{sampler, image_view}}, vk::IsDepthFormat(type));
 		return materialInstance;
 	}
 

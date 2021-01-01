@@ -155,7 +155,7 @@ namespace plumbus::vk
 		m_ImageViews.resize(m_Images.size());
 		for (size_t i = 0; i < m_Images.size(); i++)
 		{
-			m_ImageViews[i] = ImageHelpers::CreateImageView(m_Images[i], m_ImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+			m_ImageViews[i] = ImageHelpers::CreateImageView(m_Images[i], m_ImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 	}
 
@@ -281,9 +281,10 @@ namespace plumbus::vk
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			m_DepthImage,
-			m_DepthImageMemory);
+			m_DepthImageMemory,
+			false);
 
-		m_DepthImageView = ImageHelpers::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		m_DepthImageView = ImageHelpers::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT);
 
 		ImageHelpers::TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VulkanRenderer::Get()->GetDevice()->GetGraphicsQueue());
 	}

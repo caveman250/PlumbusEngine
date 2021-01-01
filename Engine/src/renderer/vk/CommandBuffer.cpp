@@ -106,18 +106,18 @@ namespace plumbus::vk
 		std::vector<VkClearValue> clearValues;
 		clearValues.resize(m_FrameBuffer->GetAttachmentCount());
 
-		//TODO: this should really be smarter.
-		//Currently assuming all attachments are colour except for the last one.
-		for (int i = 0; i < m_FrameBuffer->GetAttachmentCount(); ++i)
+		int attachmentIndex = 0;
+		for (const auto& [_, attachment] : m_FrameBuffer->GetAttachments())
 		{
-			if (i < (m_FrameBuffer->GetAttachmentCount() - 1))
+			if (!attachment.IsDepth())
 			{
-				clearValues[i].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+				clearValues[attachmentIndex].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 			}
 			else
 			{
-				clearValues[i].depthStencil = { 1.0f, 0 };
+				clearValues[attachmentIndex].depthStencil = { 1.0f, 0 };
 			}
+            attachmentIndex++;
 		}
 
 		VkRenderPassBeginInfo renderPassBeginInfo{};
@@ -138,5 +138,12 @@ namespace plumbus::vk
 	{
 		vkCmdEndRenderPass(m_CommandBuffer);
 	}
+
+    void CommandBuffer::Flush()
+    {
+        DeviceRef device = VulkanRenderer::Get()->GetDevice();
+        device->FlushCommandBuffer(m_CommandBuffer, device->GetGraphicsQueue());
+        m_CommandBuffer = VK_NULL_HANDLE;
+    }
 
 }

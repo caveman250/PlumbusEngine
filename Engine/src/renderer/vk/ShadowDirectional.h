@@ -2,7 +2,10 @@
 #include "plumbus.h"
 #include "Shadow.h"
 #include "Buffer.h"
-#include "ModelComponent.h"
+namespace plumbus
+{
+    class ModelComponent;
+}
 
 namespace plumbus::vk
 {
@@ -19,10 +22,8 @@ namespace plumbus::vk
     	virtual ~ShadowDirectional();
 
         virtual void Init() override;
-        virtual void BuildCommandBuffer() override;
-        virtual void Render(VkSemaphore waitSemaphore) override;
-
-        static void CleanupMaterial();
+        virtual void BuildCommandBuffer();
+        virtual void Render(VkSemaphore waitSemaphore);
 
     private:
         static MaterialRef s_ShadowDirectionalMaterial;

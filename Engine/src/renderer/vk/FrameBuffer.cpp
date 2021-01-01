@@ -58,9 +58,7 @@ namespace plumbus::vk
 		VkImageAspectFlags aspectMask = 0;
 		VkImageLayout imageLayout;
 
-		m_Attachments[id] = FrameBufferAttachment();
-		FrameBufferAttachment& attachment = m_Attachments[id];
-
+		FrameBufferAttachment attachment;
 		attachment.m_Format = format;
 
 		if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
@@ -118,15 +116,18 @@ namespace plumbus::vk
 		imageView.subresourceRange.layerCount = layerCount;
 		imageView.image = attachment.m_Image;
 		CHECK_VK_RESULT(vkCreateImageView(device->GetVulkanDevice(), &imageView, nullptr, &attachment.m_ImageView));
-	}
+
+		m_Attachments.emplace_back(std::make_pair(id, attachment));
+
+    }
 
 	void FrameBuffer::AddAttachment(VkImageView imageView, VkFormat imageFormat, std::string id)
 	{
-		m_Attachments[id] = FrameBufferAttachment();
-		FrameBufferAttachment& attachment = m_Attachments[id];
-
+        FrameBufferAttachment attachment;
 		attachment.m_Format = imageFormat;
 		attachment.m_ImageView = imageView;
+
+        m_Attachments.emplace_back(std::make_pair(id, attachment));
 	}
 
 	plumbus::vk::FrameBufferRef FrameBuffer::CreateFrameBuffer(uint32_t width, uint32_t height, VkRenderPass renderPass, std::vector<VkImageView> attachments, std::vector<VkFormat> attachmentFormats)
@@ -172,7 +173,7 @@ namespace plumbus::vk
 
 		std::vector<VkAttachmentReference> colorReferences;
 
-		int depthIndex = 0;
+		int depthIndex = -1;
 		for (int i = 0; i < attachments.size(); ++i)
 		{
 			fb->CreateAttachment(attachments[i].GetImageViewType(), attachments[i].attachmentFormat, attachments[i].GetUsageFlagBits(), attachments[i].GetLayerCount(), attachments[i].attachmentName);
@@ -196,19 +197,25 @@ namespace plumbus::vk
 
 			attachmentDescs[i].format = attachments[i].attachmentFormat;
 
-			attachmentImageViews[i] = fb->GetAttachment(attachments[i].attachmentName).m_ImageView;
+			attachmentImageViews[i] = fb->GetAttachment(attachments[i].attachmentName)->m_ImageView;
 		}
 
 		//CREATE RENDER PASS
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = depthIndex;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference depthReference = { };
+		if (depthIndex > -1)
+        {
+            depthReference.attachment = depthIndex;
+            depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        }
 
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.pColorAttachments = colorReferences.data();
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
-		subpass.pDepthStencilAttachment = &depthReference;
+        if (depthIndex > -1)
+        {
+            subpass.pDepthStencilAttachment = &depthReference;
+        }
 
 		// Use subpass dependencies for attachment layput transitions
 		std::array<VkSubpassDependency, 2> dependencies;
@@ -281,30 +288,55 @@ namespace plumbus::vk
 		return fb;
 	}
 
+    const FrameBuffer::FrameBufferAttachment* FrameBuffer::GetAttachment(const std::string& attachmentName)
+    {
+	    auto it = std::find_if(m_Attachments.begin(), m_Attachments.end(), [attachmentName](const std::pair<std::string, FrameBufferAttachment>& p) { return p.first.compare(attachmentName) == 0; });
+        if (it != m_Attachments.end())
+        {
+            return &it->second;
+        }
+
+	    return nullptr;
+    }
+
     VkImageUsageFlagBits FrameBuffer::FrameBufferAttachmentInfo::GetUsageFlagBits()
     {
+        unsigned int flags = 0;
 	    switch (attachmentType)
         {
+            case FrameBufferAttachmentType::R32:
+            case FrameBufferAttachmentType::R32Cube:
             case FrameBufferAttachmentType::Colour:
             case FrameBufferAttachmentType::ColourCube:
             {
-                return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                break;
             }
             case FrameBufferAttachmentType::Depth:
             case FrameBufferAttachmentType::DepthCube:
             {
-                return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                break;
             }
         }
 
-        PL_ASSERT(false, "FrameBuffer::FrameBufferAttachmentInfo::GetUsageFlagBits: Unsupported FrameBufferAttachmentType.");
-        return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        if (transferSrc)
+        {
+            flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        return (VkImageUsageFlagBits)flags;
     }
 
     VkImageLayout FrameBuffer::FrameBufferAttachmentInfo::GetImageLayout()
     {
         switch (attachmentType)
         {
+            case FrameBufferAttachmentType::R32:
+            case FrameBufferAttachmentType::R32Cube:
+            {
+                return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
             case FrameBufferAttachmentType::Colour:
             case FrameBufferAttachmentType::ColourCube:
             {
@@ -325,11 +357,13 @@ namespace plumbus::vk
     {
         switch (attachmentType)
         {
+            case FrameBufferAttachmentType::R32:
             case FrameBufferAttachmentType::Colour:
             case FrameBufferAttachmentType::Depth:
             {
                 return VK_IMAGE_VIEW_TYPE_2D;
             }
+            case FrameBufferAttachmentType::R32Cube:
             case FrameBufferAttachmentType::ColourCube:
             case FrameBufferAttachmentType::DepthCube:
             {
@@ -345,6 +379,7 @@ namespace plumbus::vk
     {
         switch (attachmentType)
         {
+            case FrameBufferAttachmentType::R32:
             case FrameBufferAttachmentType::Colour:
             case FrameBufferAttachmentType::Depth:
             {
@@ -352,6 +387,7 @@ namespace plumbus::vk
             }
             case FrameBufferAttachmentType::ColourCube:
             case FrameBufferAttachmentType::DepthCube:
+            case FrameBufferAttachmentType::R32Cube:
             {
                 return 6;
             }

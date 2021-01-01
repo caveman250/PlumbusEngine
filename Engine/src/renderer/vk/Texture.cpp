@@ -270,7 +270,7 @@ namespace plumbus::vk
 		vkFreeMemory(device->GetVulkanDevice(), stagingMemory, nullptr);
 		vkDestroyBuffer(device->GetVulkanDevice(), stagingBuffer, nullptr);
 
-		m_ImageView = ImageHelpers::CreateImageView(m_Image, format, VK_IMAGE_ASPECT_COLOR_BIT);
+		m_ImageView = ImageHelpers::CreateImageView(m_Image, format, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
 		CreateTextureSampler();
 	}
 

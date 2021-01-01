@@ -32,7 +32,7 @@ namespace plumbus
 		void UpdateBuffers();
 		void DrawFrame(vk::CommandBufferRef commandBuffer);
 
-		vk::MaterialInstanceRef CreateImGuiTextureMaterialInstance(VkSampler sampler, VkImageView image_view, bool isDepth) const;
+		vk::MaterialInstanceRef CreateImGuiTextureMaterialInstance(VkSampler sampler, VkImageView image_view, vk::TextureType type) const;
 
 		static void OnMouseScolled(GLFWwindow* window, double xoffset, double yoffset);
 		static void OnKeyDown(GLFWwindow*, int key, int, int action, int mods);

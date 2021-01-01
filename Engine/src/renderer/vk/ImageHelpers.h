@@ -8,7 +8,7 @@ namespace plumbus
 	class ImageHelpers
 	{
 	public:
-		static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+		static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, bool isCubeMap)
 		{
 			vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
 
@@ -19,13 +19,14 @@ namespace plumbus
 			imageInfo.extent.height = static_cast<uint32_t>(height);
 			imageInfo.extent.depth = 1;
 			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
+			imageInfo.arrayLayers = isCubeMap ? 6 : 1;
 			imageInfo.format = format;
 			imageInfo.tiling = tiling;
 			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageInfo.usage = usage;
 			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageInfo.flags = isCubeMap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 
 			if (vkCreateImage(renderer->GetDevice()->GetVulkanDevice(), &imageInfo, nullptr, &image) != VK_SUCCESS)
 			{
@@ -48,12 +49,12 @@ namespace plumbus
 			vkBindImageMemory(renderer->GetDevice()->GetVulkanDevice(), image, imageMemory, 0);
 		}
 
-		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageViewType viewType, VkImageAspectFlags aspectFlags)
 		{
 			VkImageViewCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			createInfo.image = image;
-			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			createInfo.viewType = viewType;
 			createInfo.format = format;
 
 			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -65,7 +66,7 @@ namespace plumbus
 			createInfo.subresourceRange.baseMipLevel = 0;
 			createInfo.subresourceRange.levelCount = 1;
 			createInfo.subresourceRange.baseArrayLayer = 0;
-			createInfo.subresourceRange.layerCount = 1;
+			createInfo.subresourceRange.layerCount = viewType == VK_IMAGE_VIEW_TYPE_CUBE ? 6 : 1;
 
 			VkImageView imageView;
 			if (vkCreateImageView(vk::VulkanRenderer::Get()->GetDevice()->GetVulkanDevice(), &createInfo, nullptr, &imageView) != VK_SUCCESS)
@@ -212,8 +213,8 @@ namespace plumbus
 			VkImageAspectFlags aspectMask,
 			VkImageLayout oldImageLayout,
 			VkImageLayout newImageLayout,
-			VkPipelineStageFlags srcStageMask,
-			VkPipelineStageFlags dstStageMask)
+			VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
 		{
 			VkImageSubresourceRange subresourceRange = {};
 			subresourceRange.aspectMask = aspectMask;

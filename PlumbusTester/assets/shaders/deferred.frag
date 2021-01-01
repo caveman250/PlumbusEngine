@@ -1,11 +1,16 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
+#define EPSILON 0.15
+
 layout (binding = 0) uniform sampler2D samplerposition;
 layout (binding = 1) uniform sampler2D samplerNormal;
 layout (binding = 2) uniform sampler2D samplerAlbedo;
-#if NUM_SHADOWS
-layout (binding = 3) uniform sampler2D samplerShadows[NUM_SHADOWS];
+#if NUM_DIR_SHADOWS
+layout (binding = 3) uniform sampler2D samplerDirShadows[NUM_DIR_SHADOWS];
+#endif
+#if NUM_OMNIDIR_SHADOWS
+layout (binding = 3) uniform samplerCube samplerOmniDirShadows[NUM_OMNIDIR_SHADOWS];
 #endif
 
 layout (location = 0) in vec2 inUV;
@@ -32,7 +37,7 @@ layout (binding = 5) uniform PointLights { PointLight lights[NUM_POINT_LIGHTS]; 
 layout (binding = 6) uniform DirectionalLights { DirectionalLight lights[NUM_DIR_LIGHTS]; } dirLights;
 #endif
 
-#if NUM_SHADOWS && NUM_DIR_LIGHTS
+#if NUM_DIR_SHADOWS && NUM_DIR_LIGHTS
 vec2 poissonDisk[4] = vec2[](
 vec2( -0.94201624, -0.39906216 ),
 vec2( 0.94558609, -0.76890725 ),
@@ -51,7 +56,7 @@ float shadowProj(vec4 P, vec2 offset, int index, float NdotL)
 
 	for (int i = 0; i < 4; i++)
 	{
-		if (texture(samplerShadows[index],shadowCoord.st + poissonDisk[i] / 700.0 ).r  < shadowCoord.z - bias)
+		if (texture(samplerDirShadows[index],shadowCoord.st + poissonDisk[i] / 700.0 ).r  < shadowCoord.z - bias)
 		{
 			shadow -= 0.25;
 		}
@@ -108,8 +113,15 @@ void main()
 		vec3 R = reflect(-L, N);
 		float NdotR = max(0.0, dot(R, V));
 		vec3 spec = pointLights.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0) * atten;
-
+#if NUM_OMNIDIR_SHADOWS
+		// Shadow
+		vec3 shadowVector = vec3(fragPos.x, fragPos.y, fragPos.z) - worldPos.xyz;
+		float sampledDist = texture(samplerOmniDirShadows[i], shadowVector).r;
+		float shadow = (length(shadowVector) <= sampledDist + EPSILON) ? 1.0 : 0.0;
+		fragcolor += (diff + spec) * shadow;
+#else
 		fragcolor += diff + spec;
+#endif
 	}
 #endif
 #if NUM_DIR_LIGHTS
@@ -131,7 +143,7 @@ void main()
 		float NdotR = max(0.0, dot(R, V));
 		vec3 spec = dirLights.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0);
 
-#if NUM_SHADOWS
+#if NUM_DIR_SHADOWS
 		fragcolor += (diff + spec) * shadow(fragPos, i, NdotL);
 #else
 		fragcolor += (diff + spec);

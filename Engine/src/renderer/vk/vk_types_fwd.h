@@ -47,4 +47,7 @@ namespace plumbus::vk
 
     class ShadowDirectional;
     typedef std::shared_ptr<ShadowDirectional> ShadowDirectionalRef;
+
+    class ShadowOmniDirectional;
+    typedef std::shared_ptr<ShadowOmniDirectional> ShadowOmniDirectionalRef;
 }

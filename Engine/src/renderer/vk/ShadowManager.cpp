@@ -22,14 +22,23 @@ namespace plumbus::vk
 		}
 	}
 
-
-	void ShadowManager::RegisterShadow(Shadow* shadow)
+	void ShadowManager::RegisterShadow(ShadowDirectional* shadow)
 	{
-		m_Shadows.push_back(shadow);
+		m_DirShadows.push_back(shadow);
 	}
 
-	void ShadowManager::UnregisterShadow(Shadow* shadow)
+	void ShadowManager::UnregisterShadow(ShadowDirectional* shadow)
 	{
-		m_Shadows.erase(std::remove(m_Shadows.begin(), m_Shadows.end(), shadow), m_Shadows.end());
+        m_DirShadows.erase(std::remove(m_DirShadows.begin(), m_DirShadows.end(), shadow), m_DirShadows.end());
 	}
+
+    void ShadowManager::RegisterShadow(ShadowOmniDirectional* shadow)
+    {
+        m_OmniDirShadows.push_back(shadow);
+    }
+
+    void ShadowManager::UnregisterShadow(ShadowOmniDirectional* shadow)
+    {
+        m_OmniDirShadows.erase(std::remove(m_OmniDirShadows.begin(), m_OmniDirShadows.end(), shadow), m_OmniDirShadows.end());
+    }
 }

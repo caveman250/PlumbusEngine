@@ -144,7 +144,8 @@ namespace plumbus
             vk::Buffer m_PointLightsVulkanBuffer;
             vk::Buffer m_DirLightsVulkanBuffer;
 
-			int m_CachedShadowCount;
+			int m_CachedDirShadowCount;
+            int m_CachedOmniDirShadowCount;
 		};
 	}
 }

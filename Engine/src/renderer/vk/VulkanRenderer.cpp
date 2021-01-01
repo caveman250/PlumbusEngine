@@ -38,6 +38,7 @@
 #include "shader_compiler/ShaderSettings.h"
 #include "ShadowManager.h"
 #include "ShadowDirectional.h"
+#include "ShadowOmniDirectional.h"
 
 static uint32_t s_Width, s_Height;
 
@@ -106,7 +107,7 @@ namespace plumbus::vk
             FrameBuffer::FrameBufferAttachmentInfo(GetDepthFormat(), FrameBuffer::FrameBufferAttachmentType::Depth, "depth")
         };
 
-        m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(1024, 1024, offscreenAttachmentInfo);
+        m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
 
 
 #if ENABLE_IMGUI
@@ -164,33 +165,40 @@ namespace plumbus::vk
             Log::Fatal("failed to acquire swap chain image!");
         }
 
-    	//collect all shadows
-    	std::vector<ShadowRef> shadows;
-    	for(GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+    	std::vector<ShadowDirectional*> dirShadows = ShadowManager::Get()->GetDirectionalShadows();
+        std::vector<DescriptorSet::TextureUniform> dirShadowTextures;
+    	for(int i = 0; i < dirShadows.size(); ++i)
     	{
-    		if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
-    		{
-    			for (Light* light : lightComp->GetLights())
-    			{
-    				if (ShadowRef shadow = light->GetShadow())
-    				{
-    					shadows.push_back(shadow);
-    				}
-    			}
-    		}
+            dirShadows[i]->BuildCommandBuffer();
+            dirShadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : dirShadows[i - 1]->GetSemaphore());
+    		dirShadowTextures.push_back({ dirShadows[i]->GetFrameBuffer()->GetSampler(), dirShadows[i]->GetFrameBuffer()->GetAttachment("depth")->m_ImageView });
     	}
 
-        std::vector<DescriptorSet::TextureUniform> shadowTextures;
-    	for(int i = 0; i < shadows.size(); ++i)
+    	if (!dirShadowTextures.empty())
     	{
-    		shadows[i]->BuildCommandBuffer();
-    		shadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : shadows[i - 1]->GetSemaphore());
-    		shadowTextures.push_back({ shadows[i]->GetFrameBuffer()->GetSampler(), shadows[i]->GetFrameBuffer()->GetAttachment("depth").m_ImageView });
-    	}
+            m_DeferredOutputMaterialInstance->SetTextureUniform("samplerDirShadows", dirShadowTextures, true);
+        }
 
-    	if (shadowTextures.size() > 0)
-    	{
-            m_DeferredOutputMaterialInstance->SetTextureUniform("samplerShadows", shadowTextures, true);
+        std::vector<ShadowOmniDirectional*> omniDirShadows = ShadowManager::Get()->GetOmniDirectionalShadows();
+        std::vector<DescriptorSet::TextureUniform> omniDirShadowTextures;
+        for (int i = 0; i < omniDirShadows.size(); ++i)
+        {
+            omniDirShadows[i]->GetCommandBuffer()->BeginRecording();
+            omniDirShadows[i]->UpdateUniformBuffer();
+            for (int j = 0; j < omniDirShadows[i]->GetRenderPassCount(); ++j)
+            {
+                omniDirShadows[i]->BuildCommandBuffer(j);
+                //Log::Error("Fix shadow semaphore");
+            }
+            omniDirShadows[i]->GetCommandBuffer()->EndRecording();
+
+            omniDirShadows[i]->Render(i == 0 ? m_SwapChain->GetImageAvailableSemaphore() : omniDirShadows[i - 1]->GetSemaphore());
+            omniDirShadowTextures.push_back({ omniDirShadows[i]->GetCubeMap().m_TextureSampler, omniDirShadows[i]->GetCubeMap().m_ImageView });
+        }
+
+        if (!omniDirShadowTextures.empty())
+        {
+            m_DeferredOutputMaterialInstance->SetTextureUniform("samplerOmniDirShadows", omniDirShadowTextures, false);
         }
     	
         BuildPresentCommandBuffer(imageIndex);
@@ -202,7 +210,7 @@ namespace plumbus::vk
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { shadows.size() > 0 ? shadows.back()->GetSemaphore() : m_SwapChain->GetImageAvailableSemaphore() };
+        VkSemaphore waitSemaphores[] = { omniDirShadows.size() > 0 ? omniDirShadows.back()->GetSemaphore() : m_SwapChain->GetImageAvailableSemaphore() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
@@ -814,15 +822,18 @@ namespace plumbus::vk
 	void VulkanRenderer::UpdateOutputMaterial()
 	{
         bool outputMaterialNeedsRebuild = !m_DeferredOutputMaterial.get();
-        int numShadows = ShadowManager::Get()->GetShadowCount();
+        int numDirShadows = ShadowManager::Get()->GetDirectionalShadows().size();
+        int numOmniDirShadows = ShadowManager::Get()->GetOmniDirectionalShadows().size();
         int numPointLights, numDirLights;
         GetNumLights(numPointLights, numDirLights);
 
-        if (numShadows != m_CachedShadowCount ||
+        if (numDirShadows != m_CachedDirShadowCount ||
+            numOmniDirShadows != m_CachedOmniDirShadowCount ||
             numPointLights != m_PointLights.size() ||
             numDirLights != m_DirectionalLights.size())
         {
-            m_CachedShadowCount = numShadows;
+            m_CachedDirShadowCount = numDirShadows;
+            m_CachedOmniDirShadowCount = numOmniDirShadows;
             outputMaterialNeedsRebuild = true;
         }
 
@@ -841,7 +852,8 @@ namespace plumbus::vk
 #endif
 
         shaders::ShaderSettings& settings = m_DeferredOutputMaterial->GetShaderSettings();
-        settings.SetValue("NUM_SHADOWS", numShadows);
+        settings.SetValue("NUM_DIR_SHADOWS", numDirShadows);
+        settings.SetValue("NUM_OMNIDIR_SHADOWS", numOmniDirShadows);
         settings.SetValue("NUM_DIR_LIGHTS", numDirLights);
         settings.SetValue("NUM_POINT_LIGHTS", numPointLights);
 
@@ -867,10 +879,9 @@ namespace plumbus::vk
         m_DeferredOutputMaterial->Setup();
 
         m_DeferredOutputMaterialInstance = MaterialInstance::CreateMaterialInstance(m_DeferredOutputMaterial);
-        const FrameBuffer::FrameBufferAttachment& positionAttachment = m_DeferredFrameBuffer->GetAttachment("position");
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position").m_ImageView }}, false);
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal").m_ImageView }}, false);
-        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour").m_ImageView }}, false);
+        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerposition", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("position")->m_ImageView }}, false);
+        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerNormal", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("normal")->m_ImageView }}, false);
+        m_DeferredOutputMaterialInstance->SetTextureUniform("samplerAlbedo", {{ m_DeferredFrameBuffer->GetSampler(), m_DeferredFrameBuffer->GetAttachment("colour")->m_ImageView }}, false);
         m_DeferredOutputMaterialInstance->SetBufferUniform("ViewPos", &m_ViewPosVulkanBuffer);
         if (m_PointLights.size() > 0)
         {

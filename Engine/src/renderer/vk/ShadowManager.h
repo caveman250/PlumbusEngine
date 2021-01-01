@@ -8,14 +8,17 @@ namespace plumbus::vk
 	public:
 		static ShadowManager* Get();
 		static void Destroy();
-		void RegisterShadow(Shadow* shadow);
-		void UnregisterShadow(Shadow* shadow);
+		void RegisterShadow(ShadowDirectional* shadow);
+		void UnregisterShadow(ShadowDirectional* shadow);
+        void RegisterShadow(ShadowOmniDirectional* shadow);
+        void UnregisterShadow(ShadowOmniDirectional* shadow);
 
-		int GetShadowCount() { return (int)m_Shadows.size(); }
-		std::vector<Shadow*>& GetShadows() { return m_Shadows; }
+		std::vector<ShadowDirectional*>& GetDirectionalShadows() { return m_DirShadows; }
+        std::vector<ShadowOmniDirectional*>& GetOmniDirectionalShadows() { return m_OmniDirShadows; }
 	private:
 		static ShadowManager* s_Instance;
 		
-		std::vector<Shadow*> m_Shadows;
+		std::vector<ShadowDirectional*> m_DirShadows;
+        std::vector<ShadowOmniDirectional*> m_OmniDirShadows;
 	};
 }

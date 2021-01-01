@@ -136,9 +136,4 @@ namespace plumbus::vk
 
         CHECK_VK_RESULT(vkQueueSubmit(VulkanRenderer::Get()->GetDevice()->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE));
     }
-
-    void ShadowDirectional::CleanupMaterial()
-    {
-        s_ShadowDirectionalMaterial.reset();
-    }
 }

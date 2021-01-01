@@ -24,6 +24,7 @@ namespace plumbus
 
 		vk::ShadowRef GetShadow() { return m_Shadow; }
 		virtual void AddShadow() = 0;
+		LightComponent* GetParent() { return m_LightComponent; }
 		void RemoveShadow() { if (m_Shadow) { m_Shadow.reset(); } }
 	protected:
 		glm::vec3 m_Colour;
@@ -65,7 +66,7 @@ namespace plumbus
 		LightComponent();
 		~LightComponent();
 
-		void AddPointLight(glm::vec3 colour, float radius);
+		void AddPointLight(glm::vec3 colour, float radius, bool shadow);
 		void AddDirectionalLight(glm::vec3 colour, glm::vec3 target, bool shadow);
 
 		void OnUpdate(Scene* scene) override;
