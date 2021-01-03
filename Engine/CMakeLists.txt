@@ -78,10 +78,32 @@ source_group("src\\platform\\windows" FILES ${PLATFORM})
 
 add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${SHADER_COMPILER} ${SHADER_COMPILER_PARSERS} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
 
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
+target_link_libraries(${NAME} ${Vulkan_LIBRARIES})
+
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
+    target_link_libraries(${NAME} glfw ${GLFW_LIBRARIES})
+endif()
+
+target_link_libraries(${NAME} assimp)
+link_libraries(${ASSIMP_LIBRARIES})
+
+target_link_libraries(${NAME} SPIRV)
+target_link_libraries(${NAME} spirv-cross-core)
+target_link_libraries(${NAME} glslang)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES Android)
+    target_link_libraries(${NAME} ${android-log-lib} android)
+endif()
+
 if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
     FIND_PACKAGE(PkgConfig REQUIRED)
     PKG_CHECK_MODULES(GTK3 REQUIRED gtk+-3.0)
     INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
+    LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
+    ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
+    TARGET_LINK_LIBRARIES(${NAME} ${GTK3_LIBRARIES})
 endif(UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
 
 if (WIN32)
