@@ -9,6 +9,7 @@ namespace plumbus
 	class Scene
 	{
 	public:
+        Scene();
 		virtual void Init();
 		virtual void Shutdown();
 		virtual void OnUpdate();
@@ -22,9 +23,6 @@ namespace plumbus
 		void ClearObjects();
 
 		void LoadAssets();
-
-	protected:
-		Scene();
 
 	private:
 		Camera m_Camera;

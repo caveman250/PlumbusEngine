@@ -11,7 +11,7 @@
 #include "TesterScene.h"
 #include "renderer/vk/Material.h"
 #include "renderer/vk/VulkanRenderer.h"
-#include "imgui_impl/ImGuiImpl.h"
+#include "gui/ImGuiImpl.h"
 #include "renderer/vk/DescriptorSet.h"
 #include "renderer/vk/ShadowManager.h"
 #include "renderer/vk/ShadowDirectional.h"

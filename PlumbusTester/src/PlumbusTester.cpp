@@ -2,9 +2,6 @@
 #include "Application.h"
 #include "TesterScene.h"
 
-int app_argc;
-char** app_argv;
-
 
 #if PL_PLATFORM_ANDROID
 // platform/android/android.cpp
@@ -55,15 +52,18 @@ void android_main(struct android_app *app)
     Application::Get().Run();
 }
 #else
+
+
+
 int main(int argc, char** argv)
 {
-	app_argc = argc;
-	app_argv = argv;
 	using namespace plumbus::tester;
 
-	Application::CreateInstance();
-	Application::Get().CreateScene<TesterScene>();
-	Application::Get().Run();
+	RunApplication();
+
+//	Application::CreateInstance();
+//	Application::Get().CreateScene<TesterScene>();
+//	Application::Get().Run();
 
 	return 0;
 }

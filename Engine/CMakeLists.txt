@@ -1,19 +1,13 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 cmake_policy(VERSION 2.8)
-#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-#set(CMAKE_SUPPRESS_REGENERATION true)
-
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-# SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-# SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (NOT MSVC AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result -fPIC")
 endif ()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES Android)
@@ -53,22 +47,8 @@ include_directories(${Vulkan_INCLUDE_DIRS})
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-file(GLOB SOURCE src/*.cpp src/*.h)
+file(GLOB_RECURSE SOURCE src/*.cpp src/*.h)
 source_group("src" FILES ${SOURCE})
-file(GLOB COMPONENTS src/components/*.cpp src/components/*.h)
-source_group("src\\components" FILES ${COMPONENTS})
-
-file(GLOB VK src/renderer/vk/*.cpp src/renderer/vk/*.h)
-source_group("src\\renderer\\vk" FILES ${VK})
-
-file(GLOB SHADER_COMPILER src/renderer/vk/shader_compiler/*.cpp src/renderer/vk/shader_compiler/*.h)
-source_group("src\\renderer\\vk\\shader_compiler" FILES ${SHADER_COMPILER})
-
-file(GLOB SHADER_COMPILER_PARSERS src/renderer/vk/shader_compiler/parsers/*.cpp src/renderer/vk/shader_compiler/parsers/*.h)
-source_group("src\\renderer\\vk\\shader_compiler\\builders" FILES ${SHADER_COMPILER_PARSERS})
-
-file(GLOB IMGUI src/imgui_impl/*.cpp src/imgui_impl/*.h)
-source_group("src\\imgui_impl" FILES ${IMGUI})
 
 file(GLOB IMGUIIMGUI ../third_party/imgui/*.cpp ../third_party/imgui/*.h)
 source_group("third_party\\imgui" FILES ${IMGUIIMGUI})
@@ -76,14 +56,38 @@ source_group("third_party\\imgui" FILES ${IMGUIIMGUI})
 file(GLOB PLATFORM src/platform/windows/*.cpp src/platform/windows/*.h)
 source_group("src\\platform\\windows" FILES ${PLATFORM})
 
-add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${SHADER_COMPILER} ${SHADER_COMPILER_PARSERS} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
+add_library(${NAME} STATIC ${SOURCE} ${IMGUIIMGUI})
 
-if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
+target_link_libraries(${NAME} ${Vulkan_LIBRARIES})
+
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
+    target_link_libraries(${NAME} glfw ${GLFW_LIBRARIES})
+endif()
+
+target_link_libraries(${NAME} assimp)
+link_libraries(${ASSIMP_LIBRARIES})
+
+target_link_libraries(${NAME} SPIRV)
+target_link_libraries(${NAME} spirv-cross-core)
+target_link_libraries(${NAME} glslang)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES Android)
+    target_link_libraries(${NAME} ${android-log-lib} android)
+endif()
+
+message("CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
     FIND_PACKAGE(PkgConfig REQUIRED)
     PKG_CHECK_MODULES(GTK3 REQUIRED gtk+-3.0)
     INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
-endif(UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
+    LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
+    ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
+    TARGET_LINK_LIBRARIES(${NAME} ${GTK3_LIBRARIES})
+endif(UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
 
+add_compile_definitions(DLL_EXPORTS)
 if (WIN32)
     add_definitions(-DPL_PLATFORM_WINDOWS=1)
 endif(WIN32)

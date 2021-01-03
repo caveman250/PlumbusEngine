@@ -13,7 +13,8 @@ namespace plumbus::tester
 		static Application& Get() { return *static_cast<Application*>(s_Instance); }
 
 		virtual void Cleanup() override;
-
-		virtual void OnGui() override;
 	};
 }
+
+
+

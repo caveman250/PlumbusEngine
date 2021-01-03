@@ -1,7 +1,7 @@
 #include "plumbus.h"
 
 #include "renderer/vk/Window.h"
-#include "imgui_impl/Log.h"
+#include "gui/Log.h"
 #include "VulkanRenderer.h"
 #include "Instance.h"
 

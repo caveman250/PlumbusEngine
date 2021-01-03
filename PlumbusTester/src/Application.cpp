@@ -1,6 +1,8 @@
+#include <gui/GuiManager.h>
 #include "plumbus.h"
 #include "Application.h"
 #include "TestManager.h"
+#include "TesterScene.h"
 
 namespace plumbus::tester
 {
@@ -8,11 +10,6 @@ namespace plumbus::tester
 		: BaseApplication()
 	{
 		SetAppName("PlumbusTester");
-	}
-
-	void Application::OnGui()
-	{
-		TestManager::Get().OnGui();
 	}
 
 	void Application::Cleanup()
