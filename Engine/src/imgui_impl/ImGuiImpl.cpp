@@ -1,5 +1,5 @@
 #include "plumbus.h"
-#include "gui/ImGuiImpl.h"
+#include "imgui_impl/ImGuiImpl.h"
 #include "Log.h"
 #include "GameObject.h"
 #include "components/TranslationComponent.h"
@@ -16,7 +16,6 @@
 #include "renderer/vk/vk_types_fwd.h"
 #include "renderer/vk/VulkanRenderer.h"
 #include "renderer/vk/shader_compiler/ShaderSettings.h"
-#include "GuiManager.h"
 
 #if ENABLE_IMGUI
 namespace plumbus
@@ -336,7 +335,7 @@ namespace plumbus
 
 			Log::Draw("Log");
 
-            gui::GuiManager::Get().OnGui();
+			BaseApplication::Get().OnGui();
 
 			ImGui::End(); //Dockspace
 		}

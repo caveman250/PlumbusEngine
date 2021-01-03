@@ -79,8 +79,6 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android" )
     add_subdirectory(third_party/glfw)
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android" )
 add_subdirectory(third_party/assimp)
-set(spirv-compiler-options ${spirv-compiler-options} -fPIC)
 add_subdirectory(third_party/SPIRV-Cross)
-message(${spirv-compiler-options})
 add_subdirectory(third_party/glslang)
 

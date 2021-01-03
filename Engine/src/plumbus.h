@@ -24,7 +24,7 @@
 #include <string>
 #include <map>
 #include <fstream>
-#include "gui/Log.h"
+#include "imgui_impl/Log.h"
 #include <stdexcept>
 #include <functional>
 #include <cstdlib>

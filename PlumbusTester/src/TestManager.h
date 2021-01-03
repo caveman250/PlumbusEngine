@@ -1,5 +1,4 @@
 #pragma once
-#include <gui/GuiTool.h>
 
 namespace plumbus::tester
 {
@@ -8,14 +7,15 @@ namespace plumbus::tester
 		class Test;
 	}
 	
-    class TestManager : public gui::GuiTool
+	class TestManager
 	{
 	public:
 		TestManager();
+
 		static TestManager& Get() { return s_Instance; }
 
-		void Update() override;
-		void OnGui() override;
+		void Update();
+		void OnGui();
 
 		template <typename T>
 		void BeginTest();

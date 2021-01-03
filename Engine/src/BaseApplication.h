@@ -15,7 +15,7 @@ namespace plumbus
 	public:
 		BaseApplication();
 
-		static void CreateInstance() { s_Instance = new BaseApplication(); }
+		static void CreateInstance() { PL_ASSERT(false); /*create your own application class.*/ }
 		static BaseApplication& Get() { return *s_Instance; }
 		void Run();
 		double GetDeltaTime() { return m_DeltaTime; }
@@ -28,6 +28,8 @@ namespace plumbus
 		vk::VulkanRenderer* GetRenderer() { return m_Renderer; }
 		void MainLoop();
 		virtual void Cleanup();
+
+		virtual void OnGui();
 
 		void SetAppName(std::string name) { m_AppName = name; }
 
@@ -54,19 +56,3 @@ namespace plumbus
 		m_Scene = new T();
 	}
 }
-
-#if DLL_EXPORTS
-#if defined PL_PLATFORM_WINDOWS
-        #define LIB_API(RetType) extern "C" __declspec(dllexport) RetType
-    #else
-        #define LIB_API(RetType) extern "C" RetType __attribute__((visibility("default")))
-    #endif
-#else
-#if defined PL_PLATFORM_WINDOWS
-#define LIB_API(RetType) extern "C" __declspec(dllimport) RetType
-#else
-#define LIB_API(RetType) extern "C" RetType
-#endif
-#endif
-
-LIB_API(void) RunApplication();

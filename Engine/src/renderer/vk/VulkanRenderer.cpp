@@ -10,7 +10,7 @@
 #include "components/TranslationComponent.h"
 #include "Camera.h"
 #include "components/LightComponent.h"
-#include "gui/ImGuiImpl.h"
+#include "imgui_impl/ImGuiImpl.h"
 #include "Scene.h"
 #include "Instance.h"
 
@@ -81,8 +81,8 @@ void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT
 }
 #endif
 
-//extern int app_argc;
-//extern char** app_argv;
+extern int app_argc;
+extern char** app_argv;
 
 namespace plumbus::vk
 {
@@ -108,6 +108,7 @@ namespace plumbus::vk
         };
 
         m_DeferredFrameBuffer = FrameBuffer::CreateFrameBuffer(m_SwapChain->GetExtents().width, m_SwapChain->GetExtents().height, offscreenAttachmentInfo);
+
 
 #if ENABLE_IMGUI
 		std::vector<FrameBuffer::FrameBufferAttachmentInfo> outputAttachmentInfo =
@@ -290,7 +291,7 @@ namespace plumbus::vk
 		m_Window = new vk::Window();
 		m_Window->Init(s_Width, s_Height, appName);
 #if PL_PLATFORM_LINUX
-        gtk_init(0, nullptr);
+        gtk_init(&::app_argc, &::app_argv);
 #endif
         InitVulkan();
     }
@@ -452,8 +453,6 @@ namespace plumbus::vk
             CHECK_VK_RESULT(m_ViewPosVulkanBuffer.Map());
         }
 
-        plumbus::Log::Info("1");
-
         if (m_DirectionalLights.size() > 0)
         {
             CHECK_VK_RESULT(m_Device->CreateBuffer(
@@ -464,7 +463,6 @@ namespace plumbus::vk
 
             CHECK_VK_RESULT(m_DirLightsVulkanBuffer.Map());
         }
-        plumbus::Log::Info("2");
 
         if (m_PointLights.size() > 0)
         {
@@ -476,7 +474,6 @@ namespace plumbus::vk
 
             CHECK_VK_RESULT(m_PointLightsVulkanBuffer.Map());
         }
-        plumbus::Log::Info("3");
 
         UpdateLightsUniformBuffer();
     }

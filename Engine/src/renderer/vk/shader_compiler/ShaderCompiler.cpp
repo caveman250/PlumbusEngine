@@ -6,7 +6,7 @@
 #include "glslang/SPIRV/Logger.h"
 #include "glslang/SPIRV/SpvTools.h"
 #include "glslang/StandAlone/DirStackFileIncluder.h"
-#include "gui/Log.h"
+#include "imgui_impl/Log.h"
 
 namespace plumbus::vk::shaders
 {

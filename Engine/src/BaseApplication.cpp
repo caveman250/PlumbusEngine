@@ -1,9 +1,8 @@
-#include <gui/GuiManager.h>
 #include "plumbus.h"
 
 #include "BaseApplication.h"
 #include "Scene.h"
-#include "gui/ImGuiImpl.h"
+#include "imgui_impl/ImGuiImpl.h"
 
 #include "renderer/vk/VulkanRenderer.h"
 
@@ -25,11 +24,10 @@ namespace plumbus
 
     void BaseApplication::Run()
     {
-        plumbus::Log::Info("Init Renderer");
         m_Renderer->Init(m_AppName);
+
         PL_ASSERT(m_Scene != nullptr);
 
-        plumbus::Log::Info("Init Scene");
         InitScene();
         MainLoop();
         Cleanup();
@@ -89,21 +87,18 @@ namespace plumbus
 
     }
 
+    void BaseApplication::OnGui()
+    {
+
+    }
+
     void BaseApplication::UpdateScene()
     {
         m_Scene->OnUpdate();
-        gui::GuiManager::Get().OnUpdate();
     }
 
     bool BaseApplication::IsValidToReplaceCurrentScene()
     {
         return !m_Scene || !m_Scene->IsInitialised();
     }
-}
-
-void RunApplication()
-{
-    plumbus::BaseApplication::CreateInstance();
-    plumbus::BaseApplication::Get().CreateScene<plumbus::Scene>();
-    plumbus::BaseApplication::Get().Run();
 }
