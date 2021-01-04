@@ -1,17 +1,9 @@
 ﻿#pragma once
 
-#if DLL_EXPORTS
 #if PL_PLATFORM_WINDOWS
-        #define MONO_EXPORT(RetType) extern "C" __declspec(dllexport) RetType
-    #else
-        #define MONO_EXPORT(RetType) extern "C" RetType __attribute__((visibility("default")))
-    #endif
+    #define MONO_EXPORT(RetType) extern "C" __declspec(dllexport) RetType
 #else
-	#if PL_PLATFORM_WINDOWS
-		#define MONO_EXPORT(RetType) extern "C" __declspec(dllimport) RetType
-	#else
-		#define MONO_EXPORT(RetType) extern "C" RetType
-	#endif
+    #define MONO_EXPORT(RetType) extern "C" RetType __attribute__((visibility("default")))
 #endif
 
 

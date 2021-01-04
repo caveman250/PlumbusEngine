@@ -6,7 +6,9 @@
 #include "TesterScene.h"
 #include "components/ScriptComponent.h"
 #include "components/TranslationComponent.h"
+#include "components/LightComponent.h"
 #include "renderer/vk/Material.h"
+#include "renderer/vk/VulkanRenderer.h"
 
 namespace plumbus::tester::tests
 {
@@ -38,7 +40,12 @@ namespace plumbus::tester::tests
 		knight->GetComponent<components::TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, 0.f));
 		knight->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
-		BaseApplication::Get().GetScene()->LoadAssets();
+        GameObject* light = new GameObject("light");
+        scene->AddGameObject(light->
+                AddComponent<components::LightComponent>(new components::LightComponent()));
+        light->GetComponent<components::LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(1.f, -1.f, 1.f), false);
+
+        BaseApplication::Get().GetScene()->LoadAssets();
 	}
 
 	void Scripts::Update()
@@ -48,7 +55,18 @@ namespace plumbus::tester::tests
 
 	void Scripts::Shutdown()
 	{
-		BaseApplication::Get().GetScene()->ClearObjects();
+        vkDeviceWaitIdle(vk::VulkanRenderer::Get()->GetDevice()->GetVulkanDevice());
+        for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
+        {
+            if (components::ModelComponent* component = obj->GetComponent<components::ModelComponent>())
+            {
+                component->Cleanup();
+            }
+        }
+
+        BaseApplication::Get().GetScene()->ClearObjects();
+
+        m_DeferredLightMaterial.reset();
 	}
 
 	void Scripts::OnGui()

@@ -3,6 +3,7 @@
 #include "GameObject.h"
 
 #include <mono_impl/mono_fwd.h>
+#include <TranslationComponent.h>
 
 #include "components/GameComponent.h"
 #include "components/ModelComponent.h"
@@ -15,7 +16,9 @@ namespace plumbus
 	{
 		m_ID = id;
 		mono::ClassRef monoClass = mono::MonoManager::Get()->GetMonoEngineClass("PlumbusEngine", "GameObject");
-		void* args[] = { this };
+
+        uint64_t ptr = reinterpret_cast<uint64_t>(this);
+        void* args[1] = { &ptr };
 		monoClass->CallMethod("RegisterGameObject", 1, args);
 	}
 
@@ -50,4 +53,16 @@ namespace plumbus
 			component->PostInit();
 		}
 	}
+}
+
+uint64_t GetComponent(uint64_t obj, ComponentType type)
+{
+    plumbus::GameObject* objPtr = reinterpret_cast<plumbus::GameObject*>(obj);
+    switch (type)
+    {
+    	case TranslationComponent:
+    		return reinterpret_cast<uint64_t>(objPtr->GetComponent<plumbus::components::TranslationComponent>());
+    }
+
+    return 0;
 }

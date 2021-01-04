@@ -108,4 +108,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	endforeach()
 endif()
 
+add_definitions(-DDLL_EXPORTS)
+add_definitions(-D_REENTRANT)
+
 

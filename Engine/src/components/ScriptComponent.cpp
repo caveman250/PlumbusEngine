@@ -26,9 +26,10 @@ namespace plumbus::components
 		m_ScriptName.resize(m_ScriptName.size() - 3);
 		mono::ClassRef monoClass = mono::MonoManager::Get()->GetMonoClass(m_ScriptNamespace, m_ScriptName);
 
-		void* args[] = {this, GetOwner() };
+        uint64_t thisPtr = reinterpret_cast<uint64_t>(this);
+        uint64_t ownerPtr = reinterpret_cast<uint64_t>(GetOwner());
+        void* args[2] = { &thisPtr, &ownerPtr };
 		m_MonoObject = mono::MonoManager::Get()->CreateMonoObject(monoClass, 2, args);
-		
 	}
 
 	void ScriptComponent::OnUpdate(Scene* scene)

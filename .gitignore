@@ -25,10 +25,6 @@ VulkanRenderer\.cbp
 VulkanRenderer
 Makefile
 *.cmake
-*.vcxproj
-*.vcxproj.filters
-*.vcxproj.user
-*.sln
 include/glfw-3.2.1/src/Debug/*
 include/glfw-3.2.1/src/glfw.dir/*
 *.stamp
@@ -188,3 +184,4 @@ PlumbusTester/CMakeFiles/*
 vs_project/*
 /perf.data
 cmake-build*
+mono_crash*

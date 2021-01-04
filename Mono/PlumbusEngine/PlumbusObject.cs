@@ -4,11 +4,11 @@ namespace PlumbusEngine
 {
     public class PlumbusObject
     {
-        public PlumbusObject(IntPtr nativeObject)
+        public PlumbusObject(UInt64 nativeObject)
         {
             m_NativeObject = nativeObject;
         }
 
-        protected IntPtr m_NativeObject;
+        protected UInt64 m_NativeObject;
     }
 }

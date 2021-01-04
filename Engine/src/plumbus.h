@@ -1,5 +1,7 @@
 #pragma once
 
+#define PLUMBUS_MONO_DEBUG 0
+
 #if !PL_PLATFORM_ANDROID
 #define GLFW_INCLUDE_VULKAN
 #else

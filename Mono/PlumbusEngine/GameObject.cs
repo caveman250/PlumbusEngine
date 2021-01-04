@@ -8,7 +8,7 @@ namespace PlumbusEngine
 {
     public class GameObject : PlumbusObject
     {
-        public GameObject(IntPtr nativeObject)
+        public GameObject(UInt64 nativeObject)
             : base(nativeObject)
         {
         }
@@ -18,18 +18,18 @@ namespace PlumbusEngine
             return s_GameObjects.Last();
         }
 
-        public static void RegisterGameObject(IntPtr nativeObject)
+        public static void RegisterGameObject(System.UInt64 nativeObject)
         {
             s_GameObjects.Add(new GameObject(nativeObject));
         }
 
         enum ComponentType
         {
-            None,
             TranslationComponent,
+            None,
         };
         [DllImport("__Internal", EntryPoint = "GetComponent", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void GetComponent(int type);
+        private static extern UInt64 GetComponent(UInt64 nativeObj, int type);
         public T GetComponent<T>()
         {
             T obj = default(T);
@@ -40,14 +40,13 @@ namespace PlumbusEngine
             };
             getTypeSwitch[typeof(T)]();
             
-            GetComponent((int) type);
-            //IntPtr nativeObj = 
-            //var contructorSwitch = new Dictionary<Type, Action>
-            //{
-            //    {typeof(TranslationComponent), () => obj = (T)(object)new TranslationComponent(nativeObj) },
-            //};
-            //
-            //contructorSwitch[typeof(T)]();
+            UInt64 nativeObj = GetComponent(m_NativeObject, (int)type);
+            var contructorSwitch = new Dictionary<Type, Action>
+            {
+                {typeof(TranslationComponent), () => obj = (T)(object)new TranslationComponent(nativeObj) },
+            };
+            
+            contructorSwitch[typeof(T)]();
             return obj;
         }
 

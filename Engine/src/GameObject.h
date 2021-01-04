@@ -56,3 +56,10 @@ namespace plumbus
 		return this;
 	}
 }
+
+#include "mono_impl/mono_fwd.h"
+enum ComponentType
+{
+    TranslationComponent,
+};
+MONO_EXPORT(uint64_t) GetComponent(uint64_t obj, ComponentType type);

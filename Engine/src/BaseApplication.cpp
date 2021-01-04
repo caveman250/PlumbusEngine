@@ -105,8 +105,3 @@ namespace plumbus
         return !m_Scene || !m_Scene->IsInitialised();
     }
 }
-
-void lolcats(int type)
-{
-	int lol =1;
-}

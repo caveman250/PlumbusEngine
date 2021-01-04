@@ -35,7 +35,13 @@ ENDIF()
 project(${NAME})
 
 #MONO TODO this should be smarter
-include_directories("C:\\Program Files\\Mono\\include\\mono-2.0")
+if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
+    include_directories("/usr/include/mono-2.0")
+endif()
+if(WIN32)
+    include_directories("C:\\Program Files\\Mono\\include\\mono-2.0")
+endif()
+
 
 include_directories(../third_party)
 include_directories(../third_party/glm)
@@ -51,9 +57,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES Android)
     include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 endif()
 
-find_package(Vulkan REQUIRED)
-include_directories(${Vulkan_INCLUDE_DIRS})
-
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
 file(GLOB_RECURSE SOURCE src/*.cpp src/*.h)
@@ -64,6 +67,8 @@ source_group("third_party\\imgui" FILES ${IMGUIIMGUI})
 
 add_library(${NAME} STATIC ${SOURCE} ${IMGUIIMGUI})
 
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${NAME} ${Vulkan_LIBRARIES})
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
@@ -81,7 +86,16 @@ if(${CMAKE_SYSTEM_NAME} MATCHES Android)
     target_link_libraries(${NAME} ${android-log-lib} android)
 endif()
 
-target_link_libraries(${NAME} "C:\\Program Files\\Mono\\lib\\mono-2.0-sgen.lib")
+if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
+    target_link_libraries(${NAME} "/usr/lib/libmono-2.0.a")
+    target_link_libraries(${NAME} "rt")
+    target_link_libraries(${NAME} "pthread")
+    target_link_libraries(${NAME} "m")
+    target_link_libraries(${NAME} "dl")
+endif()
+if(WIN32)
+    target_link_libraries(${NAME} "C:\\Program Files\\Mono\\lib\\mono-2.0-sgen.lib")
+endif()
 
 if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
     FIND_PACKAGE(PkgConfig REQUIRED)
@@ -107,6 +121,7 @@ if (UNIX)
 endif(UNIX)
 
 add_definitions(-DDLL_EXPORTS)
+add_definitions(-D_REENTRANT)
 
 message(${CMAKE_SYSTEM_NAME} )
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")

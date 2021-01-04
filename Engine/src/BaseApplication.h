@@ -57,5 +57,3 @@ namespace plumbus
 		m_Scene = new T();
 	}
 }
-
-MONO_EXPORT(void) lolcats(int type);
