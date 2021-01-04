@@ -75,7 +75,6 @@ namespace plumbus
 		//END_COLOUR
 
 		va_end(args);
-
 	} 
 
 	void Log::Warn(const char* fmt, ...)

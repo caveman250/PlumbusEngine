@@ -3,7 +3,9 @@ namespace plumbus
 {
 	class GameObject;
 	class Scene;
-
+}
+namespace plumbus::components
+{
 	class GameComponent
 	{
 	public:
@@ -18,6 +20,8 @@ namespace plumbus
 		GameComponent() { }
 		virtual ~GameComponent() {}
 
+		virtual void Init() = 0;
+		virtual void PostInit() = 0;
 		virtual void OnUpdate(Scene* scene) = 0;
 
 		void SetOwner(GameObject* owner) { m_Owner = owner; }

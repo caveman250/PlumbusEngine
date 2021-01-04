@@ -9,12 +9,16 @@ namespace plumbus::vk
 }
 namespace plumbus
 {
+	namespace components
+	{
+		class ModelComponent;
+	}
+	
 	class Scene;
-	class ModelComponent;
 	class GameObject
 	{
 	public:
-		GameObject(std::string id) { m_ID = id; }
+		GameObject(std::string id);
 		~GameObject();
 
 		std::string GetID() { return m_ID; }
@@ -23,12 +27,14 @@ namespace plumbus
 		GameObject* AddComponent(T* component);
 
 		void OnUpdate(Scene* scene);
+		void Init();
+		void PostInit();
 
 		template <typename T>
 		T* GetComponent();
 
 	private:
-		std::map<const GameComponent::ComponentType, GameComponent*> m_Components;
+		std::map<const components::GameComponent::ComponentType, components::GameComponent*> m_Components;
 		std::string m_ID;
 	};
 

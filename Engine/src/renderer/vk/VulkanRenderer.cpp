@@ -306,7 +306,7 @@ namespace plumbus::vk
 #endif
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (ModelComponent* modelComp = obj->GetComponent<ModelComponent>())
+            if (components::ModelComponent* modelComp = obj->GetComponent<components::ModelComponent>())
             {
                 modelComp->Cleanup();
             }
@@ -526,7 +526,7 @@ namespace plumbus::vk
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+            if (components::ModelComponent* comp = obj->GetComponent<components::ModelComponent>())
             {
 				for (Mesh* model : comp->GetModels())
 				{
@@ -576,7 +576,7 @@ namespace plumbus::vk
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+            if (components::LightComponent* lightComp = obj->GetComponent<components::LightComponent>())
             {
                 for (Light* light : lightComp->GetLights())
                 {
@@ -600,14 +600,14 @@ namespace plumbus::vk
         int dirLightIndex = 0;
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (LightComponent* lightComp = obj->GetComponent<LightComponent>())
+            if (components::LightComponent* lightComp = obj->GetComponent<components::LightComponent>())
             {
                 for (Light* light : lightComp->GetLights())
                 {
                     if (light->GetType() == LightType::Point)
                     {
                         PointLight* pointLight = static_cast<PointLight*>(light);
-                        if (TranslationComponent* translationComp = obj->GetComponent<TranslationComponent>())
+                        if (components::TranslationComponent* translationComp = obj->GetComponent<components::TranslationComponent>())
                         {
                             m_PointLights[pointLightIndex].m_Position = glm::vec4(translationComp->GetTranslation(), 0.f);
                             m_PointLights[pointLightIndex].m_Colour = glm::vec4(pointLight->GetColour(), 1.0f);

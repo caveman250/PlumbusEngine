@@ -1,6 +1,7 @@
 #pragma once
 
 #include "plumbus.h"
+#include "mono_impl/mono_fwd.h"
 
 namespace plumbus::vk
 {
@@ -56,3 +57,5 @@ namespace plumbus
 		m_Scene = new T();
 	}
 }
+
+MONO_EXPORT(void) lolcats(int type);

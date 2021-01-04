@@ -2,7 +2,7 @@
 
 #include "TranslationComponent.h"
 
-namespace plumbus
+namespace plumbus::components
 {
 
 	TranslationComponent::TranslationComponent() 
@@ -63,3 +63,4 @@ namespace plumbus
 		m_Scale += scale;
 	}
 }
+

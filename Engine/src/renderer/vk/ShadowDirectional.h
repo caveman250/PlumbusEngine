@@ -2,7 +2,7 @@
 #include "plumbus.h"
 #include "Shadow.h"
 #include "Buffer.h"
-namespace plumbus
+namespace plumbus::components
 {
     class ModelComponent;
 }
@@ -27,7 +27,7 @@ namespace plumbus::vk
 
     private:
         static MaterialRef s_ShadowDirectionalMaterial;
-        std::unordered_map<ModelComponent*, MaterialInstanceRef> m_ShadowDirectionalMaterialInstances;
+        std::unordered_map<components::ModelComponent*, MaterialInstanceRef> m_ShadowDirectionalMaterialInstances;
 
         struct UniformBufferObject
 		{
@@ -36,7 +36,7 @@ namespace plumbus::vk
 			glm::mat4 m_Proj;
 		};
 
-        std::unordered_map<ModelComponent*, UniformBufferObject> m_UniformBufferObjects;
-        std::unordered_map<ModelComponent*, Buffer> m_UniformBuffers;
+        std::unordered_map<components::ModelComponent*, UniformBufferObject> m_UniformBufferObjects;
+        std::unordered_map<components::ModelComponent*, Buffer> m_UniformBuffers;
     };
 }

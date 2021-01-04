@@ -8,7 +8,7 @@
 #include "Scene.h"
 #include "renderer/vk/Mesh.h"
 
-namespace plumbus
+namespace plumbus::components
 {
 	ModelComponent::ModelComponent(std::string modelPath, std::string texturePath, std::string normalPath)
 		: GameComponent()
@@ -103,7 +103,7 @@ namespace plumbus
 
     void ModelComponent::UpdateModelMatrix()
     {
-        ::plumbus::TranslationComponent *transComp = GetOwner()->GetComponent<::plumbus::TranslationComponent>();
+        components::TranslationComponent* transComp = GetOwner()->GetComponent<components::TranslationComponent>();
         glm::vec3 translation = transComp->GetTranslation();
         glm::vec3 rotation = transComp->GetRotation();
         glm::vec3 scale = transComp->GetScale();

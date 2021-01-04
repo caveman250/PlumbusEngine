@@ -41,53 +41,53 @@ namespace plumbus::tester::tests
 
 		GameObject* plane = new GameObject("plane");
 		scene->AddGameObject(plane->
-             AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
-             AddComponent<TranslationComponent>(new TranslationComponent())
+             AddComponent<components::ModelComponent>(new components::ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+             AddComponent<components::TranslationComponent>(new components::TranslationComponent())
 		);
-		plane->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+		plane->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
         GameObject* plane2 = new GameObject("plane2");
         scene->AddGameObject(plane2->
-                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
-                AddComponent<TranslationComponent>(new TranslationComponent())
+                AddComponent<components::ModelComponent>(new components::ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<components::TranslationComponent>(new components::TranslationComponent())
         );
-        plane2->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
-        plane2->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, glm::half_pi<float>()));
-        plane2->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(-10.f, -10.f, 0.f));
+        plane2->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane2->GetComponent<components::TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, glm::half_pi<float>()));
+        plane2->GetComponent<components::TranslationComponent>()->SetTranslation(glm::vec3(-10.f, -10.f, 0.f));
 
         GameObject* plane3 = new GameObject("plane3");
         scene->AddGameObject(plane3->
-                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
-                AddComponent<TranslationComponent>(new TranslationComponent())
+                AddComponent<components::ModelComponent>(new components::ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<components::TranslationComponent>(new components::TranslationComponent())
         );
-        plane3->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
-        plane3->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, -glm::half_pi<float>()));
-        plane3->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(10.f, -10.f, 0.f));
+        plane3->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane3->GetComponent<components::TranslationComponent>()->SetRotation(glm::vec3(0.f, 0.f, -glm::half_pi<float>()));
+        plane3->GetComponent<components::TranslationComponent>()->SetTranslation(glm::vec3(10.f, -10.f, 0.f));
 
         GameObject* plane4 = new GameObject("plane4");
         scene->AddGameObject(plane4->
-                AddComponent<ModelComponent>(new ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
-                AddComponent<TranslationComponent>(new TranslationComponent())
+                AddComponent<components::ModelComponent>(new components::ModelComponent("models/plane.obj", "stonefloor_color", "stonefloor_normal"))->
+                AddComponent<components::TranslationComponent>(new components::TranslationComponent())
         );
-        plane4->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
-        plane4->GetComponent<TranslationComponent>()->SetRotation(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f));
-        plane4->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0.f, -10.f, -10.f));
+        plane4->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+        plane4->GetComponent<components::TranslationComponent>()->SetRotation(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f));
+        plane4->GetComponent<components::TranslationComponent>()->SetTranslation(glm::vec3(0.f, -10.f, -10.f));
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
-         AddComponent<ModelComponent>(new ModelComponent("models/armor.dae", "color", "normal"))->
-         AddComponent<TranslationComponent>(new TranslationComponent())
+         AddComponent<components::ModelComponent>(new components::ModelComponent("models/armor.dae", "color", "normal"))->
+         AddComponent<components::TranslationComponent>(new components::TranslationComponent())
 		);
-		knight->GetComponent<TranslationComponent>()->SetTranslation(glm::vec3(0.f, -2.4f, 4.f));
+		knight->GetComponent<components::TranslationComponent>()->SetTranslation(glm::vec3(0.f, -2.4f, 4.f));
 
-		knight->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+		knight->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
         GameObject* light = new GameObject("Light");
         scene->AddGameObject(light->
-            AddComponent<LightComponent>(new LightComponent())
+            AddComponent<components::LightComponent>(new components::LightComponent())
 		);
 
-        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(0.5f, -0.2f, 1.f), true);
+        light->GetComponent<components::LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 0.8f), glm::vec3(0.5f, -0.2f, 1.f), true);
 
 //        GameObject* light2 = new GameObject("Light2");
 //        scene->AddGameObject(light2->
@@ -125,7 +125,7 @@ namespace plumbus::tester::tests
 		vkDeviceWaitIdle(vk::VulkanRenderer::Get()->GetDevice()->GetVulkanDevice());
 		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
 		{
-			if (ModelComponent* component = obj->GetComponent<ModelComponent>())
+			if (components::ModelComponent* component = obj->GetComponent<components::ModelComponent>())
 			{
 				component->Cleanup();
 			}

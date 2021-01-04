@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (NOT MSVC AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-format-truncation -Wno-unused-result -rdynamic")
 endif ()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES Android)
@@ -34,6 +34,9 @@ ENDIF()
 
 project(${NAME})
 
+#MONO TODO this should be smarter
+include_directories("C:\\Program Files\\Mono\\include\\mono-2.0")
+
 include_directories(../third_party)
 include_directories(../third_party/glm)
 include_directories(../third_party/gli)
@@ -53,33 +56,14 @@ include_directories(${Vulkan_INCLUDE_DIRS})
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-file(GLOB SOURCE src/*.cpp src/*.h)
+file(GLOB_RECURSE SOURCE src/*.cpp src/*.h)
 source_group("src" FILES ${SOURCE})
-file(GLOB COMPONENTS src/components/*.cpp src/components/*.h)
-source_group("src\\components" FILES ${COMPONENTS})
-
-file(GLOB VK src/renderer/vk/*.cpp src/renderer/vk/*.h)
-source_group("src\\renderer\\vk" FILES ${VK})
-
-file(GLOB SHADER_COMPILER src/renderer/vk/shader_compiler/*.cpp src/renderer/vk/shader_compiler/*.h)
-source_group("src\\renderer\\vk\\shader_compiler" FILES ${SHADER_COMPILER})
-
-file(GLOB SHADER_COMPILER_PARSERS src/renderer/vk/shader_compiler/parsers/*.cpp src/renderer/vk/shader_compiler/parsers/*.h)
-source_group("src\\renderer\\vk\\shader_compiler\\builders" FILES ${SHADER_COMPILER_PARSERS})
-
-file(GLOB IMGUI src/imgui_impl/*.cpp src/imgui_impl/*.h)
-source_group("src\\imgui_impl" FILES ${IMGUI})
 
 file(GLOB IMGUIIMGUI ../third_party/imgui/*.cpp ../third_party/imgui/*.h)
 source_group("third_party\\imgui" FILES ${IMGUIIMGUI})
 
-file(GLOB PLATFORM src/platform/windows/*.cpp src/platform/windows/*.h)
-source_group("src\\platform\\windows" FILES ${PLATFORM})
+add_library(${NAME} STATIC ${SOURCE} ${IMGUIIMGUI})
 
-add_library(${NAME} STATIC ${SOURCE} ${COMPONENTS} ${VK} ${SHADER_COMPILER} ${SHADER_COMPILER_PARSERS} ${IMGUI} ${IMGUIIMGUI} ${BASE} ${PLATFORM})
-
-find_package(Vulkan REQUIRED)
-include_directories(${Vulkan_INCLUDE_DIRS})
 target_link_libraries(${NAME} ${Vulkan_LIBRARIES})
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES Android)
@@ -96,6 +80,8 @@ target_link_libraries(${NAME} glslang)
 if(${CMAKE_SYSTEM_NAME} MATCHES Android)
     target_link_libraries(${NAME} ${android-log-lib} android)
 endif()
+
+target_link_libraries(${NAME} "C:\\Program Files\\Mono\\lib\\mono-2.0-sgen.lib")
 
 if (UNIX AND NOT APPLE AND NOT ${CMAKE_SYSTEM_NAME} MATCHES Android )
     FIND_PACKAGE(PkgConfig REQUIRED)
@@ -119,6 +105,8 @@ if (UNIX)
         add_definitions(-DPL_PLATFORM_LINUX=1)
 	endif()
 endif(UNIX)
+
+add_definitions(-DDLL_EXPORTS)
 
 message(${CMAKE_SYSTEM_NAME} )
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")

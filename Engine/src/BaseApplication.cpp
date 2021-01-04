@@ -3,6 +3,8 @@
 #include "BaseApplication.h"
 #include "Scene.h"
 #include "imgui_impl/ImGuiImpl.h"
+#include "mono_impl/Class.h"
+#include "mono_impl/MonoManager.h"
 
 #include "renderer/vk/VulkanRenderer.h"
 
@@ -24,6 +26,7 @@ namespace plumbus
 
     void BaseApplication::Run()
     {
+    	mono::MonoManager::Get()->Init();
         m_Renderer->Init(m_AppName);
 
         PL_ASSERT(m_Scene != nullptr);
@@ -101,4 +104,9 @@ namespace plumbus
     {
         return !m_Scene || !m_Scene->IsInitialised();
     }
+}
+
+void lolcats(int type)
+{
+	int lol =1;
 }

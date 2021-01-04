@@ -17,7 +17,7 @@ namespace plumbus
 
 		Camera* GetCamera() { return &m_Camera; }
 
-		void AddGameObject(GameObject* obj) { m_GameObjects.push_back(obj); }
+		void AddGameObject(GameObject* obj);
 		std::vector<GameObject*>& GetObjects() { return m_GameObjects; }
 		void ClearObjects();
 

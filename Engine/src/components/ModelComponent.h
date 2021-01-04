@@ -3,15 +3,17 @@
 #include "plumbus.h"
 
 #include "GameComponent.h"
-
+namespace plumbus
+{
+	class Scene;
+}
 namespace plumbus::vk
 {
 	class Mesh;
 	class Material;
 }
-namespace plumbus
+namespace plumbus::components
 {
-	class Scene;
 	class ModelComponent : public GameComponent
 	{
 	public:
@@ -30,7 +32,10 @@ namespace plumbus
 		void LoadModel();
 		void SetMaterial(vk::MaterialRef material);
 
+		void Init() override {}
+		void PostInit() override {}
 		void OnUpdate(Scene* scene) override;
+
 		void Cleanup();
 		void UpdateModelMatrix();
 		void UpdateUniformBuffer(Scene* scene);

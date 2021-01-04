@@ -28,7 +28,7 @@ namespace plumbus::vk
 		void SetupUniforms();
 		void Render(CommandBufferRef commandBuffer, MaterialInstanceRef overrideMaterial = nullptr, bool bind = true);
 
-		void UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo);
+		void UpdateUniformBuffer(components::ModelComponent::UniformBufferObject& ubo);
 
 		Buffer& GetVertexBuffer();
 		Buffer& GetIndexBuffer();

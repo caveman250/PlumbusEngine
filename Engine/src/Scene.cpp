@@ -30,6 +30,11 @@ namespace plumbus
 		return m_Initialised;
 	}
 
+	void Scene::AddGameObject(GameObject* obj)
+	{
+		m_GameObjects.push_back(obj);
+	}
+
 	void Scene::OnUpdate()
 	{
 		m_Camera.OnUpdate();
@@ -51,10 +56,19 @@ namespace plumbus
 	{
 		for (GameObject* obj : m_GameObjects)
 		{
-			if (ModelComponent* component = obj->GetComponent<ModelComponent>())
+			if (components::ModelComponent* component = obj->GetComponent<components::ModelComponent>())
 			{
 				component->LoadModel();
 			}
 		}
+		for (GameObject* obj : m_GameObjects)
+		{
+			obj->Init();
+		}
+		for (GameObject* obj : m_GameObjects)
+		{
+			obj->PostInit();
+		}
+		
 	}
 }

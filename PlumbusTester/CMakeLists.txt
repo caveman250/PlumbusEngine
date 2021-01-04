@@ -41,8 +41,10 @@ include_directories(../third_party/imgui/)
 include_directories(../third_party/glfw/include/)
 include_directories(../Engine/src)
 include_directories(src)
-include_directories(../third_party/vulkan)
 include_directories(../third_party/SPIRV-Cross)
+
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIRS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
 	set(native_app_glue ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)

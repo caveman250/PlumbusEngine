@@ -34,19 +34,19 @@ namespace plumbus::tester::tests
 
 		GameObject* sponza = new GameObject("Sponza");
 		scene->AddGameObject(sponza->
-			AddComponent<ModelComponent>(new ModelComponent("models/sponza.dae", "color", "normal"))->
-			AddComponent<TranslationComponent>(new TranslationComponent())
+			AddComponent<components::ModelComponent>(new components::ModelComponent("models/sponza.dae", "color", "normal"))->
+			AddComponent<components::TranslationComponent>(new components::TranslationComponent())
 		);
 
-		sponza->GetComponent<ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
+		sponza->GetComponent<components::ModelComponent>()->SetMaterial(m_DeferredLightMaterial);
 
         //light
         GameObject* light = new GameObject("Directional Light");
         scene->AddGameObject(light->
-				AddComponent<TranslationComponent>(new TranslationComponent())->
-				AddComponent<LightComponent>(new LightComponent()));
+				AddComponent<components::TranslationComponent>(new components::TranslationComponent())->
+				AddComponent<components::LightComponent>(new components::LightComponent()));
 
-        light->GetComponent<LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.3f, 1.f, 0.3), false);
+        light->GetComponent<components::LightComponent>()->AddDirectionalLight(glm::vec3(1.f, 1.f, 1.f), glm::vec3(-0.3f, 1.f, 0.3), false);
 
 		BaseApplication::Get().GetScene()->LoadAssets();
 	}
@@ -60,7 +60,7 @@ namespace plumbus::tester::tests
 	{
 		for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
 		{
-			if (ModelComponent* component = obj->GetComponent<ModelComponent>())
+			if (components::ModelComponent* component = obj->GetComponent<components::ModelComponent>())
 			{
 				component->Cleanup();
 			}

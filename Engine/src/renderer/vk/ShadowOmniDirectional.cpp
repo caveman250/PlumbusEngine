@@ -80,10 +80,10 @@ namespace plumbus::vk
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+            if (components::ModelComponent* comp = obj->GetComponent<components::ModelComponent>())
             {
                 PushContants constants;
-                glm::vec3 pos = m_Light->GetParent()->GetOwner()->GetComponent<TranslationComponent>()->GetTranslation();
+                glm::vec3 pos = m_Light->GetParent()->GetOwner()->GetComponent<components::TranslationComponent>()->GetTranslation();
                 glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(-pos.x, -pos.y, -pos.z));
                 glm::mat4 rotation = glm::mat4(1.f);
                 switch (index)
@@ -224,7 +224,7 @@ namespace plumbus::vk
     void ShadowOmniDirectional::UpdateUniformBuffer()
     {
         // only need to update if the light has moved.
-        glm::vec4 pos = glm::vec4(m_Light->GetParent()->GetOwner()->GetComponent<TranslationComponent>()->GetTranslation(), 1.f);
+        const glm::vec4 pos = glm::vec4(m_Light->GetParent()->GetOwner()->GetComponent<components::TranslationComponent>()->GetTranslation(), 1.f);
         if (pos != m_UniformBufferObject.m_LightPos)
         {
             if (!m_UniformBuffer.IsInitialised())
@@ -233,12 +233,12 @@ namespace plumbus::vk
                         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                         &m_UniformBuffer,
-                        sizeof(UniformBufferObject)));
+                        sizeof(UniformBufferObject)))
 
-                CHECK_VK_RESULT(m_UniformBuffer.Map());
+                CHECK_VK_RESULT(m_UniformBuffer.Map())
             }
 
-            m_UniformBufferObject.m_Proj = glm::perspective((float) (M_PI / 2.0), 1.0f, 0.01f, 1024.f);
+            m_UniformBufferObject.m_Proj = glm::perspective(glm::pi<float>() / 2.0f, 1.0f, 0.01f, 1024.f);
             m_UniformBufferObject.m_LightPos = pos;
 
             memcpy(m_UniformBuffer.m_Mapped, &m_UniformBufferObject, sizeof(m_UniformBufferObject));

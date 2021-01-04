@@ -253,7 +253,7 @@ namespace plumbus
 			{
 				if (ImGui::CollapsingHeader("Components", ImGuiTreeNodeFlags_DefaultOpen))
 				{
-					if (TranslationComponent* comp = m_SelectedObject->GetComponent<TranslationComponent>())
+					if (components::TranslationComponent* comp = m_SelectedObject->GetComponent<components::TranslationComponent>())
 					{
 						if (ImGui::TreeNodeEx("Translation", ImGuiTreeNodeFlags_DefaultOpen))
 						{
@@ -269,7 +269,7 @@ namespace plumbus
 							ImGui::TreePop();
 						}
 					}
-					if (ModelComponent* comp = m_SelectedObject->GetComponent<ModelComponent>())
+					if (components::ModelComponent* comp = m_SelectedObject->GetComponent<components::ModelComponent>())
 					{
 						if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_DefaultOpen))
 						{
@@ -279,7 +279,7 @@ namespace plumbus
 							ImGui::TreePop();
 						}
 					}
-					if (LightComponent* comp = m_SelectedObject->GetComponent<LightComponent>())
+					if (components::LightComponent* comp = m_SelectedObject->GetComponent<components::LightComponent>())
 					{
 						for (Light* light : comp->GetLights())
 						{

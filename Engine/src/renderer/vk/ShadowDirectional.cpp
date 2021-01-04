@@ -78,7 +78,7 @@ namespace plumbus::vk
 
         for (GameObject* obj : BaseApplication::Get().GetScene()->GetObjects())
         {
-            if (ModelComponent* comp = obj->GetComponent<ModelComponent>())
+            if (components::ModelComponent* comp = obj->GetComponent<components::ModelComponent>())
             {
                 DirectionalLight* dirLight = static_cast<DirectionalLight *>(m_Light);
                 m_UniformBufferObjects[comp].m_Proj = glm::ortho<float>(-25, 25, -25, 25, -50, 50);
@@ -91,7 +91,7 @@ namespace plumbus::vk
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     &m_UniformBuffers[comp],
-                    sizeof(ModelComponent::UniformBufferObject)));
+                    sizeof(components::ModelComponent::UniformBufferObject)));
 
             		CHECK_VK_RESULT(m_UniformBuffers[comp].Map());
             	}

@@ -2,12 +2,6 @@
 
 #include "Shadow.h"
 #include "Texture.h"
-
-namespace plumbus
-{
-    class ModelComponent;
-}
-
 namespace plumbus::vk
 {
     class ShadowOmniDirectional : public Shadow

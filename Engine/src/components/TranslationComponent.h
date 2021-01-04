@@ -1,14 +1,17 @@
 #pragma once
 #include "GameComponent.h"
+#include "TranslationComponent.h"
 #include "glm/glm.hpp"
 
-namespace plumbus
+namespace plumbus::components
 {
 	class TranslationComponent : public GameComponent
 	{
 	public:
 		TranslationComponent();
 
+		void Init() override {}
+		void PostInit() override {}
 		void OnUpdate(Scene* scene) override;
 
 		glm::vec3 GetTranslation();

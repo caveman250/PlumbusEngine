@@ -16,18 +16,21 @@ namespace plumbus
 	glm::mat4 DirectionalLight::GetMVP() 
 	{
 		glm::mat4 proj = glm::ortho<float>(-25, 25, -25, 25, -50, 50);
-        glm::mat4 view = glm::lookAt(GetDirection(), glm::vec3(0,0,0), glm::vec3(0, 1,0));
-        glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 view = glm::lookAt(GetDirection(), glm::vec3(0,0,0), glm::vec3(0, 1,0));
+		glm::mat4 model = glm::mat4(1.0f);
 
 		return proj * view * model;
 	}
 	
 	void PointLight::AddShadow() 
 	{
-        m_Shadow = std::static_pointer_cast<vk::Shadow>(vk::ShadowOmniDirectional::CreateShadowOmniDirectional(this));
-        vk::ShadowManager::Get()->RegisterShadow(static_cast<vk::ShadowOmniDirectional*>(m_Shadow.get()));
+		m_Shadow = std::static_pointer_cast<vk::Shadow>(vk::ShadowOmniDirectional::CreateShadowOmniDirectional(this));
+		vk::ShadowManager::Get()->RegisterShadow(static_cast<vk::ShadowOmniDirectional*>(m_Shadow.get()));
 	}
+}
 
+namespace plumbus::components
+{
 	LightComponent::LightComponent()
 		: GameComponent()
 	{

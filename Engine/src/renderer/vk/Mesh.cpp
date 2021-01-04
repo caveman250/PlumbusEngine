@@ -121,7 +121,7 @@ namespace plumbus::vk
 		}
 	}
 
-	void Mesh::UpdateUniformBuffer(ModelComponent::UniformBufferObject& ubo)
+	void Mesh::UpdateUniformBuffer(components::ModelComponent::UniformBufferObject& ubo)
 	{
 		memcpy(m_UniformBuffer.m_Mapped, &ubo, sizeof(ubo));
 	}
@@ -132,7 +132,7 @@ namespace plumbus::vk
 			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			&m_UniformBuffer,
-			sizeof(ModelComponent::UniformBufferObject)));
+			sizeof(components::ModelComponent::UniformBufferObject)));
 
 		CHECK_VK_RESULT(m_UniformBuffer.Map());
 	}
