@@ -25,15 +25,15 @@ namespace plumbus::tester::tests
 		
 		if (Camera* camera = scene->GetCamera())
 		{
-			camera->SetPosition(glm::vec3(0.f, 11.f, -35.f));
-			camera->SetRotation(glm::vec3(-15.f, 0.f, 0.0f));
+			camera->SetPosition(glm::vec3(0.f, 3.f, -15.f));
+			camera->SetRotation(glm::vec3(0.f, 0.f, 0.0f));
 		}
 
 		GameObject* knight = new GameObject("Knight");
 		scene->AddGameObject(knight->
             AddComponent<components::ModelComponent>(new components::ModelComponent("models/armor.dae", "color", "normal"))->
             AddComponent<components::TranslationComponent>(new components::TranslationComponent())->
-            AddComponent<components::ScriptComponent>(new components::ScriptComponent("TestClass.cs", "MonoTester"))
+            AddComponent<components::ScriptComponent>(new components::ScriptComponent("TestClass.cs", "PlumbusTesterMono"))
         );
 
 		knight->GetComponent<components::TranslationComponent>()->SetTranslation(glm::vec3(0, -2.4f, 0));

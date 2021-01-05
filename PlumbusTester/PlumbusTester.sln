@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30503.244
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlumbusTesterMono", "PlumbusTesterMono.csproj", "{68C48245-197D-434E-93E7-FC2DC415224D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlumbusEngineMono", "..\Engine\Mono\PlumbusEngine\PlumbusEngineMono.csproj", "{46131DA5-1AE7-4AC2-A9F1-2013B33434C4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68C48245-197D-434E-93E7-FC2DC415224D}.Debug|x64.ActiveCfg = Debug|x64
+		{68C48245-197D-434E-93E7-FC2DC415224D}.Debug|x64.Build.0 = Debug|x64
+		{68C48245-197D-434E-93E7-FC2DC415224D}.Release|x64.ActiveCfg = Release|x64
+		{68C48245-197D-434E-93E7-FC2DC415224D}.Release|x64.Build.0 = Release|x64
+		{46131DA5-1AE7-4AC2-A9F1-2013B33434C4}.Debug|x64.ActiveCfg = Debug|x64
+		{46131DA5-1AE7-4AC2-A9F1-2013B33434C4}.Debug|x64.Build.0 = Debug|x64
+		{46131DA5-1AE7-4AC2-A9F1-2013B33434C4}.Release|x64.ActiveCfg = Release|x64
+		{46131DA5-1AE7-4AC2-A9F1-2013B33434C4}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {98E59220-4B1B-4B95-8807-331684BE8831}
+	EndGlobalSection
+EndGlobal

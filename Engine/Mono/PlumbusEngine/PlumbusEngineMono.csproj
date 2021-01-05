@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net472</TargetFramework>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>x64</Platforms>
+	    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+      <OutputPath>../../../bin/Debug</OutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+      <OutputPath>../../../bin/Release</OutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="GlmNet" Version="0.7.0" />
+    </ItemGroup>
+
+</Project>
