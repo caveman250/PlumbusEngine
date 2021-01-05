@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "Atx7iO7OVEEwqFpUybUepniyqatyB5UGzLgGnZ09pEcO37x0SVeia2xaGhpmhqRqbNmxSwzc6FMRg5Vmbu9mCQ==",
+  "success": true,
+  "projectFilePath": "/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusEngine/PlumbusEngine.csproj",
+  "expectedPackageFiles": [
+    "/home/ouchqt/.nuget/packages/glmnet/0.7.0/glmnet.0.7.0.nupkg.sha512",
+    "/home/ouchqt/.nuget/packages/microsoft.netframework.referenceassemblies/1.0.0/microsoft.netframework.referenceassemblies.1.0.0.nupkg.sha512",
+    "/home/ouchqt/.nuget/packages/microsoft.netframework.referenceassemblies.net472/1.0.0/microsoft.netframework.referenceassemblies.net472.1.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

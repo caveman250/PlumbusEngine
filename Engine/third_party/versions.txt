@@ -1,0 +1,7 @@
+assimp - 5.0.1
+glfw - 3.3.2
+gli - 0.8.2
+glm 0.9.9.8
+glslang - master tot
+imgui - docking branch master 06/01/2021
+SPIRV-Cross - 2020-09-17

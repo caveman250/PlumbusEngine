@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-cmake_policy(VERSION 3.18)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+cmake_policy(VERSION 3.16)
 
 project(PlumbusNative)
 
@@ -9,7 +9,7 @@ if (WIN32)
 elseif (UNIX)
     if(APPLE)
         set(PLATFORM Mac)
-    elseif(${CMAKE_SYSTEM_NAME} matches Android)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES Android)
         set(PLATFORM Android)
     else()
         set(PLATFORM Linux)

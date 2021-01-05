@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="$USER_HOME$/.cache/JetBrains/Rider2020.3/extResources" t="IncludeRecursive" />
+    <e p="$USER_HOME$/.cache/JetBrains/Rider2020.3/resharper-host/temp/ReSharper.Db.2021-01-04_20-30-09.426.99" t="ExcludeRecursive" />
+    <e p="$PROJECT_DIR$" t="IncludeFlat">
+      <e p="Mono.sln" t="IncludeFlat" />
+      <e p="PlumbusEngine" t="IncludeRecursive">
+        <e p=".gitignore" t="Include" />
+        <e p="GameObject.cs" t="Include" />
+        <e p="PlumbusComponent.cs" t="Include" />
+        <e p="PlumbusEngine.csproj" t="IncludeRecursive" />
+        <e p="PlumbusObject.cs" t="Include" />
+        <e p="TranslationComponent.cs" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="x64" t="Include">
+            <e p="Debug" t="Include">
+              <e p="net472" t="Include">
+                <e p="PlumbusEngine.AssemblyInfo.cs" t="Include" />
+              </e>
+            </e>
+          </e>
+        </e>
+      </e>
+      <e p="PlumbusTester" t="IncludeRecursive">
+        <e p=".gitignore" t="Include" />
+        <e p="PlumbusTester.csproj" t="IncludeRecursive" />
+        <e p="TestClass.cs" t="Include" />
+        <e p="bin" t="ExcludeRecursive" />
+        <e p="obj" t="ExcludeRecursive">
+          <e p="x64" t="Include">
+            <e p="Debug" t="Include">
+              <e p="net472" t="Include">
+                <e p="PlumbusTester.AssemblyInfo.cs" t="Include" />
+              </e>
+            </e>
+          </e>
+        </e>
+      </e>
+      <e p="packages" t="ExcludeRecursive" />
+    </e>
+  </component>
+</project>

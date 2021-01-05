@@ -1,0 +1,15 @@
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.csprojAssemblyReference.cache
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.GeneratedMSBuildEditorConfig.editorconfig
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.AssemblyInfoInputs.cache
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.AssemblyInfo.cs
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.csproj.CoreCompileInputs.cache
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/bin/Debug/net5.0/PlumbusTester.deps.json
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/bin/Debug/net5.0/PlumbusTester.dll
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/bin/Debug/net5.0/ref/PlumbusTester.dll
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/bin/Debug/net5.0/PlumbusTester.pdb
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/bin/Debug/net5.0/PlumbusEngine.dll
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/bin/Debug/net5.0/PlumbusEngine.pdb
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.csproj.CopyComplete
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.dll
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/ref/PlumbusTester.dll
+/home/ouchqt/checkouts/plumbusengine/Mono/PlumbusTester/obj/Debug/net5.0/PlumbusTester.pdb
