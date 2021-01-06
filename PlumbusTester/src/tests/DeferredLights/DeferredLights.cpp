@@ -186,9 +186,9 @@ namespace plumbus::tester::tests
 		ImGui::DragFloat("Light Radius", &m_LightRadius, 0.01f, -10.f, 50.f);
 		ImGui::DragFloat("Light Distance From Center", &m_LightsDistanceFromCenter, 0.01f, 0.f, 20.f);
 #if !PL_DIST
-		ImGui::Image(m_AlbedoTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
-		ImGui::Image(m_NormalsTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
-		ImGui::Image(m_WorldPosTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), false);
+		ImGui::Image(m_AlbedoTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
+		ImGui::Image(m_NormalsTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
+		ImGui::Image(m_WorldPosTextureDescSet.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
 #endif
 	}
 

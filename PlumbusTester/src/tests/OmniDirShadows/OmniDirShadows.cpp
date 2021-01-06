@@ -169,7 +169,7 @@ namespace plumbus::tester::tests
 		for (vk::MaterialInstanceRef shadowMaterial : m_ShadowTextureImGui)
 		{
             ImGui::Image(shadowMaterial.get(), ImVec2(400, 225), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1),
-                         ImVec4(0, 0, 0, 0), false);
+                         ImVec4(0, 0, 0, 0));
         }
 #endif
 		

@@ -1,7 +1,7 @@
 cp linuxEnvFiles/c_cpp_properties.json ../.vscode/c_cpp_properties.json
 
-mkdir ../bin
-cd ../bin
+mkdir ../build
+cd ../build
 mkdir Debug
 cd Debug
 cmake ../../

@@ -330,7 +330,7 @@ namespace plumbus
 			BaseApplication::Get().m_GameWindowFocused = ImGui::IsWindowHovered();
 
 			//TODO game size is fixed to initial window size, give more control over game resolution.
-			ImGui::Image((void*)m_GameViewMaterialInstance.get(), ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0), true);
+			ImGui::Image((void*)m_GameViewMaterialInstance.get(), ImVec2(1600, 900), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
 			ImGui::End();
 
 			Log::Draw("Log");
