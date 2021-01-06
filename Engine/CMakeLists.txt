@@ -48,9 +48,9 @@ project(${NAME})
     endif()
 
     if(DEFINED CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} cache string force)
+        SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "" FORCE)
     else()
-        set(CMAKE_BUILD_TYPE Debug cache string)
+        SET(CMAKE_BUILD_TYPE Debug CACHE STRING "")
     endif()
 
 #### INCLUDES ####

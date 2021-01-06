@@ -44,11 +44,11 @@ project(${NAME})
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-result")
     endif()
 
-    if (DEFINED CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} cache string force)
-    else()
-        set(CMAKE_BUILD_TYPE Debug cache string)
-    endif()
+	if(DEFINED CMAKE_BUILD_TYPE)
+		SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "" FORCE)
+	else()
+		SET(CMAKE_BUILD_TYPE Debug CACHE STRING "")
+	endif()
 
 #### INCLUDES ####
 	# find the system vulkan

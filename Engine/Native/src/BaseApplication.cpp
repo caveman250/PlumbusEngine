@@ -26,9 +26,8 @@ namespace plumbus
 
     void BaseApplication::Run()
     {
-    	mono::MonoManager::Get()->Init();
         m_Renderer->Init(m_AppName);
-
+        mono::MonoManager::Get()->Init();
         PL_ASSERT(m_Scene != nullptr);
 
         InitScene();

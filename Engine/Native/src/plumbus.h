@@ -121,7 +121,7 @@ namespace plumbus
 
 #define PLUMBUS_VARG_COUNT_HELPER() 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
 #if PL_PLATFORM_LINUX //wat, TODO
-#define PLUMBUS_VARG_COUNT_01N_HELPER() N, N, N, N, N, N, N, N, N, N, N, N, N, N, 1, 0, 0 
+#define PLUMBUS_VARG_COUNT_01N_HELPER() N, N, N, N, N, N, N, N, N, N, N, N, N, N, 1, 0
 #else
 #define PLUMBUS_VARG_COUNT_01N_HELPER() N, N, N, N, N, N, N, N, N, N, N, N, N, N, N, 1, 0
 #endif
@@ -132,7 +132,7 @@ namespace plumbus
 #define PLUMBUS_EXPAND_ARGS(...) PLUMBUS_EXPAND(PLUMBUS_GETARGCOUNT(__VA_ARGS__))
 #define PLUMBUS_GETARGCOUNT(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, count, ...) count
 
-#define PL_ASSERT_MESSAGE_0(msg_buf, ...) snprintf(msg_buf, 1024, " ");
+#define PL_ASSERT_MESSAGE_0(msg_buf, ...) snprintf(msg_buf, 1024, "");
 #define PL_ASSERT_MESSAGE_1(msg_buf, ...) snprintf(msg_buf, 1024, __VA_ARGS__);
 #define PL_ASSERT_MESSAGE_N(msg_buf, msg, ...) snprintf(msg_buf, 1024, msg, __VA_ARGS__);
 #define PL_ASSERT_MESSAGE(msg_buf, ...) PLUMBUS_CAT(PL_ASSERT_MESSAGE_, PLUMBUS_VARG_COUNT_01N(__VA_ARGS__))(msg_buf, __VA_ARGS__)
