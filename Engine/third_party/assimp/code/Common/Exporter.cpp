@@ -104,6 +104,23 @@ void ExportSceneFBXA(const char*, IOSystem*, const aiScene*, const ExportPropert
 void ExportScene3MF( const char*, IOSystem*, const aiScene*, const ExportProperties* );
 void ExportAssimp2Json(const char* , IOSystem*, const aiScene* , const Assimp::ExportProperties*);
 
+#define ANY_EXPORTERS !ASSIMP_BUILD_NO_COLLADA_EXPORTER ||\
+    !ASSIMP_BUILD_NO_X_EXPORTER ||\
+    !ASSIMP_BUILD_NO_STEP_EXPORTER ||\
+    !ASSIMP_BUILD_NO_OBJ_EXPORTER ||\
+    !ASSIMP_BUILD_NO_STL_EXPORTER ||\
+    !ASSIMP_BUILD_NO_PLY_EXPORTER ||\
+    !ASSIMP_BUILD_NO_3DS_EXPORTER ||\
+    !ASSIMP_BUILD_NO_GLTF_EXPORTER ||\
+    !ASSIMP_BUILD_NO_ASSBIN_EXPORTER ||\
+    !ASSIMP_BUILD_NO_ASSXML_EXPORTER ||\
+    !ASSIMP_BUILD_NO_X3D_EXPORTER ||\
+    !ASSIMP_BUILD_NO_FBX_EXPORTER ||\
+    !ASSIMP_BUILD_NO_3MF_EXPORTER ||\
+    !ASSIMP_BUILD_NO_ASSJSON_EXPORTER
+
+
+#if ANY_EXPORTERS
 // ------------------------------------------------------------------------------------------------
 // global array of all export formats which Assimp supports in its current build
 Exporter::ExportFormatEntry gExporters[] =
@@ -189,7 +206,9 @@ Exporter::ExportFormatEntry gExporters[] =
 };
 
 #define ASSIMP_NUM_EXPORTERS (sizeof(gExporters)/sizeof(gExporters[0]))
-
+#else
+#define ASSIMP_NUM_EXPORTERS 0
+#endif
 
 class ExporterPimpl {
 public:
@@ -207,7 +226,9 @@ public:
         // grab all built-in exporters
         if ( 0 != ( ASSIMP_NUM_EXPORTERS ) ) {
             mExporters.resize( ASSIMP_NUM_EXPORTERS );
+#if ANY_EXPORTERS
             std::copy( gExporters, gExporters + ASSIMP_NUM_EXPORTERS, mExporters.begin() );
+#endif
         }
     }
 
@@ -500,10 +521,12 @@ const aiExportFormatDesc* Exporter::GetExportFormatDescription( size_t index ) c
         return nullptr;
     }
 
+#if ANY_EXPORTERS
     // Return from static storage if the requested index is built-in.
     if (index < sizeof(gExporters) / sizeof(gExporters[0])) {
         return &gExporters[index].mDescription;
     }
+#endif
 
     return &pimpl->mExporters[index].mDescription;
 }
