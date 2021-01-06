@@ -38,11 +38,13 @@ namespace plumbus::mono
 		std::filesystem::path gamePath = "./PlumbusTesterMono.dll";
 		std::string absoluteGamePath = absolute(gamePath).string();
 		m_GameAssembly = mono_domain_assembly_open (m_Domain, absoluteGamePath.c_str());
+		PL_ASSERT(m_GameAssembly, "You probably need to build the C# PlumbusTester project");
 		m_GameImage = mono_assembly_get_image(m_GameAssembly);
 
 		std::filesystem::path enginePath = "PlumbusEngineMono.dll";
 		std::string absoluteEnginePath = absolute(gamePath).string();
 		m_EngineAssembly = mono_domain_assembly_open (m_Domain, absoluteEnginePath.c_str());
+		PL_ASSERT(m_GameAssembly, "You probably need to build the C# Engine project");
 		m_EngineImage = mono_assembly_get_image(m_EngineAssembly);
 	}
 
