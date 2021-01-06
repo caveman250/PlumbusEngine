@@ -24,7 +24,6 @@ VulkanRenderer\.project
 VulkanRenderer\.cbp
 VulkanRenderer
 Makefile
-*.cmake
 include/glfw-3.2.1/src/Debug/*
 include/glfw-3.2.1/src/glfw.dir/*
 *.stamp

@@ -13,7 +13,7 @@
                 "-j8"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/bin/Debug"
+                "cwd": "${workspaceFolder}/build/Debug"
             },
             "problemMatcher": [
                 "$gcc"

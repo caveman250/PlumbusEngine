@@ -46,7 +46,7 @@ option(ASSIMP_INJECT_DEBUG_POSTFIX "" FALSE)
 option(BUILD_TESTING "" FALSE)
 option(ENABLE_GLSLANG_BINARIES "" FALSE)
 option(BUILD_SHARED_LIBS "" FALSE)
-
+set(CMAKE_DEBUG_POSTFIX "")
 #### allow subdirectories to be placed inside visual studio filters ####
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
