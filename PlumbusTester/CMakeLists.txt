@@ -1,32 +1,37 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 cmake_policy(VERSION 3.16)
 
+# get target platform
+	if (WIN32)
+		set(PLATFORM Windows)
+	elseif (UNIX)
+		if(APPLE)
+			set(PLATFORM Mac)
+		elseif(${CMAKE_SYSTEM_NAME} MATCHES Android)
+			set(PLATFORM Android)
+		else()
+			set(PLATFORM Linux)
+		endif()
+	endif()
+
 #### OUTPUT DIR ####
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
+	if(${PLATFORM} MATCHES Windows)
+		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
+		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
+		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
+	else()
+		if(CMAKE_BUILD_TYPE MATCHES Debug)
+			set(OUTDIR ${CMAKE_SOURCE_DIR}/bin/Debug)
+		elseif(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+			set(OUTDIR ${CMAKE_SOURCE_DIR}/bin/Release)
+		elseif(CMAKE_BUILD_TYPE MATCHES Release)
+			set(OUTDIR ${CMAKE_SOURCE_DIR}/bin/Distribution)
+		endif()
+		set(EXECUTABLE_OUTPUT_PATH ${OUTDIR})
+	endif()
 
 set(NAME PlumbusTester)
 project(${NAME})
-
-# get target platform
-    if (WIN32)
-        set(PLATFORM Windows)
-    elseif (UNIX)
-        if(APPLE)
-            set(PLATFORM Mac)
-        elseif(${CMAKE_SYSTEM_NAME} MATCHES Android)
-            set(PLATFORM Android)
-        else()
-            set(PLATFORM Linux)   
-        endif()
-    endif()
 
 #### COMPILER OPTIONS ####
     set(CMAKE_CXX_STANDARD 17)
@@ -93,6 +98,13 @@ project(${NAME})
 	else()
 		add_executable(${NAME} src/PlumbusTester.cpp ${SOURCE})
 	endif()
+
+#set_target_properties(${NAME} PROPERTIES
+#		RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug"
+#		RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release/scripts"
+#		RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin/RelWithDebInfo/scripts"
+#		RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/bin/MinSizeRel/scripts"
+#		)
 
 #### PROCOMPILED HEADER ####
 	if(NOT ${PLATFORM} MATCHES Android)

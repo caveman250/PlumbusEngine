@@ -1,20 +1,6 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 cmake_policy(VERSION 3.16)
 
-#### OUTPUT DIR ####
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
-
-set(NAME PlumbusEngine)
-project(${NAME})
-
 # get target platform
     if (WIN32)
         set(PLATFORM Windows)
@@ -24,9 +10,31 @@ project(${NAME})
         elseif(${CMAKE_SYSTEM_NAME} MATCHES Android)
             set(PLATFORM Android)
         else()
-            set(PLATFORM Linux)   
+            set(PLATFORM Linux)
         endif()
     endif()
+
+#### OUTPUT DIR ####
+    if(${PLATFORM} MATCHES Windows)
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/Release")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DISTRIBUTION "${CMAKE_SOURCE_DIR}/bin/Distribution")
+    else()
+        if(CMAKE_BUILD_TYPE MATCHES Debug)
+            set(OUTDIR ${CMAKE_SOURCE_DIR}/bin/Debug)
+        elseif(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+            set(OUTDIR ${CMAKE_SOURCE_DIR}/bin/Release)
+        elseif(CMAKE_BUILD_TYPE MATCHES Release)
+            set(OUTDIR ${CMAKE_SOURCE_DIR}/bin/Distribution)
+        endif()
+        set(LIBRARY_OUTPUT_PATH ${OUTDIR})
+    endif()
+
+set(NAME PlumbusEngine)
+project(${NAME})
 
 #### COMPILER OPTIONS ####
     set(CMAKE_CXX_STANDARD 17)
