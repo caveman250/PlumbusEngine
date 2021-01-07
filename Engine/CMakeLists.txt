@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 cmake_policy(VERSION 3.16)
 
+add_subdirectory("Mono")
+
 # get target platform
     if (WIN32)
         set(PLATFORM Windows)
@@ -100,8 +102,11 @@ project(${NAME})
     file(GLOB IMGUI third_party/imgui/*.cpp third_party/imgui/*.h)
     source_group("src/imgui" FILES ${IMGUI})
 
-#### OUTPUT FILE ####
+#### OUTPUT FILES ####
     add_library(${NAME} STATIC ${SOURCE} ${IMGUI})
+
+#### DEPENDENCIES ####
+add_dependencies(${NAME} PlumbusEngineMono)
 
 #### PROCOMPILED HEADER ####
     if(NOT ${PLATFORM} MATCHES Android)
@@ -160,4 +165,3 @@ project(${NAME})
     if (${PLATFORM} MATCHES Linux)
         add_definitions(${GTK3_CFLAGS_OTHER})
     endif()
-

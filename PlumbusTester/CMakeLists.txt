@@ -93,18 +93,15 @@ project(${NAME})
 	endif()
 
 #### OUTPUT FILE ####
+	add_custom_target(PlumbusTesterMono WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND dotnet build PlumbusTester.sln)
+
 	if(${PLATFORM} MATCHES Android)
 		add_library(${NAME} SHARED src/PlumbusTester.cpp ${SOURCE} ${native_app_glue})
 	else()
 		add_executable(${NAME} src/PlumbusTester.cpp ${SOURCE})
 	endif()
 
-#set_target_properties(${NAME} PROPERTIES
-#		RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/Debug"
-#		RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release/scripts"
-#		RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin/RelWithDebInfo/scripts"
-#		RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/bin/MinSizeRel/scripts"
-#		)
+		add_dependencies(${NAME} PlumbusTesterMono)
 
 #### PROCOMPILED HEADER ####
 	if(NOT ${PLATFORM} MATCHES Android)
