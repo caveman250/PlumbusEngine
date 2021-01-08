@@ -13,12 +13,20 @@ namespace PlumbusTesterMono
         
         void Update()
         {
-            GetGameObject().GetComponent<TranslationComponent>().Rotate(new vec3(0.0f, 0.001f, 0.0f));
-
-            if (Input.IsKeyDown(0))
+	        if (Input.IsKeyDown(Input.KeyCode.One))
             {
-                Console.WriteLine("lol");
+	            GetGameObject().GetComponent<TranslationComponent>().Rotate(new vec3(0.0f, 0.001f, 0.0f));
             }
+
+	        //if (Input.IsKeyDown(Input.KeyCode.Two))
+	        //{
+		       // GetGameObject().GetComponent<TranslationComponent>().Translate(new vec3(0.0f, 0.001f, 0.0f));
+	        //}
+
+	        //if (Input.IsKeyDown(Input.KeyCode.Three))
+	        //{
+		       // GetGameObject().GetComponent<TranslationComponent>().Scale(new vec3(0.001f, 0.001f, 0.001f));
+	        //}
         }
     }
 }

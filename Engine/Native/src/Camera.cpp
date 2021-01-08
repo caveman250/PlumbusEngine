@@ -5,6 +5,10 @@
 #include "renderer/vk/VulkanRenderer.h"
 #include "renderer/vk/Window.h"
 #include <glm/gtx/rotate_vector.hpp>
+
+
+#include "Scene.h"
+#include "../../../PlumbusTester/src/Application.h"
 #include "platform/Input.h"
 
 namespace plumbus
@@ -18,27 +22,6 @@ namespace plumbus
 
 	void Camera::OnUpdate()
 	{
-		glm::vec2 mousePos = Input::GetMousePos();
-		double dx = m_MousePos.x - mousePos.x;
-		double dy = m_MousePos.y - mousePos.y;
-		m_MousePos = mousePos;
-		float deltaTime = (float)BaseApplication::Get().GetDeltaTime();
-
-		vk::VulkanRenderer* renderer = vk::VulkanRenderer::Get();
-#if !PL_DIST
-		bool focused = BaseApplication::Get().m_GameWindowFocused;
-#else
-		bool focused = true;
-#endif
-
-#if !PL_PLATFORM_ANDROID //TODO
-		bool mouseDown = Input::IsMouseButtonDown(0);
-		if (focused && mouseDown)
-		{
-			m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
-		}
-#endif
-
 		glm::mat4 rotM = glm::mat4(1.0f);
 		glm::mat4 transM;
 
@@ -47,26 +30,6 @@ namespace plumbus
 		glm::mat4 rotMZ = glm::rotate(glm::mat4(1.0f), glm::radians(m_Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		rotM = rotMX * rotMZ * rotMY;
-		glm::vec3 forward(rotM[0][2], rotM[1][2], rotM[2][2]);
-#if !PL_PLATFORM_ANDROID
-		if (Input::IsKeyDown(KeyCode::W))
-		{
-			m_Position += forward * deltaTime * 20.f;
-		}
-		if (Input::IsKeyDown(KeyCode::S))
-		{
-			m_Position -= forward * deltaTime * 20.f;
-		}
-		if (Input::IsKeyDown(KeyCode::A))
-		{
-			m_Position -= glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 20.f;
-		}
-		if (Input::IsKeyDown(KeyCode::D))
-		{
-			m_Position += glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 20.f;
-		}
-#endif
-
 		transM = glm::translate(glm::mat4(1.0f), m_Position);
 
 		m_ViewMatrix = rotM * transM;
@@ -82,4 +45,50 @@ namespace plumbus
 		ImGui::Text("Camera:");
 		ImGui::DragFloat3("Rotation", (float*)&m_Rotation);
 	}
+}
+
+mono_mat4 Camera_GetViewMatrix()
+{
+	return plumbus::tester::Application::Get().GetScene()->GetCamera()->GetViewMatrix();
+}
+
+mono_mat4 Camera_GetProjectionMatrix()
+{
+	return plumbus::tester::Application::Get().GetScene()->GetCamera()->GetProjectionMatrix();
+}
+
+mono_vec3 Camera_GetPosition()
+{
+	return plumbus::tester::Application::Get().GetScene()->GetCamera()->GetPosition();
+}
+
+mono_vec3 Camera_GetRotation()
+{
+	return plumbus::tester::Application::Get().GetScene()->GetCamera()->GetRotation();
+}
+
+void Camera_SetViewMatrix(mono_mat4 viewMat)
+{
+	plumbus::tester::Application::Get().GetScene()->GetCamera()->SetViewMatrix(glm::mat4(viewMat.x0, viewMat.y0, viewMat.z0, viewMat.w0,
+																								viewMat.x1, viewMat.y1, viewMat.z1, viewMat.w1,
+																								viewMat.x2, viewMat.y2, viewMat.z2, viewMat.w2,
+																								viewMat.x3, viewMat.y3, viewMat.z3, viewMat.w3));
+}
+
+void Camera_SetProjectionMatrix(mono_mat4 projMat)
+{
+	plumbus::tester::Application::Get().GetScene()->GetCamera()->SetViewMatrix(glm::mat4(projMat.x0, projMat.y0, projMat.z0, projMat.w0,
+																								projMat.x1, projMat.y1, projMat.z1, projMat.w1,
+																								projMat.x2, projMat.y2, projMat.z2, projMat.w2,
+																								projMat.x3, projMat.y3, projMat.z3, projMat.w3));
+}
+
+void Camera_SetPosition(mono_vec3 pos)
+{
+	plumbus::tester::Application::Get().GetScene()->GetCamera()->SetPosition({pos.x, pos.y, pos.z});
+}
+
+void Camera_SetRotation(mono_vec3 rot)
+{
+	plumbus::tester::Application::Get().GetScene()->GetCamera()->SetRotation({rot.x, rot.y, rot.z});
 }

@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30503.244
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlumbusTesterMono", "PlumbusTesterMono.csproj", "{68C48245-197D-434E-93E7-FC2DC415224D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlumbusEngineMono", "..\Engine\Mono\PlumbusEngine\PlumbusEngineMono.csproj", "{36767A2F-4AF8-4F02-9A13-D4963F7C1171}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -15,6 +17,10 @@ Global
 		{68C48245-197D-434E-93E7-FC2DC415224D}.Debug|x64.Build.0 = Debug|x64
 		{68C48245-197D-434E-93E7-FC2DC415224D}.Release|x64.ActiveCfg = Release|x64
 		{68C48245-197D-434E-93E7-FC2DC415224D}.Release|x64.Build.0 = Release|x64
+		{36767A2F-4AF8-4F02-9A13-D4963F7C1171}.Debug|x64.ActiveCfg = Debug|x64
+		{36767A2F-4AF8-4F02-9A13-D4963F7C1171}.Debug|x64.Build.0 = Debug|x64
+		{36767A2F-4AF8-4F02-9A13-D4963F7C1171}.Release|x64.ActiveCfg = Release|x64
+		{36767A2F-4AF8-4F02-9A13-D4963F7C1171}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

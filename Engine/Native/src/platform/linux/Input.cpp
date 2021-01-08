@@ -160,14 +160,14 @@ namespace plumbus
     }
 }
 
-bool IsKeyDown(plumbus::KeyCode keyCode)
+bool IsKeyDown(int keyCode)
 {
-    return plumbus::Input::IsKeyDown(keyCode);
+    return plumbus::Input::IsKeyDown(static_cast<plumbus::KeyCode>(keyCode));
 }
 
-bool IsKeyUp(plumbus::KeyCode keyCode)
+bool IsKeyUp(int keyCode)
 {
-    return plumbus::Input::IsKeyUp(keyCode);
+    return plumbus::Input::IsKeyUp(static_cast<plumbus::KeyCode>(keyCode));
 }
 
 bool IsMouseButtonDown(int button)

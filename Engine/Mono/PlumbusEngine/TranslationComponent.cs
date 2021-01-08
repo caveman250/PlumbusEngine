@@ -11,76 +11,76 @@ namespace PlumbusEngineMono
         {
         }
 
-        [DllImport("__Internal", EntryPoint = "GetTranslation", CallingConvention = CallingConvention.Cdecl)]
-        private static extern vec3 GetTranslation(UInt64 nativeObject);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_GetTranslation", CallingConvention = CallingConvention.Cdecl)]
+        private static extern vec3 TranslationComponent_GetTranslation(UInt64 nativeObject);
 
         public vec3 GetTranslation()
         {
-            return GetTranslation(m_NativeObject);
+            return TranslationComponent_GetTranslation(m_NativeObject);
         }
 
-        [DllImport("__Internal", EntryPoint = "GetRotation", CallingConvention = CallingConvention.Cdecl)]
-        private static extern vec3 GetRotation(UInt64 nativeObject);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_GetRotation", CallingConvention = CallingConvention.Cdecl)]
+        private static extern vec3 TranslationComponent_GetRotation(UInt64 nativeObject);
 
         public vec3 GetRotation()
         {
-            return GetRotation(m_NativeObject);
+            return TranslationComponent_GetRotation(m_NativeObject);
         }
 
-        [DllImport("__Internal", EntryPoint = "GetScale", CallingConvention = CallingConvention.Cdecl)]
-        private static extern vec3 GetScale(UInt64 nativeObject);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_GetScale", CallingConvention = CallingConvention.Cdecl)]
+        private static extern vec3 TranslationComponent_GetScale(UInt64 nativeObject);
 
         public vec3 GetScale()
         {
-            return GetScale(m_NativeObject);
+            return TranslationComponent_GetScale(m_NativeObject);
         }
 
-        [DllImport("__Internal", EntryPoint = "SetTranslation", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void SetTranslation(UInt64 nativeObject, vec3 translation);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_SetTranslation", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TranslationComponent_SetTranslation(UInt64 nativeObject, vec3 translation);
 
         public void SetTranslation(vec3 translation)
         {
-            SetTranslation(m_NativeObject, translation);
+	        TranslationComponent_SetTranslation(m_NativeObject, translation);
         }
 
-        [DllImport("__Internal", EntryPoint = "SetRotation", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void SetRotation(UInt64 nativeObject, vec3 rotation);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_SetRotation", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TranslationComponent_SetRotation(UInt64 nativeObject, vec3 rotation);
 
         public void SetRotation(vec3 rotation)
         {
-            SetRotation(m_NativeObject, rotation);
+	        TranslationComponent_SetRotation(m_NativeObject, rotation);
         }
 
-        [DllImport("__Internal", EntryPoint = "SetScale", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void SetScale(UInt64 nativeObject, vec3 scale);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_SetScale", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TranslationComponent_SetScale(UInt64 nativeObject, vec3 scale);
 
         public void SetScale(vec3 scale)
         {
-            SetScale(m_NativeObject, scale);
+	        TranslationComponent_SetScale(m_NativeObject, scale);
         }
 
-        [DllImport("__Internal", EntryPoint = "Translate", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Translate(UInt64 nativeObject, vec3 translation);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_Translate", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TranslationComponent_Translate(UInt64 nativeObject, vec3 translation);
 
         public void Translate(vec3 translation)
         {
-            Translate(m_NativeObject, translation);
+	        TranslationComponent_Translate(m_NativeObject, translation);
         }
 
-        [DllImport("__Internal", EntryPoint = "Rotate", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Rotate(UInt64 nativeObject, vec3 rotation);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_Rotate", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TranslationComponent_Rotate(UInt64 nativeObject, vec3 rotation);
 
         public void Rotate(vec3 rotation)
         {
-            Rotate(m_NativeObject, rotation);
+	        TranslationComponent_Rotate(m_NativeObject, rotation);
         }
 
-        [DllImport("__Internal", EntryPoint = "Scale", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Scale(UInt64 nativeObject, vec3 scale);
+        [DllImport("__Internal", EntryPoint = "TranslationComponent_Scale", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TranslationComponent_Scale(UInt64 nativeObject, vec3 scale);
 
         public void Scale(vec3 scale)
         {
-            Scale(m_NativeObject, scale);
+	        TranslationComponent_Scale(m_NativeObject, scale);
         }
     }
 }

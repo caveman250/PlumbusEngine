@@ -37,12 +37,12 @@ namespace plumbus::components
 
 #include "mono_impl/mono_fwd.h"
 
-MONO_EXPORT(mono_vec3) GetTranslation(uint64_t obj);
-MONO_EXPORT(mono_vec3) GetRotation(uint64_t obj);
-MONO_EXPORT(mono_vec3) GetScale(uint64_t obj);
-MONO_EXPORT(void) SetTranslation(uint64_t obj, mono_vec3 translation);
-MONO_EXPORT(void) SetRotation(uint64_t obj, mono_vec3 rotation);
-MONO_EXPORT(void) SetScale(uint64_t obj, mono_vec3 scale);
-MONO_EXPORT(void) Translate(uint64_t obj, mono_vec3 translation);
-MONO_EXPORT(void) Rotate(uint64_t obj, mono_vec3 rotation);
-MONO_EXPORT(void) Scale(uint64_t obj, mono_vec3 scale);
+MONO_EXPORT(mono_vec3) TranslationComponent_GetTranslation(uint64_t obj);
+MONO_EXPORT(mono_vec3) TranslationComponent_GetRotation(uint64_t obj);
+MONO_EXPORT(mono_vec3) TranslationComponent_GetScale(uint64_t obj);
+MONO_EXPORT(void) TranslationComponent_SetTranslation(uint64_t obj, mono_vec3 translation);
+MONO_EXPORT(void) TranslationComponent_SetRotation(uint64_t obj, mono_vec3 rotation);
+MONO_EXPORT(void) TranslationComponent_SetScale(uint64_t obj, mono_vec3 scale);
+MONO_EXPORT(void) TranslationComponent_Translate(uint64_t obj, mono_vec3 translation);
+MONO_EXPORT(void) TranslationComponent_Rotate(uint64_t obj, mono_vec3 rotation);
+MONO_EXPORT(void) TranslationComponent_Scale(uint64_t obj, mono_vec3 scale);

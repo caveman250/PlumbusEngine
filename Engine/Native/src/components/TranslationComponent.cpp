@@ -65,55 +65,55 @@ namespace plumbus::components
 }
 
 #include "GameObject.h"
-mono_vec3 GetTranslation(uint64_t obj)
+mono_vec3 TranslationComponent_GetTranslation(uint64_t obj)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     return objPtr->GetTranslation();
 }
 
-mono_vec3 GetRotation(uint64_t obj)
+mono_vec3 TranslationComponent_GetRotation(uint64_t obj)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     return objPtr->GetRotation();
 }
 
-mono_vec3 GetScale(uint64_t obj)
+mono_vec3 TranslationComponent_GetScale(uint64_t obj)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     return objPtr->GetScale();
 }
 
-void SetTranslation(uint64_t obj, mono_vec3 translation)
+void TranslationComponent_SetTranslation(uint64_t obj, mono_vec3 translation)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     objPtr->SetTranslation({ translation.x, translation.y, translation.z });
 }
 
-void SetRotation(uint64_t obj, mono_vec3 rotation)
+void TranslationComponent_SetRotation(uint64_t obj, mono_vec3 rotation)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     objPtr->SetRotation({ rotation.x, rotation.y, rotation.z });
 }
 
-void SetScale(uint64_t obj, mono_vec3 scale)
+void TranslationComponent_SetScale(uint64_t obj, mono_vec3 scale)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     objPtr->SetScale({ scale.x, scale.y, scale.z });
 }
 
-void Translate(uint64_t obj, mono_vec3 translation)
+void TranslationComponent_Translate(uint64_t obj, mono_vec3 translation)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     objPtr->Translate({ translation.x, translation.y, translation.z });
 }
 
-void Rotate(uint64_t obj, mono_vec3 rotation)
+void TranslationComponent_Rotate(uint64_t obj, mono_vec3 rotation)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     objPtr->Rotate({ rotation.x, rotation.y, rotation.z });
 }
 
-void Scale(uint64_t obj, mono_vec3 scale)
+void TranslationComponent_Scale(uint64_t obj, mono_vec3 scale)
 {
     plumbus::components::TranslationComponent* objPtr = reinterpret_cast<plumbus::components::TranslationComponent*>(obj);
     objPtr->Scale({ scale.x, scale.y, scale.z });

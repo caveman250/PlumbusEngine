@@ -141,8 +141,8 @@ namespace plumbus
     };
 }
 
-MONO_EXPORT(bool) IsKeyDown(plumbus::KeyCode keyCode);
-MONO_EXPORT(bool) IsKeyUp(plumbus::KeyCode keyCode);
+MONO_EXPORT(bool) IsKeyDown(int keyCode);
+MONO_EXPORT(bool) IsKeyUp(int keyCode);
 MONO_EXPORT(bool) IsMouseButtonDown(int button);
 MONO_EXPORT(bool) IsMouseButtonUp(int button);
 MONO_EXPORT(mono_vec2) GetMousePos();
