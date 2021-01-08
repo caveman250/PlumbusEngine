@@ -10,6 +10,8 @@
 #include "renderer/vk/Material.h"
 #include "renderer/vk/VulkanRenderer.h"
 
+#include "platform/Input.h"
+
 namespace plumbus::tester::tests
 {
 	Scripts::Scripts()

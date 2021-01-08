@@ -125,7 +125,7 @@ project(${NAME})
     source_group("src/imgui" FILES ${IMGUI})
 
 #### OUTPUT FILES ####
-    add_library(${NAME} STATIC ${SOURCE} ${IMGUI})
+    add_library(${NAME} SHARED ${SOURCE} ${IMGUI})
 
 #### DEPENDENCIES ####
 add_dependencies(${NAME} PlumbusEngineMono)

@@ -132,12 +132,12 @@ namespace PlumbusEngineMono
 		    COUNT = Menu
 	    };
 
-        [DllImport("__Internal", EntryPoint = "IsKeyDown", CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool IsKeyDown(Input.KeyCode keyCode);
-        //public static bool IsKeyDown(KeyCode key)
-        //{
-	       // return Input_IsKeyDown(key);
-        //}
+        [DllImport("__Internal", EntryPoint = "Input_IsKeyDown", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool Input_IsKeyDown(Input.KeyCode keyCode);
+        public static bool IsKeyDown(KeyCode key)
+        {
+	        return Input_IsKeyDown(key);
+        }
 
         [DllImport("__Internal", EntryPoint = "Input_IsKeyUp", CallingConvention = CallingConvention.Cdecl)]
         private static extern bool Input_IsKeyUp(int keyCode);

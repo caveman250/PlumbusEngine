@@ -45,6 +45,11 @@ namespace plumbus
 		ImGui::Text("Camera:");
 		ImGui::DragFloat3("Rotation", (float*)&m_Rotation);
 	}
+
+    glm::vec3 Camera::GetForward()
+    {
+        return glm::vec3(m_ViewMatrix[0][2], m_ViewMatrix[1][2], m_ViewMatrix[2][2]);
+    }
 }
 
 mono_mat4 Camera_GetViewMatrix()
@@ -91,4 +96,9 @@ void Camera_SetPosition(mono_vec3 pos)
 void Camera_SetRotation(mono_vec3 rot)
 {
 	plumbus::tester::Application::Get().GetScene()->GetCamera()->SetRotation({rot.x, rot.y, rot.z});
+}
+
+mono_vec3 Camera_GetForward()
+{
+    return plumbus::tester::Application::Get().GetScene()->GetCamera()->GetForward();
 }

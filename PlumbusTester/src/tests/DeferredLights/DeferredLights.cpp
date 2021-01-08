@@ -44,7 +44,7 @@ namespace plumbus::tester::tests
 		if (Camera* camera = scene->GetCamera())
 		{
 			camera->SetPosition(glm::vec3(0.f, 11.f, -35.f));
-			camera->SetRotation(glm::vec3(-15.f, 0.f, 0.0f));
+			camera->SetRotation(glm::vec3(-10.f, 0.f, 0.0f));
 		}
 
 		GameObject* plane = new GameObject("plane");

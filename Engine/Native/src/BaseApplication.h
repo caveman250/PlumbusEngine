@@ -57,3 +57,5 @@ namespace plumbus
 		m_Scene = new T();
 	}
 }
+
+MONO_EXPORT(double) Application_GetDeltaTime();

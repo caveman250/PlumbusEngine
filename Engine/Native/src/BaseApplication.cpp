@@ -65,7 +65,6 @@ namespace plumbus
         {
 #if !PL_PLATFORM_ANDROID
             glfwPollEvents();
-
             double currTime = glfwGetTime();
 #else
             double currTime = now_seconds();
@@ -103,4 +102,9 @@ namespace plumbus
     {
         return !m_Scene || !m_Scene->IsInitialised();
     }
+}
+
+double Application_GetDeltaTime()
+{
+    return plumbus::BaseApplication::Get().GetDeltaTime();
 }

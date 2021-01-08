@@ -160,27 +160,27 @@ namespace plumbus
     }
 }
 
-bool IsKeyDown(int keyCode)
+bool Input_IsKeyDown(int keyCode)
 {
     return plumbus::Input::IsKeyDown(static_cast<plumbus::KeyCode>(keyCode));
 }
 
-bool IsKeyUp(int keyCode)
+bool Input_IsKeyUp(int keyCode)
 {
     return plumbus::Input::IsKeyUp(static_cast<plumbus::KeyCode>(keyCode));
 }
 
-bool IsMouseButtonDown(int button)
+bool Input_IsMouseButtonDown(int button)
 {
     return plumbus::Input::IsMouseButtonDown(button);
 }
 
-bool IsMouseButtonUp(int button)
+bool Input_IsMouseButtonUp(int button)
 {
     return plumbus::Input::IsMouseButtonUp(button);
 }
 
-mono_vec2 GetMousePos()
+mono_vec2 Input_GetMousePos()
 {
     return plumbus::Input::GetMousePos();
 }
