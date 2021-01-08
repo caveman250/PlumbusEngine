@@ -820,12 +820,17 @@ namespace plumbus::vk
         {
             "VK_LAYER_LUNARG_core_validation",
         };
-#else
+#elif PL_PLATFORM_OSX
 		return 		
 		{
-		    "VK_LAYER_KHRONOS_validation",
-            "VK_LAYER_RENDERDOC_Capture"
+		    "VK_LAYER_KHRONOS_validation"
 		};
+#else
+        return
+        {
+            "VK_LAYER_KHRONOS_validation",
+            "VK_LAYER_RENDERDOC_Capture"
+        };
 #endif
 #else   
         return 		

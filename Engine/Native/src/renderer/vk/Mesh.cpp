@@ -217,22 +217,22 @@ namespace plumbus::vk
             {
                 const aiMesh* paiMesh = scene->mMeshes[i];
 
-				aiString diffusePath;
-				scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_DIFFUSE, 0, diffusePath);
-				aiString normalPath;
-				scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_NORMALS, 0, normalPath);
+                aiString diffusePath;
+                aiReturn hasDiffuse = scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_DIFFUSE, 0, diffusePath);
+                aiString normalPath;
+                aiReturn hasNormal = scene->mMaterials[paiMesh->mMaterialIndex]->Get(_AI_MATKEY_TEXTURE_BASE, aiTextureType_NORMALS, 0, normalPath);
 
-				if (diffusePath.length == 0)
-				{
+                if (hasDiffuse != AI_SUCCESS)
+                {
                     Log::Warn("No diffuse texture defined for submesh: %i, in file: %s", i, fileName.c_str());
-					diffusePath = defaultDiffuseTexture + Platform::GetTextureExtension();
-				}
+                    diffusePath = defaultDiffuseTexture + Platform::GetTextureExtension();
+                }
 
-				if (normalPath.length == 0)
-				{
+                if (hasNormal != AI_SUCCESS)
+                {
                     Log::Warn("No normal texture defined for submesh: %i, in file: %s", i, fileName.c_str());
                     normalPath = defaultNormalTexture + Platform::GetTextureExtension();
-				}
+                }
 
                 vk::Mesh* newModel = new vk::Mesh();
 
