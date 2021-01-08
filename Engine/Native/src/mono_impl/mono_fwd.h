@@ -19,6 +19,15 @@ namespace plumbus::mono
 }
 
 #include <glm/vec3.hpp>
+struct mono_vec2
+{
+    mono_vec2(const glm::vec2& vec)
+            : x(std::move(vec.x))
+            , y(std::move(vec.y))
+    {}
+    float x; float y;
+};
+
 struct mono_vec3
 {
 	mono_vec3(const glm::vec3& vec)

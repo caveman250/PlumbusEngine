@@ -5,6 +5,7 @@
 #include "renderer/vk/VulkanRenderer.h"
 #include "renderer/vk/Window.h"
 #include <glm/gtx/rotate_vector.hpp>
+#include "platform/Input.h"
 
 namespace plumbus
 {
@@ -17,7 +18,7 @@ namespace plumbus
 
 	void Camera::OnUpdate()
 	{
-		glm::vec2 mousePos = BaseApplication::Get().GetRenderer()->GetWindow()->GetMousePos();
+		glm::vec2 mousePos = Input::GetMousePos();
 		double dx = m_MousePos.x - mousePos.x;
 		double dy = m_MousePos.y - mousePos.y;
 		m_MousePos = mousePos;
@@ -31,7 +32,7 @@ namespace plumbus
 #endif
 
 #if !PL_PLATFORM_ANDROID //TODO
-		bool mouseDown = glfwGetMouseButton(renderer->GetWindow()->GetWindow(), GLFW_MOUSE_BUTTON_1);
+		bool mouseDown = Input::IsMouseButtonDown(0);
 		if (focused && mouseDown)
 		{
 			m_Rotation += glm::vec3(dy * 1.0f, -dx * 1.0f, 0.0f);
@@ -48,19 +49,19 @@ namespace plumbus
 		rotM = rotMX * rotMZ * rotMY;
 		glm::vec3 forward(rotM[0][2], rotM[1][2], rotM[2][2]);
 #if !PL_PLATFORM_ANDROID
-		if (glfwGetKey(renderer->GetWindow()->GetWindow(), GLFW_KEY_W))
+		if (Input::IsKeyDown(KeyCode::W))
 		{
 			m_Position += forward * deltaTime * 20.f;
 		}
-		if (glfwGetKey(renderer->GetWindow()->GetWindow(), GLFW_KEY_S))
+		if (Input::IsKeyDown(KeyCode::S))
 		{
 			m_Position -= forward * deltaTime * 20.f;
 		}
-		if (glfwGetKey(renderer->GetWindow()->GetWindow(), GLFW_KEY_A))
+		if (Input::IsKeyDown(KeyCode::A))
 		{
 			m_Position -= glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 20.f;
 		}
-		if (glfwGetKey(renderer->GetWindow()->GetWindow(), GLFW_KEY_D))
+		if (Input::IsKeyDown(KeyCode::D))
 		{
 			m_Position += glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f))) * deltaTime * 20.f;
 		}

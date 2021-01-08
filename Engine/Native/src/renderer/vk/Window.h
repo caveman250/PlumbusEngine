@@ -13,9 +13,6 @@ namespace plumbus::vk
 		void CreateSurface();
 		void Destroy();
 
-		glm::vec2 GetMousePos();
-		bool IsKeyDown(const int key);
-
 		uint32_t GetWidth();
 		uint32_t GetHeight();
 		bool ShouldClose();

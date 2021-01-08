@@ -59,18 +59,6 @@ namespace plumbus::vk
 #endif
 	}
 
-	glm::vec2 Window::GetMousePos()
-	{
-#if !PL_PLATFORM_ANDROID
-		double xpos, ypos;
-		glfwGetCursorPos(m_Window, &xpos, &ypos);
-
-		return glm::vec2(xpos * m_ContentScaleX, ypos * m_ContentScaleY);
-#else
-		return glm::vec2(0, 0);
-#endif
-	}
-
 	uint32_t Window::GetWidth()
 	{
 #if !PL_PLATFORM_ANDROID
@@ -101,15 +89,5 @@ namespace plumbus::vk
 		return false;
 #endif
 	}
-
-	bool Window::IsKeyDown(const int key)
-	{
-#if !PL_PLATFORM_ANDROID
-		return glfwGetKey(GetWindow(), key);
-#else
-		return false;
-#endif
-	}
-
 }
 

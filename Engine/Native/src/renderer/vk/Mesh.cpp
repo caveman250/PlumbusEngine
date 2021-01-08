@@ -18,7 +18,7 @@
 #if PL_PLATFORM_ANDROID
 #include "platform/android/Platform.h"
 #else
-#include "platform/windows/Platform.h"
+#include "platform/Platform.h"
 #endif
 
 namespace plumbus::vk

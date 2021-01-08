@@ -14,6 +14,11 @@ namespace PlumbusTesterMono
         void Update()
         {
             GetGameObject().GetComponent<TranslationComponent>().Rotate(new vec3(0.0f, 0.001f, 0.0f));
+
+            if (Input.IsKeyDown(0))
+            {
+                Console.WriteLine("lol");
+            }
         }
     }
 }

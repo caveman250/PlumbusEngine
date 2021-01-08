@@ -5,7 +5,7 @@
 #include "platform/android/Platform.h"
 #include <android/log.h>
 #else
-#include "platform/windows/Platform.h"
+#include "platform/Platform.h"
 #endif
 
 std::string ErrorString(VkResult errorCode)
